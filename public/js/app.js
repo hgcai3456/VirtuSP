@@ -57,8 +57,10 @@ let list = [],
   listening = false,
   micRestartTimer = null,
   repView = "summary",
+  wordingPending = false,
   expandedDocId = "",
   voiceDisplay = { state: "ready", text: "Ready for your question" };
+const wordingTried = new Set();
 const formMemory = {
   handoff: "",
   careplan: "",
@@ -648,40 +650,73 @@ function progress() {
 }
 function findingsView(a, c) {
   const f = c.findings;
-  const tag = (o) =>
-    o ? ` <span class="chip">Objective: ${esc(o)}</span>` : "";
-  const elicited = f.elicited.length
-    ? f.elicited
-        .map(
-          (x) =>
-            `<li>${esc(x.label)} <span class="muted">· ${x.source === "chart" ? "from the chart" : x.turn ? "question " + x.turn : "from the patient"}</span>${tag(x.objective)}${evidence(x.evidence)}</li>`,
-        )
-        .join("")
-    : '<li class="muted">No findings were elicited.</li>';
-  const missed = f.missed.length
-    ? f.missed
-        .map(
-          (x) =>
-            `<li>${esc(x.topic)} <span class="muted">· ${x.source === "chart" ? "in the chart" + (x.section ? " (" + esc(x.section) + ")" : "") : x.heldBack ? "asked, but the patient held it back" : "not asked"}</span>${tag(x.objective)}${x.evidence.length ? evidence(x.evidence) : ""}</li>`,
-        )
-        .join("")
-    : '<li class="ok">Every authored finding was reached.</li>';
+  const dash = '<span class="muted">–</span>';
+  const objectives = a.objectives
+    .map((o) => {
+      const pct = Math.round(o.credit * 100);
+      return `<tr><td><b>${esc(o.title)}</b></td><td><div class="progress"><div class="meter" role="img" aria-label="${pct}% complete"><i style="width:${pct}%"></i></div><span>${o.earned}/${o.weight}</span></div></td><td>${turnLinks(o.evidence)}</td><td>${o.credit < 1 && o.next ? esc(o.next) : o.credit >= 1 ? '<span class="ok">Complete</span>' : dash}</td></tr>`;
+    })
+    .join("");
+  const elicited = f.elicited
+    .map(
+      (x) =>
+        `<tr><td>${esc(x.label)}</td><td>${x.source === "chart" ? "Chart" : x.turn ? `<a class="turn-link" href="#turn-${x.turn}">Q${x.turn}</a>` : "Patient"}</td><td>${x.objective ? esc(x.objective) : dash}</td></tr>`,
+    )
+    .join("");
+  const missed = f.missed
+    .map(
+      (x) =>
+        `<tr><td>${esc(x.topic)}</td><td>${x.source === "chart" ? "In the chart" + (x.section ? " · " + esc(x.section) : "") : x.heldBack ? `Asked, but the patient held it back ${turnLinks(x.evidence)}` : "Not asked"}</td><td>${x.objective ? esc(x.objective) : dash}</td></tr>`,
+    )
+    .join("");
   const reports = f.reports.length
-    ? `<h3>Reports</h3><ul class="plain">${f.reports.map((r) => `<li>${esc(r.title)} <span class="muted">· ${esc(r.section)} · ${esc(r.status)}</span></li>`).join("")}</ul>`
+    ? `<h3>Reports</h3><div class="sc"><table class="fb-table"><thead><tr><th>Report</th><th>Chart section</th><th>Status</th></tr></thead><tbody>${f.reports.map((r) => `<tr><td>${esc(r.title)}</td><td>${esc(r.section)}</td><td>${esc(r.status)}</td></tr>`).join("")}</tbody></table></div>`
     : "";
-  return `<h2>Learning objectives${c.objectivePercent == null ? "" : ` · ${c.objectivePercent}% complete`}</h2>${!a.objectives.length ? '<p class="muted">No case-specific objectives authored. See your standard rubric assessment.</p>' : ""}${a.objectives.map((o) => `<article class="obj-card"><h3>${esc(o.title)} · ${o.earned}/${o.weight}</h3><div class="meter" role="img" aria-label="${Math.round(o.credit * 100)}% complete"><i style="width:${Math.round(o.credit * 100)}%"></i></div>${o.credit < 1 && o.next ? `<p>Next attempt: ${esc(o.next)}</p>` : ""}${evidence(o.evidence)}</article>`).join("")}
-  <h2>Findings · ${f.elicited.length} of ${f.total} reached</h2><p class="muted">Findings you did not reach are named by topic only, so the next attempt is still yours to work out.</p>
-  <div class="fb-grid"><section class="obj-card"><h3>Elicited</h3><ul class="plain">${elicited}</ul></section><section class="obj-card"><h3>Not reached</h3><ul class="plain">${missed}</ul>${reports}</section></div>`;
+  return `<h2>Learning objectives${c.objectivePercent == null ? "" : ` · ${c.objectivePercent}% complete`}</h2>
+  ${!a.objectives.length ? '<p class="muted">No case-specific objectives authored. See your standard rubric assessment.</p>' : ""}<div class="sc"><table class="fb-table objectives"><thead><tr><th>Objective</th><th>Progress</th><th>Where</th><th>Next attempt</th></tr></thead><tbody>${objectives}</tbody></table></div>
+  <h2>Findings · ${f.elicited.length} of ${f.total} reached</h2>
+  <h3>Elicited</h3><div class="sc"><table class="fb-table findings"><thead><tr><th>Finding</th><th>Where</th><th>Objective</th></tr></thead><tbody>${elicited || `<tr><td colspan="3" class="muted">No findings were elicited.</td></tr>`}</tbody></table></div>
+  <h3>Not reached</h3><p class="muted">Named by topic only, so the next attempt is still yours to work out.</p><div class="sc"><table class="fb-table findings"><thead><tr><th>Topic</th><th>Status</th><th>Objective</th></tr></thead><tbody>${missed || `<tr><td colspan="3" class="ok">Every authored finding was reached.</td></tr>`}</tbody></table></div>
+  ${reports}`;
+}
+// Question numbers an evidence list refers to, as links into the transcript table.
+function turnLinks(ids) {
+  const turns = turnIndex();
+  const numbers = [...new Set((ids || []).map((id) => turns.get(id)))]
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+  return numbers.length
+    ? numbers
+        .map((n) => `<a class="turn-link" href="#turn-${n}">Q${n}</a>`)
+        .join(" ")
+    : '<span class="muted">–</span>';
 }
 function flowView(a, c) {
   const marks = { strength: "Went well", improve: "To improve", note: "Note" };
-  const observations = c.flow.observations
+  // The aspect of the interview each observation is about.
+  const area = (text) =>
+    /held back|not ready to share/.test(text)
+      ? "Sensitive topic"
+      : /first question/.test(text)
+        ? "Opening"
+        : /open-ended/.test(text)
+          ? "Open questions"
+          : /judgmental/.test(text)
+            ? "Wording"
+            : /perspective|feelings/.test(text)
+              ? "Empathy"
+              : /chart/.test(text)
+                ? "Chart review"
+                : /new finding/.test(text)
+                  ? "Efficiency"
+                  : "Interview";
+  const rows = c.flow.observations
     .map(
       (o) =>
-        `<li class="obs ${o.kind}"><b>${marks[o.kind]}</b> ${esc(o.text)}${o.evidence.length ? evidence(o.evidence) : ""}</li>`,
+        `<tr><td><b>${area(o.text)}</b></td><td><span class="chip status-${o.kind}">${marks[o.kind]}</span></td><td>${esc(o.text)}</td><td>${turnLinks(o.evidence)}</td></tr>`,
     )
     .join("");
-  return `${rewritesView(c)}<h2>How the interview went</h2><p class="muted">${esc(c.notice)}</p><section class="obj-card"><ul class="plain">${observations}</ul></section>${transcriptView(a, c)}`;
+  return `${rewritesView(c)}<h2>How the interview went</h2><p class="muted">${esc(c.notice)}</p><div class="sc"><table class="fb-table"><thead><tr><th>Area</th><th>Result</th><th>What was observed</th><th>Where</th></tr></thead><tbody>${rows}</tbody></table></div>${transcriptView(a, c)}`;
 }
 function caseRubricView(r) {
   if (!r) return "";
@@ -708,7 +743,7 @@ function rubricView(a) {
     ? `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p><p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
     : "";
   return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2>${intro}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section>
-  <h2>Evidence from the encounter</h2>${["strengths", "gaps", "concerns"].map((k) => `<h3>${esc(fields[k])}</h3>${a[k].length ? a[k].map((n) => `<p>${esc(n.text)}</p>${evidence(n.evidence)}`).join("") : '<p class="muted">None identified by this assessment.</p>'}`).join("")}
+  <h2>Evidence from the encounter</h2><div class="sc"><table class="fb-table evidence-notes"><thead><tr><th>Type</th><th>Note</th><th>Where</th></tr></thead><tbody>${["strengths", "gaps", "concerns"].map((k) => (a[k].length ? a[k].map((n, i) => `<tr>${i === 0 ? `<td rowspan="${a[k].length}"><span class="chip status-${k === "strengths" ? "strength" : "improve"}">${esc(fields[k])}</span></td>` : ""}<td>${esc(n.text)}</td><td>${turnLinks(n.evidence)}</td></tr>`).join("") : `<tr><td><span class="chip">${esc(fields[k])}</span></td><td class="muted">None identified by this assessment.</td><td><span class="muted">–</span></td></tr>`)).join("")}</tbody></table></div>
   ${caseRubricView(a.caseRubric)}`;
 }
 function summaryView(a, c) {
@@ -842,11 +877,43 @@ function evidence(ids) {
   }</details>`;
 }
 function rewritesView(c) {
+  if (wordingPending)
+    return `<section class="obj-card"><h2>Try wording it this way</h2><p class="muted">Preparing wording suggestions for this visit…</p></section>`;
   if (!c.rewrites?.length)
     return c.rewriteFailure
       ? `<p class="muted">Wording suggestions were unavailable for this attempt.</p>`
       : "";
-  return `<section class="obj-card"><h2>Try wording it this way</h2><p class="muted">Model suggestions for questions you actually asked${c.rewriteModel ? " · " + esc(c.rewriteModel) : ""}. They change wording only and are not part of any rating.</p><ul class="plain">${c.rewrites.map((r) => `<li><div class="muted">Question ${r.turn} · ${esc(r.issue)}</div><div class="reword"><div><b>You asked</b> ${esc(r.question)}</div><div><b>Instead</b> ${esc(r.rewrite)}</div></div><div class="muted">${esc(r.why)} <a class="turn-link" href="#turn-${r.turn}">Show in transcript</a></div></li>`).join("")}</ul></section>`;
+  // Older saved visits stored the reason in other fields.
+  const reason = (r) =>
+    r.reason ||
+    (r.reasoning ? r.reasoning.asked + " " + r.reasoning.better : r.why || "");
+  return `<section class="obj-card"><h2>Try wording it this way</h2><p class="muted">Model suggestions for questions you actually asked. They change wording only and are not part of any rating.</p><ul class="plain">${c.rewrites.map((r) => `<li><div class="muted">Question ${r.turn} · ${esc(r.issue)} <a class="turn-link" href="#turn-${r.turn}">Show in transcript</a></div><div class="reword"><div><b>You asked</b><span>${esc(r.question)}</span></div><div><b>Instead</b><span>${esc(r.rewrite)}</span></div>${reason(r) ? `<div><b>Why</b><span>${esc(reason(r))}</span></div>` : ""}</div></li>`).join("")}</ul></section>`;
+}
+// A visit finished before wording suggestions (or their reasons) existed gets
+// them once, the first time its feedback is opened with a model available.
+async function ensureWording() {
+  const c = enc?.assessment?.coaching;
+  if (
+    !c ||
+    wordingPending ||
+    health.dialogue === "local" ||
+    wordingTried.has(enc.id) ||
+    (c.wordingAt && (c.rewrites || []).every((r) => r.reason))
+  )
+    return;
+  const id = enc.id;
+  wordingTried.add(id);
+  wordingPending = true;
+  render();
+  try {
+    const r = await api(`/api/encounters/${id}/coaching`, "POST", {});
+    if (enc?.id === id) enc = r.encounter;
+  } catch {
+    // The visit keeps whatever feedback it already had.
+  } finally {
+    wordingPending = false;
+    render();
+  }
 }
 function transcriptView(a, c) {
   const turns = turnIndex();
@@ -863,45 +930,57 @@ function transcriptView(a, c) {
   for (const d of a.domains)
     cite(
       d.evidence,
-      `${d.domain}. ${d.name}${d.score === null ? "" : " · " + d.score + "/4"}`,
+      `${d.domain}. ${d.name}${d.score === null ? "" : " (" + d.score + "/4)"}`,
     );
-  for (const s of a.strengths) cite(s.evidence, "Strength");
-  for (const g of a.gaps) cite(g.evidence, "Missed opportunity");
-  for (const x of a.concerns) cite(x.evidence, "Concern");
+  const notes = new Map();
+  const noteOn = (items, kind, label) => {
+    for (const item of items)
+      for (const id of item.evidence || []) {
+        const n = turns.get(id);
+        if (!n) continue;
+        if (!notes.has(n)) notes.set(n, []);
+        if (!notes.get(n).some((x) => x.text === item.text))
+          notes.get(n).push({ kind, label, text: item.text });
+      }
+  };
+  noteOn(a.strengths, "strength", "Strength");
+  noteOn(a.gaps, "improve", "Missed opportunity");
+  noteOn(a.concerns, "improve", "Concern");
   const steps = new Map(
     (c?.flow.steps || [])
       .filter((s) => s.kind === "question")
       .map((s) => [s.eventId, s]),
   );
+  // Pair each question with the patient's reply that followed it.
+  const rows = [];
   let n = 0;
-  const rows = enc.transcript
-    .map((t) => {
-      if (t.role !== "student")
-        return `<div class="bubble patient"><b>${esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p></div>`;
-      n++;
-      const s = steps.get(t.id);
-      const tags = s
-        ? [
-            s.open && "open question",
-            s.empathy && "acknowledged perspective",
-            s.judgmental && "judgmental wording",
-          ].filter(Boolean)
-        : [];
-      const result = !s
-        ? ""
-        : s.gained.length
-          ? `<span class="ok">New: ${s.gained.map(esc).join("; ")}</span>`
-          : s.heldBack
-            ? "The patient held this back"
-            : "No new finding";
-      const credit = s?.credited.length
-        ? ` · counts toward: ${s.credited.map(esc).join("; ")}`
-        : "";
-      const refs = [...(cited.get(n) || [])];
-      return `<div class="turn" id="turn-${n}"><div class="bubble student"><b>Question ${n}</b><p>${esc(t.text)}</p></div><div class="turn-notes">${tags.map((x) => `<span class="chip">${x}</span>`).join(" ")} <span class="muted">${result}${credit}</span>${refs.length ? `<div class="muted">Cited in: ${refs.map(esc).join(" · ")}</div>` : ""}</div></div>`;
-    })
-    .join("");
-  return `<h2>Annotated transcript</h2><p class="muted">Every question with what it achieved and where the feedback above refers to it. Question tags come from automated classification.</p><section class="obj-card annotated">${rows}</section>`;
+  enc.transcript.forEach((t, i) => {
+    if (t.role !== "student") return;
+    n++;
+    const reply = enc.transcript[i + 1];
+    const s = steps.get(t.id);
+    const tags = s
+      ? [
+          s.open && "open question",
+          s.empathy && "acknowledged perspective",
+          s.judgmental && "judgmental wording",
+        ].filter(Boolean)
+      : [];
+    const result = !s
+      ? ""
+      : s.gained.length
+        ? `<span class="ok">New: ${s.gained.map(esc).join("; ")}</span>`
+        : s.heldBack
+          ? "The patient held this back"
+          : '<span class="muted">No new finding</span>';
+    // Visits completed before objective credit was recorded have no such field.
+    const credited = s?.credited || [];
+    const refs = [...(cited.get(n) || [])];
+    rows.push(
+      `<tr class="turn" id="turn-${n}"><td><div class="exchange"><b>Q${n} · You</b><span>${esc(t.text)}${tags.length ? `<div>${tags.map((x) => `<span class="chip">${x}</span>`).join(" ")}</div>` : ""}</span><b>${esc(enc.name.split(" ")[0])}</b><span>${reply?.role === "patient" ? esc(reply.text) : '<span class="muted">–</span>'}</span></div></td><td>${result}${credited.length ? `<div class="muted">Counts toward: ${credited.map(esc).join("; ")}</div>` : ""}</td><td>${refs.length ? `<div class="cite-group"><b>Rubric domains</b>${refs.map((r) => `<div>${esc(r)}</div>`).join("")}</div>` : ""}${(notes.get(n) || []).map((x) => `<div class="cite-note"><span class="chip status-${x.kind}">${x.label}</span> ${esc(x.text)}</div>`).join("")}${refs.length || notes.get(n)?.length ? "" : '<span class="muted">–</span>'}</td></tr>`,
+    );
+  });
+  return `<h2>Annotated transcript</h2><p class="muted">Each question, the reply, what it achieved and where the feedback refers to it. Question tags come from automated classification.</p><div class="sc"><table class="fb-table annotated"><thead><tr><th>Question and reply</th><th>What it achieved</th><th>Cited in feedback</th></tr></thead><tbody>${rows.join("") || '<tr><td colspan="3" class="muted">No questions were asked.</td></tr>'}</tbody></table></div>`;
 }
 function past() {
   return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
@@ -1701,7 +1780,10 @@ document.addEventListener("click", async (e) => {
       $(".cited-event")?.scrollIntoView?.({ block: "center" });
       return;
     }
-    if (a === "rep-view") repView = t.dataset.view;
+    if (a === "rep-view") {
+      repView = t.dataset.view;
+      if (repView === "interview") ensureWording();
+    }
     if (a === "nav") {
       if (tab === "studio" && dirty) await save();
       stopAudio();

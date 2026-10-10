@@ -306,3 +306,66 @@ test("A missing action may be worded naturally but must still be stated", () => 
     /Missing actions must be stated explicitly/,
   );
 });
+test("A rewording keeps its reason only when the reason is sound", () => {
+  const { validRewrites } = require("../lib/feedback");
+  const candidates = [
+    { eventId: "E1", turn: 1, question: "Are you tired?", issue: "Narrow." },
+  ];
+  const base = { id: "E1", rewrite: "What brings you in today?" };
+  const reason =
+    "A yes-or-no question limits the answer to one word. An open invitation leaves room for the main concern.";
+  assert.equal(
+    validRewrites({ rewrites: [{ ...base, reason }] }, candidates)[0].reason,
+    reason,
+  );
+  // A missing reason, or one with an invented number, is dropped; the rewrite stays.
+  for (const extra of [
+    {},
+    { reason: "" },
+    { reason: "Tired for 3 weeks was assumed." },
+  ]) {
+    const result = validRewrites(
+      { rewrites: [{ ...base, ...extra }] },
+      candidates,
+    );
+    assert.equal(result.length, 1);
+    assert.equal(result[0].reason, "");
+    assert.equal(result[0].rewrite, "What brings you in today?");
+  }
+});
+test("A finished visit can have its coaching and wording rebuilt", async () => {
+  const cloud = require("../lib/cloud");
+  const { refreshCoaching } = require("../lib/assessment");
+  const saved = { ...cloud },
+    prior = process.env.AI_ENABLED;
+  process.env.AI_ENABLED = "false";
+  try {
+    const enc = engine.create(profile());
+    await engine.ask(enc, "Are you tired?", "q1");
+    await assert.rejects(refreshCoaching(enc), /Finish the encounter first/);
+    await engine.complete(enc);
+    const rubricBefore = JSON.stringify(enc.assessment.domains);
+    // Simulate a visit saved before these fields existed.
+    delete enc.assessment.coaching.rewrites;
+    delete enc.assessment.coaching.wordingAt;
+    enc.assessment.coaching.flow.steps.forEach((s) => delete s.credited);
+    process.env.AI_ENABLED = "true";
+    cloud.rephrase = async (items) => ({
+      rewrites: items.map((i) => ({
+        id: i.id,
+        rewrite: "What brings you in today?",
+        reason: "An open invitation leaves room for the main concern.",
+      })),
+    });
+    await refreshCoaching(enc);
+    const c = enc.assessment.coaching;
+    assert.equal(c.rewrites.length, 1);
+    assert.match(c.rewrites[0].reason, /open invitation/);
+    assert.ok(c.wordingAt);
+    assert.ok(Array.isArray(c.flow.steps[0].credited));
+    assert.equal(JSON.stringify(enc.assessment.domains), rubricBefore);
+  } finally {
+    Object.assign(cloud, saved);
+    process.env.AI_ENABLED = prior || "false";
+  }
+});
