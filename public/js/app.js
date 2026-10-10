@@ -187,8 +187,13 @@ function studio() {
             : 0),
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("New patient", "new", "", "pri")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
+ ${studioGroups()}
  <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
  </div>`;
+}
+function studioGroups() {
+  const group = groups.find((g) => g.id === selectedGroup) || groups[0];
+  return `<section class="studio-group-panel" aria-labelledby="studio-groups-title"><div><h2 id="studio-groups-title">Assign a patient group</h2><p class="muted">Give a student a prepared test with multiple patient trials.</p></div>${group ? `<div class="row"><label for="studio-group">Patient group</label><select id="studio-group">${groups.map((g) => `<option value="${esc(g.id)}" ${g.id === group.id ? "selected" : ""}>${esc(g.title)} · ${g.trialCount} patients</option>`).join("")}</select>${button("Review & assign group", "nav", 'data-tab="tests"', "pri")}${button("Student results", "nav", 'data-tab="results"')}</div><p class="group-preparation">${group.preparationStatus === "ready" ? "Ready to assign: choose a student on the next screen." : group.preparationStatus === "clinical-mismatch" ? "The cases have different clinical settings. Review and republish both before assigning." : "First use Review & assign group to review and publish both prepared cases. Then select a student and assign the test."}</p>` : `<p>No prepared groups are available.</p>`}</section>`;
 }
 function recordSelect(label, path, options) {
   const selected = value(path) || [];
@@ -907,7 +912,7 @@ function rolePicker() {
 function testCatalog() {
   if (demoSession.role === "student")
     return `<div class="pn"><h1>Assigned tests</h1><p>Complete all trials before reviewing your standard assessment.</p>${assignments.map((a) => `<article class="group-card"><h2>${esc(a.title)}</h2><p>${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} trials · Not started`}</p>${button(a.attempt?.status === "complete" ? "View feedback in history" : "Start / resume test", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`).join("") || "<p>No tests assigned. Faculty can assign a prepared group.</p>"}</div>`;
-  return `<div class="pn"><h1>Prepared comparison groups</h1><p>Select a prepared group and assign it to a student.</p><div class="row"><label for="assign-student">Assign to</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p><b>${g.trialCount} trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Clinical settings differ — review both cases" : "Faculty review required before rehearsal"}</b></p><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><div class="row">${g.cases.map((c) => button(`${c.version ? "Review" : "Review & publish"} ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}${g.preparationStatus === "ready" ? button("Assign group", "assign-group", `data-id="${esc(g.id)}"`, "pri") : ""}</div><details><summary>Comparison limits and source notes</summary><p>${esc(g.limitations)}</p><p>${esc(g.sourceNote)}</p></details></article>`).join("")}<h2>Demo students</h2><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div><h2>Assignments</h2>${assignments.map((a) => `<p>${esc(students.find((s) => s.id === a.studentId)?.alias)} · ${esc(a.title)} · ${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials` : "Not started"}</p>`).join("") || "<p>No assignments yet.</p>"}</div>`;
+  return `<div class="pn"><h1>Prepared comparison groups</h1><p>Select a prepared group and assign it to a student.</p><div class="row"><label for="assign-student">Assign to</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p><b>${g.trialCount} trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Clinical settings differ — review both cases" : "Faculty review required before rehearsal"}</b></p><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><div class="row">${g.cases.map((c) => button(`${c.version ? "Review" : "Review & publish"} ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}${g.preparationStatus === "ready" ? button("Assign group", "assign-group", `data-id="${esc(g.id)}"`, "pri") : button("Assign group", "assign-group", `data-id="${esc(g.id)}" disabled title="Review and publish matching cases before assigning"`, "pri")}</div><details><summary>Comparison limits and source notes</summary><p>${esc(g.limitations)}</p><p>${esc(g.sourceNote)}</p></details></article>`).join("")}<h2>Demo students</h2><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div><h2>Assignments</h2>${assignments.map((a) => `<p>${esc(students.find((s) => s.id === a.studentId)?.alias)} · ${esc(a.title)} · ${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials` : "Not started"}</p>`).join("") || "<p>No assignments yet.</p>"}</div>`;
 }
 function biasPanel(result) {
   const r = result || { status: "pending", findings: [], limitations: [] };
@@ -1354,6 +1359,10 @@ document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "demo-student") loginStudent = t.value;
   if (t.id === "assign-student") selectedStudent = t.value;
+  if (t.id === "studio-group") {
+    selectedGroup = t.value;
+    render();
+  }
   if (t.id === "new-student-alias") newStudentAlias = t.value;
   if (t.id === "patient-description") {
     patientDialog.description = t.value;

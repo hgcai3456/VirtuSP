@@ -4,7 +4,7 @@ Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. If
 
 ## Prepare once before rehearsal
 
-1. Enter **Faculty**, then **Prepared groups**.
+1. Enter **Faculty**. Above the individual patient cards, select a group under **Assign a patient group** and click **Review & assign group**. The **Prepared groups** navigation tab opens the same workspace.
 2. Review **Omar Sinclair** and **Alex Morgan**, correct any problems, acknowledge faculty review, and publish each. Review includes history, reference excerpts, objectives and advanced disclosure/release rules. Automated publication checks are not clinical validation.
 3. The catalog becomes **Ready to assign** after both are published with matching clinical/scenario settings. If settings differ, correct and republish the pair. Existing assignments retain their earlier versions.
 4. Choose Student A or another demo alias and click **Assign group**. Aliases can be added in this workspace. Assignment does not draft or generate patients.

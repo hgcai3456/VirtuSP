@@ -1556,6 +1556,22 @@ summary:focus-visible {
   max-width: 840px;
   margin: 36px auto;
 }
+.studio-group-panel {
+  margin: 12px 0 24px;
+  padding: 16px;
+  border: 1px solid var(--ac);
+  border-radius: 10px;
+  background: var(--soft);
+}
+.studio-group-panel select {
+  flex: 1;
+  min-width: 180px;
+  max-width: 480px;
+}
+.group-preparation {
+  margin: 10px 0 0;
+  color: var(--mu);
+}
 .role-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

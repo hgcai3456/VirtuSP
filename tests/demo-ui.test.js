@@ -56,7 +56,16 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 10);
-    click("nav", '[data-tab="tests"]');
+    assert.ok(d.getElementById("studio-group"));
+    assert.match(
+      d.querySelector(".studio-group-panel").textContent,
+      /Assign a patient group/,
+    );
+    assert.match(
+      d.querySelector(".studio-group-panel").textContent,
+      /publish both prepared cases/,
+    );
+    d.querySelector('.studio-group-panel [data-tab="tests"]').click();
     await wait(() => !!d.getElementById("assign-student"));
     assert.match(
       d.querySelector("#app").textContent,
