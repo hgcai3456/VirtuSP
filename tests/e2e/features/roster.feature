@@ -1,18 +1,19 @@
 @live
 Feature: Patient roster
-  Eight more published patients can be watched as a sample conversation and then interviewed.
+  Published patients can be watched as a sample conversation and then interviewed.
 
-  Scenario: The roster is published beside Denise and Marcus
+  Scenario: The roster is published in Patient Studio
     Then the page shows "Nisha Patel"
     And the page shows "Yvette Armstrong"
-    And the page shows "Marcus Ramirez"
     And the page shows "Wyatt Nelson"
     And the page shows "Dominic Rivera"
     And the page shows "Walter Greene"
     And the page shows "Vadko Bareche"
     And the page shows "Omar Sinclair"
-    And "Denise Carter" cannot be watched
-    And "Marcus Lee" cannot be watched
+    And the page does not show "Denise Carter"
+    And the page does not show "Marcus Lee"
+    And the page does not show "Marcus Ramirez"
+    And the page does not show "Alex Morgan"
     And "Nisha Patel" can be watched
 
   Scenario: A sample conversation can be closed, dismissed, and ignored when the id is unknown
@@ -31,9 +32,9 @@ Feature: Patient roster
     Then the page shows "Patient Studio"
     And the sample conversation is closed
 
-  Scenario Outline: Each roster link plays that patient's sample conversation
-    Given the landing page is open
-    When the visitor watches "<name>"
+  Scenario Outline: Each roster patient plays a sample conversation from the studio
+    Given the faculty workspace is open
+    When the faculty watches "<name>"
     Then the address contains "watch=<id>"
     And the page shows "Sample teaching conversation"
     And the page shows "<name>, "
@@ -44,7 +45,6 @@ Feature: Patient roster
       | id       | name             | line                                                                                  |
       | nisha    | Nisha Patel      | I couldn't catch my breath last night. They admitted me for my asthma.               |
       | yvette   | Yvette Armstrong | My ankles are swollen and I get winded walking to the mailbox.                       |
-      | mramirez | Marcus Ramirez   | I've had headaches, and they said my blood pressure is up.                           |
       | wyatt    | Wyatt Nelson     | I'm sleepy all day. I guess I just need more rest.                                   |
       | dominic  | Dominic Rivera   | My chest and legs hurt. It's a sickle cell pain crisis.                              |
       | walter   | Walter Greene    | I broke my hip. I'm doing fine now, though.                                          |
@@ -63,7 +63,6 @@ Feature: Patient roster
       | name             | intro                     | reply                                                                        | lab                    |
       | Nisha Patel      | Hi, I'm Nisha.            | I couldn't catch my breath last night. They admitted me for my asthma.     | Peak flow              |
       | Yvette Armstrong | Hello, I'm Yvette.        | My ankles are swollen and I get winded walking to the mailbox.             | 640                    |
-      | Marcus Ramirez   | Hey. I'm Marcus.          | I've had headaches, and they said my blood pressure is up.                 | 162/98                 |
       | Wyatt Nelson     | I'm Wyatt.                | I'm sleepy all day. I guess I just need more rest.                         | Sleep study PSG-0918   |
       | Dominic Rivera   | I'm Dominic.              | My chest and legs hurt. It's a sickle cell pain crisis.                    | 8.1                    |
       | Walter Greene    | Morning. Walter Greene.   | I broke my hip. I'm doing fine now, though.                                | Orthostatic vitals     |

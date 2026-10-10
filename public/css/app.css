@@ -65,9 +65,10 @@ body {
   background: var(--bg);
   color: var(--tx);
   font:
-    400 15px/1.5 system-ui,
-    -apple-system,
+    400 16px/1.55 "Avenir Next",
+    "Segoe UI Variable",
     "Segoe UI",
+    system-ui,
     sans-serif;
 }
 
@@ -272,9 +273,7 @@ textarea.code {
 }
 
 .chip.mode {
-  border: 1px solid var(--bd);
-  border-radius: 999px;
-  padding: 4px 9px;
+  display: none;
 }
 
 .row {
@@ -453,12 +452,11 @@ th {
 }
 
 .patient-card .patient-photo {
-  width: 112px;
-  height: 134px;
-  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
   display: block;
-  margin: 0 auto 8px;
-  border-radius: 12px;
   pointer-events: none;
 }
 
@@ -738,12 +736,27 @@ main {
   border-color: var(--ac);
   box-shadow: 0 0 0 1px var(--ac);
 }
-.patient-card > img {
+.patient-photo-well {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--bd) 35%, var(--soft));
+  border-radius: 12px;
+}
+.patient-card > .patient-photo-well {
   width: 100%;
-  height: 132px;
-  object-fit: cover;
-  border-radius: 9px;
+  height: 220px;
   margin-bottom: 10px;
+}
+.patient-card > img,
+.patient-card .patient-photo-well img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  background: transparent;
 }
 .patient-card h3 {
   margin: 2px 0;
@@ -2013,9 +2026,62 @@ summary:focus-visible {
     animation: none !important;
   }
 }
+.workspace-home {
+  min-height: calc(100dvh - 100px);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.workspace-home h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  margin: 10px 0;
+}
+.workspace-lede {
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.workspace-footnote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  text-align: center;
+}
 .role-picker {
-  max-width: 840px;
-  margin: 36px auto;
+  max-width: none;
+  margin: 0;
+}
+.role-choices {
+  margin: 28px 0 16px;
+}
+.role-choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: clamp(24px, 4vw, 40px);
+  border: 2px solid var(--bd);
+  border-radius: 20px;
+  background: var(--pn);
+  margin: 0;
+}
+.role-choice-card .choice-title {
+  margin: 0;
+}
+.choice-field {
+  font-size: 13px;
+  color: var(--mu);
+  margin-top: 4px;
+}
+.role-choice-card select {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 0 8px;
+}
+.role-choice-card .choice-action {
+  margin-top: auto;
 }
 .studio-group-panel {
   margin: 12px 0 24px;
@@ -2144,24 +2210,105 @@ summary:focus-visible {
   font-weight: 700;
   margin-top: auto;
 }
+.groups-page h1 {
+  font-size: clamp(26px, 3vw, 36px);
+  margin: 6px 0 10px;
+}
+.groups-page .lede {
+  color: var(--mu);
+  max-width: 62ch;
+  margin: 0 0 24px;
+}
 .group-builder {
-  padding: 18px;
+  padding: 22px;
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  margin: 28px 0 20px;
+  background: var(--soft);
+}
+.group-builder > summary {
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.group-fields {
+  display: grid;
+  gap: 8px 16px;
+  margin: 16px 0;
+}
+.group-fields label,
+.group-open-toggle {
+  display: block;
+  margin-top: 10px;
+  font-weight: 600;
+  color: var(--tx);
+}
+.group-fields input,
+.group-fields select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
   border: 1px solid var(--bd);
   border-radius: 10px;
-  margin-bottom: 20px;
+  background: var(--pn);
+  font: inherit;
 }
-.group-builder > label,
-.group-builder fieldset label {
-  display: block;
-  margin: 12px 0 6px;
-}
-.group-builder > input,
-.group-builder > select {
-  width: 100%;
-}
-.group-builder fieldset {
+.group-patient-picker {
   border: 1px solid var(--bd);
-  margin: 16px 0;
+  border-radius: 14px;
+  margin: 18px 0;
+  padding: 14px 16px 18px;
+  background: var(--pn);
+}
+.group-patient-picker legend {
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+  font-weight: 600;
+  padding: 0 6px;
+}
+.group-patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.group-patient-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--soft);
+  cursor: pointer;
+}
+.group-patient-choice:has(input:checked) {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 2px var(--ac);
+}
+.group-patient-choice .patient-photo-well {
+  width: 76px;
+  height: 104px;
+  flex: none;
+  border-radius: 10px;
+}
+.group-patient-choice img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+.group-patient-choice b {
+  display: block;
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+}
+.group-patient-choice small {
+  color: var(--mu);
+}
+.group-open-toggle {
+  font-weight: 500;
+  margin: 8px 0 16px;
 }
 .role-grid {
   display: grid;
@@ -2171,9 +2318,10 @@ summary:focus-visible {
 .role-grid section,
 .group-card {
   border: 1px solid var(--bd);
-  border-radius: 10px;
-  padding: 18px;
-  margin: 12px 0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin: 16px 0;
+  background: var(--pn);
 }
 .role-grid select {
   display: block;

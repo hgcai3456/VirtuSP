@@ -25,29 +25,16 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
   };
   try {
     const patients = await request("/api/profiles");
-    assert.equal(patients.data.profiles.length, 11);
-    const omar = patients.data.profiles.find((p) => p.name === "Omar Sinclair");
-    assert.equal(omar.version, null);
-    assert.equal(
-      (await request(`/api/profiles/${omar.id}/publish`, "POST", {})).status,
-      422,
-    );
-    await request(`/api/profiles/${omar.id}/prepare`, "POST", {});
-    let p = (await request("/api/profiles/" + omar.id)).data.profile;
-    p.facts.forEach((f) => (f.reviewed = true));
-    p.sources.forEach((s) => (s.reviewed = true));
-    p.reviewAcknowledged = true;
-    await request("/api/profiles/" + p.id, "PUT", { profile: p });
-    assert.equal(
-      (await request(`/api/profiles/${p.id}/publish`, "POST", {})).status,
-      201,
-    );
+    assert.equal(patients.data.profiles.length, 7);
+    const omar = patients.data.profiles.find((p) => p.id === "omar");
+    assert.equal(omar.version, 1);
+    let p = (await request("/api/profiles/omar")).data.profile;
     const encounter = (
       await request("/api/encounters", "POST", { profileId: p.id, version: 1 })
     ).data.encounter;
     assert.equal(encounter.videoUrl, "/video/omar.mp4");
     assert.ok(!JSON.stringify(encounter).includes("LDL 195"));
-    p.facts.find((f) => f.id === "concern").say =
+    p.facts.find((f) => f.id === "os1").say =
       "I want to discuss medication concerns today.";
     await request("/api/profiles/" + p.id, "PUT", { profile: p });
     await request(`/api/profiles/${p.id}/publish`, "POST", {});
@@ -57,7 +44,7 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     });
     assert.equal(
       r1.data.encounter.transcript.at(-1).text,
-      "I'm uncomfortable with taking medication.",
+      "I'm just worn out from the night shift. It's stress, not my heart.",
     );
     const later = (
       await request("/api/encounters", "POST", { profileId: p.id, version: 2 })

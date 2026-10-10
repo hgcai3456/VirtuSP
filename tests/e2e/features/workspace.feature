@@ -4,10 +4,9 @@ Feature: Simulator workspace
 
   Scenario: Every workspace is reachable before a visit starts
     Then the page shows "Patient Studio"
-    And the page shows "Denise Carter"
-    And the page shows "58 · v1"
-    And the page shows "Marcus Lee"
-    And the page shows "67 · v1"
+    And the page shows "Dominic Rivera"
+    And the page shows "Nisha Patel"
+    And the page shows "Omar Sinclair"
     And the mode chip reads "Local demo · no API keys"
     When the user opens the "Encounter" workspace
     Then the page shows "Start a visit"

@@ -12,16 +12,18 @@ Feature: Live deployment
     And the page does not show "502 Bad Gateway"
     And the page shows "Practice the difficult conversation before the patient is real."
     And the page shows "Open simulator"
-    And the page shows "Denise: I take it every day, like I'm supposed to."
+    And the page shows "Dominic Rivera, 27"
     And the health endpoint reports the service is up
 
   Scenario: A visitor can open the simulator and return home
     Given the landing page is open
     When the user follows "Open simulator"
     Then the address contains "app.html"
-    And the page shows "Patient Studio"
-    And the page shows "Denise Carter"
-    And the page shows "Marcus Lee"
+    And the page shows "Choose your workspace"
+    When the user follows "Enter faculty workspace"
+    Then the page shows "Patient Studio"
+    And the page shows "Dominic Rivera"
+    And the page shows "Nisha Patel"
     When the user follows the brand home
     Then the page shows "Practice the difficult conversation before the patient is real."
 
