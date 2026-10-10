@@ -1,7 +1,8 @@
 "use strict";
 const test = require("node:test"),
   assert = require("node:assert/strict");
-const { blank, fact } = require("../lib/profiles");
+const fs = require("node:fs/promises");
+const { blank, fact, validate } = require("../lib/profiles");
 const engine = require("../lib/engine"),
   cloud = require("../lib/cloud");
 const {
@@ -349,7 +350,21 @@ test("Assessment rejects invented evidence, invalid N/A and unsupported positive
     "Classifier tags are not observed student evidence.",
   );
 });
-test("Bedrock receives only permitted values; verifier rejection returns approved fallback", async () => {
+test("The patient remembers this visit and does not reveal a withheld fact", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(profile());
+  await engine.ask(enc, "What brings you in?", "memory-1");
+  assert.equal(enc.transcript.at(-1).text, "I feel tired.");
+  await engine.ask(enc, "Tell me more", "memory-2");
+  assert.equal(enc.transcript.at(-1).text, "As I said, I feel tired.");
+  await engine.ask(enc, "What brings you in?", "memory-3");
+  assert.equal(enc.transcript.at(-1).text, "As I said, I feel tired.");
+  const memory = engine.interactionMemory(enc);
+  assert.equal(memory.exchanges.length, 3);
+  assert.ok(!JSON.stringify(memory).includes("evening dose"));
+  assert.ok(!JSON.stringify(memory).includes("I miss"));
+});
+test("Dialogue memory passed to the model excludes withheld wording", async () => {
   const saved = { ...cloud },
     prior = process.env.AI_ENABLED;
   process.env.AI_ENABLED = "true";
@@ -364,8 +379,10 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
         judgmental: false,
       };
     };
-    cloud.paraphrase = async (identity, allowed) => {
+    cloud.paraphrase = async (identity, allowed, q, history, deflections, memory) => {
       assert.deepEqual(allowed, [{ id: "concern", say: "I feel tired." }]);
+      assert.ok(!JSON.stringify(memory).includes("evening dose"));
+      assert.ok(!JSON.stringify(memory).includes("I miss"));
       return {
         text: "I feel tired and have chest pain.",
         factIds: ["concern"],
@@ -422,4 +439,47 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";
   }
+});
+test("A texting mental-health patient answers kindly and alerts 911 only after a critical disclosure", async () => {
+  process.env.AI_ENABLED = "false";
+  const seeds = JSON.parse(await fs.readFile("corpus/scaffold.json", "utf8"));
+  const riley = seeds.find((p) => p.id === "riley");
+  riley.version = 1;
+  assert.equal(
+    validate(riley).filter((issue) => issue.severity === "error").length,
+    0,
+  );
+  const enc = engine.create(riley);
+  assert.match(enc.transcript[0].text, /need help/i);
+  assert.equal(enc.emergency, undefined);
+  await engine.ask(
+    enc,
+    "Have you thought about ending your life?",
+    "safety-early",
+  );
+  assert.equal(
+    enc.transcript.at(-1).text,
+    "I am scared to say the worst part.",
+  );
+  assert.equal(engine.publicView(enc).emergency, null);
+  assert.ok(!JSON.stringify(engine.publicView(enc)).includes("ending my life"));
+  await engine.ask(enc, "I am sorry this has been so hard.", "empathy-1");
+  assert.match(enc.transcript.at(-1).text, /^Thank you for saying that\./);
+  await engine.ask(
+    enc,
+    "I hear how heavy this feels. Thank you for telling me.",
+    "empathy-2",
+  );
+  assert.equal(enc.trust, 2);
+  await engine.ask(
+    enc,
+    "Do you feel safe right now, or have you thought about ending your life?",
+    "safety",
+  );
+  const view = engine.publicView(enc);
+  assert.match(view.transcript.at(-1).text, /ending my life/i);
+  assert.equal(view.channel, "visit");
+  assert.equal(view.emergency.service, "911");
+  assert.match(view.emergency.text, /Call 911 now/);
+  assert.match(view.emergency.text, /does not place the emergency call/);
 });

@@ -87,7 +87,7 @@ test("Document roles, previews, clinical attachments and explicit creation prese
       draft.profile.sources.find((s) => s.fileId === reference.id).role,
       "reference",
     );
-    assert.equal((await request("/api/profiles")).profiles.length, 10);
+    assert.equal((await request("/api/profiles")).profiles.length, 11);
     assert.equal(
       (
         await request("/api/profiles", {
@@ -99,7 +99,7 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     );
     assert.equal(
       (await request("/api/profiles")).profiles.length,
-      10,
+      11,
       "Failed publication creates no draft",
     );
     assert.equal(
@@ -139,10 +139,10 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     assert.match(failed.warning, /output limit/);
     assert.ok(!JSON.stringify(failed).includes("Private model output"));
     assert.equal(failed.profile.sources[1].fileId, caseBrief.id);
-    assert.equal((await request("/api/profiles")).profiles.length, 10);
+    assert.equal((await request("/api/profiles")).profiles.length, 11);
     const saved = await request("/api/profiles", { profile: draft.profile });
     assert.equal(saved.status, 201);
-    assert.equal((await request("/api/profiles")).profiles.length, 11);
+    assert.equal((await request("/api/profiles")).profiles.length, 12);
     assert.equal(
       (await request("/api/profiles", { profile: draft.profile })).status,
       409,

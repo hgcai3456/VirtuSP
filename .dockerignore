@@ -13,6 +13,13 @@ data/*.writer.lock
 data/ingest-checkpoint.json
 data/ingest-checkpoint-*.json
 data/reports
+data/files
+data/state.json
+data/orchestrator
+data/*.log
+corpus/downloads
+output
+tmp
 **/.terraform
 **/*.tfstate
 **/*.tfstate.*

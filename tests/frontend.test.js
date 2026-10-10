@@ -26,6 +26,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   window.structuredClone = structuredClone;
   window.fetch = (url, options) => fetch(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
+  window.requestAnimationFrame = () => 0;
+  window.cancelAnimationFrame = () => {};
   const recognizers = [];
   window.SpeechRecognition = class {
     constructor() {
@@ -70,7 +72,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   };
   try {
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
-    await wait(() => doc.querySelectorAll(".patient-card").length === 10);
+    await wait(() => doc.querySelectorAll(".patient-card").length === 11);
     assert.equal(doc.querySelector(".editor"), null);
     click("new");
     assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
@@ -80,7 +82,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await fetch(base + "/api/profiles")).json()).profiles.length,
-      10,
+      11,
     );
     click("close-patient");
     assert.equal(doc.getElementById("patient-dialog"), null);
@@ -98,7 +100,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("dismiss-publication-error");
     assert.equal(
       (await (await fetch(base + "/api/profiles")).json()).profiles.length,
-      10,
+      11,
     );
     const pdf = require("./pdf-fixture")([
       "Synthetic faculty case",
@@ -302,7 +304,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await fetch(base + "/api/profiles")).json()).profiles.length,
-      10,
+      11,
       "Extraction is only a preview",
     );
     assert.equal(
@@ -339,14 +341,26 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(
       () =>
         !doc.getElementById("patient-dialog") &&
-        doc.querySelectorAll(".patient-card").length === 11,
+        doc.querySelectorAll(".patient-card").length === 12,
     );
     const created = (
       await (await fetch(base + "/api/profiles")).json()
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
-    await wait(() => !!doc.getElementById("question"));
+    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
+    assert.match(doc.querySelector(".incoming-call").textContent, /is calling/);
+    assert.equal(doc.getElementById("question").disabled, true);
+    assert.match(
+      doc.getElementById("voice-status").textContent,
+      /Incoming video call/,
+    );
+    click("answer-call");
+    await wait(() =>
+      doc.getElementById("avf")?.classList.contains("video-call"),
+    );
+    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
+    assert.equal(doc.getElementById("question").disabled, false);
     fill("question", "What brings you in today?");
     doc
       .getElementById("question-form")
@@ -390,11 +404,22 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       ),
     );
     click("launch", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
-    await wait(() => !!doc.getElementById("question"));
+    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
+    click("answer-call");
+    await wait(
+      () =>
+        !!doc.getElementById("question") &&
+        !doc.getElementById("question").disabled,
+    );
     assert.ok(
       doc.querySelector("#avf .patient-photo"),
       "Still patient photo is present",
     );
+    assert.ok(
+      doc.querySelector("#avf .patient-call"),
+      "Video-call canvas is present",
+    );
+    assert.ok(doc.getElementById("avf").classList.contains("camera-on"));
     assert.ok(
       !doc
         .querySelector(".ehr-panel")
@@ -494,6 +519,23 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => !!doc.querySelector(".meter"));
     click("rep-view", '[data-view="interview"]');
     await wait(() => !!doc.querySelector(".annotated .turn"));
+    click("nav", '[data-tab="studio"]');
+    click("launch", '[data-id="riley"]');
+    await wait(() => !!doc.querySelector(".incoming-call"));
+    assert.equal(doc.body.textContent.includes("Text message"), false);
+    assert.equal(doc.body.textContent.includes("Patient is texting"), false);
+    assert.match(
+      doc.querySelector(".incoming-call").textContent,
+      /Riley Chen is calling/,
+    );
+    click("answer-call");
+    await wait(() =>
+      doc.getElementById("avf")?.classList.contains("video-call"),
+    );
+    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
+    assert.equal(doc.getElementById("question").disabled, false);
+    assert.ok(doc.querySelector("#student-camera"));
+    assert.ok(doc.querySelector('[data-action="mic"]'));
     assert.deepEqual(errors, []);
   } finally {
     window.close();

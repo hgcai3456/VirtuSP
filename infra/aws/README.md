@@ -58,25 +58,26 @@ The SQLite file is created on first boot and starts empty. Local `data/*.sqlite`
 
 Application Auto Scaling tracks both average CPU (70%) and average memory (75%). A scale-out starts when either metric stays above its target. A scale-in starts only when both stay below their targets. Scale-out waits 60 seconds and scale-in waits 300 seconds before changing the count again.
 
-`autoscaling_min_capacity` defaults to 1 and `autoscaling_max_capacity` defaults to 4. Tasks share the SQLite file on EFS with a busy timeout. The service sets `VIRTUSP_SQLITE_EXCLUSIVE=0` so one task does not hold the file for its whole life. A deployment still stops the running task before starting the next revision.
+`autoscaling_min_capacity` defaults to 4 and `autoscaling_max_capacity` defaults to 8. Each task runs one app container. The service registers both public subnets, which are in different Availability Zones, and Fargate places tasks across them. With four tasks running, that is two containers in each zone. Tasks share the SQLite file on EFS with a busy timeout. The service sets `VIRTUSP_SQLITE_EXCLUSIVE=0` so one task does not hold the file for its whole life. A deployment still stops the running tasks before starting the next revision, so Availability Zone rebalancing stays off.
 
 RDS storage autoscaling is already on: the database starts at 20 GiB and can grow to 100 GiB. The same bounds are set in `infra/rds`.
 
 ## Bedrock
 
-The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID`. Patient replies and encounter turns call that model with the task role. There is no model API key to store. The role may invoke the configured inference profile and the foundation models that profile routes to. A reply is sent only when it keeps the server-approved patient line.
+The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID=us.xai.grok-4.7`. Patient replies and encounter turns call Grok 4.7 with reasoning effort high, using the task role. Processing stays in the US geography. There is no model API key to store. The role may invoke the default Bedrock project, that inference profile, and the foundation models the profile routes to. A reply is sent only when it keeps the server-approved patient line.
 
 ## HTTPS
 
-With no `certificate_arn`, the public site is a CloudFront address (`https://….cloudfront.net`) that uses Amazon's trusted certificate. Port 80 on the load balancer redirects there. CloudFront reaches the app with a private header, so opening the load balancer name directly does not skip TLS. The HTTPS page is a secure context, and the response allows microphone access with `Permissions-Policy: microphone=(self)`.
+With no `certificate_arn`, the public site is a CloudFront address (`https://….cloudfront.net`) that uses Amazon's trusted certificate. Port 80 on the load balancer redirects there. CloudFront reaches the app with a private header, so opening the load balancer name directly does not skip TLS. The HTTPS page is a secure context, and the response allows camera and microphone access with `Permissions-Policy: camera=(self), microphone=(self)`.
 
 Set `certificate_arn` to an ACM certificate in this region when you have a DNS name of your own, then apply again. Port 80 redirects to 443 on the load balancer, and CloudFront is not created. Point the certificate's DNS name at `alb_dns_name`.
 
 ## Tear down
 
+Deletion protection is on for the database and the load balancer. The database keeps a final snapshot, and the reports bucket is not force-destroyed. Set `deletion_protection` to false and apply that change before destroy:
+
 ```bash
 cd infra/aws
+terraform apply -var="deletion_protection=false"
 terraform destroy
 ```
-
-`deletion_protection` is off, and the database skips a final snapshot, so destroy can remove the practice stack. Turn `deletion_protection` on once you want to keep the database and the load balancer.

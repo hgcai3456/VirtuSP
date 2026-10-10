@@ -6,11 +6,14 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY package.json ./
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+
 COPY server.js ./
 COPY lib ./lib
 COPY public ./public
 COPY agents ./agents
+COPY corpus ./corpus
 COPY data ./data
 COPY infra/rds/package.json infra/rds/package-lock.json infra/rds/
 COPY infra/rds/load-sql.js infra/rds/load-sql.js
@@ -22,8 +25,9 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
   && mkdir -p /opt/virtusp-data \
   && cp -a data/. /opt/virtusp-data/ \
   && cd infra/rds \
-  && npm ci --omit=dev \
-  && npm cache clean --force
+  && npm ci --omit=dev --ignore-scripts \
+  && npm cache clean --force \
+  && chown -R node:node /app /opt/virtusp-data
 
 ENV PORT=3000 \
     NODE_ENV=production \
@@ -34,6 +38,8 @@ ENV PORT=3000 \
     VIRTUSP_SQLITE_JOURNAL=DELETE
 
 EXPOSE 3000
+
+USER node
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/',function(r){process.exit(r.statusCode===200?0:1)}).on('error',function(){process.exit(1)})"

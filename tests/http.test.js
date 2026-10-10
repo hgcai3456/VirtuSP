@@ -22,7 +22,7 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
   };
   try {
     const patients = await request("/api/profiles");
-    assert.equal(patients.data.profiles.length, 10);
+    assert.equal(patients.data.profiles.length, 11);
     const omar = patients.data.profiles.find((p) => p.name === "Omar Sinclair");
     assert.equal(omar.version, null);
     assert.equal(

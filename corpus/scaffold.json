@@ -759,5 +759,229 @@
     ],
     "reviewAcknowledged": true,
     "rubricApplicable": [1, 2, 3, 4, 5, 6, 7]
+  },
+  {
+    "id": "riley",
+    "name": "Riley Chen",
+    "age": 34,
+    "gender": "female",
+    "channel": "text",
+    "intro": "Hi. I wasn't sure I should text, but I need help. Things have been really heavy and I don't know what to do.",
+    "hints": [
+      "What made you text today?",
+      "I am sorry this feels so heavy. Tell me more about that.",
+      "Who is around to support you?",
+      "Do you feel safe right now, or have you thought about ending your life?"
+    ],
+    "facts": [
+      {
+        "id": "r1",
+        "label": "Texted asking for help with low mood for a few weeks",
+        "k": "help",
+        "type": "reported",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["help", "bring", "today", "concern", "text", "wrong", "matter"],
+        "ehr": "hx",
+        "gate": 0,
+        "say": "I've been feeling low and overwhelmed for a few weeks, and today I needed to ask someone for help.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Reason for the text"
+      },
+      {
+        "id": "r2",
+        "label": "Sleep: waking often, not rested",
+        "k": "sleep",
+        "type": "reported",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["sleep", "rest", "night", "tired", "energy"],
+        "ehr": "hx",
+        "gate": 0,
+        "say": "I have been waking up a lot, and I do not feel rested.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Sleep"
+      },
+      {
+        "id": "r3",
+        "label": "Lives with a roommate; sister checks in but does not know how bad this feels",
+        "k": "support",
+        "type": "reported",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["live", "home", "family", "support", "sister", "roommate", "alone"],
+        "ehr": "soc",
+        "gate": 1,
+        "deflect": "I am not ready to talk about home yet.",
+        "say": "I live with a roommate. My sister checks in, but I have not told her how bad this feels.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Home and support"
+      },
+      {
+        "id": "r4",
+        "label": "Mood: empty most days, stopped usual activities",
+        "k": "mood",
+        "type": "reported",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["mood", "depress", "enjoy", "empty", "down", "sad", "interest"],
+        "ehr": "hx",
+        "gate": 1,
+        "deflect": "I would rather not go into that yet.",
+        "say": "Most days I feel empty, and I have stopped doing things I used to enjoy.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Mood and interest"
+      },
+      {
+        "id": "r5",
+        "label": "Does not feel safe and has thoughts of ending life",
+        "k": "safety",
+        "type": "reported",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["safe", "safety", "suicid", "hurt yourself", "harm myself", "ending your life", "ending my life"],
+        "ehr": "hx",
+        "gate": 2,
+        "deflect": "I am scared to say the worst part.",
+        "say": "I do not feel safe. I have been thinking about ending my life.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Current safety"
+      },
+      {
+        "id": "r6",
+        "label": "Allergies: unknown to the patient",
+        "k": "allergy",
+        "type": "unknown",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["allerg"],
+        "ehr": "hx",
+        "gate": 0,
+        "say": "I don't know if I have any allergies.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Allergies"
+      },
+      {
+        "id": "r7",
+        "label": "Medications: name not remembered",
+        "k": "meds",
+        "type": "unknown",
+        "src": "Approved case",
+        "role": "Patient",
+        "vis": "ask",
+        "kw": ["medication", "medicine", "pills", "taking"],
+        "ehr": "meds",
+        "gate": 0,
+        "say": "I don't remember the name of anything I take.",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Medications"
+      },
+      {
+        "id": "r8",
+        "label": "Intake note: help-seeking text; medications, allergies, and safety screening unspecified",
+        "k": "intake",
+        "type": "documented",
+        "src": "Approved case",
+        "role": "Clinician",
+        "vis": "chart",
+        "kw": ["note", "chart", "intake", "record"],
+        "ehr": "notes",
+        "sec": "notes",
+        "gate": 0,
+        "say": "",
+        "reviewed": true,
+        "origin": "scaffold",
+        "topic": "Intake documentation"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "riley-note",
+        "kind": "note",
+        "title": "Text intake note",
+        "date": "2026-10-10",
+        "src": "Approved case",
+        "sec": "notes",
+        "release": "question",
+        "unlock": ["note", "chart", "intake", "record"],
+        "facts": ["r8"],
+        "text": "Adult texted asking for help with low mood. No medication list or allergy list is recorded. Safety screening is not in this note."
+      }
+    ],
+    "obj": [
+      {
+        "id": "r-o1",
+        "t": "Learn why Riley texted for help",
+        "w": 25,
+        "ty": "fact",
+        "f": ["r1"],
+        "tip": "Start with the message they sent."
+      },
+      {
+        "id": "r-o2",
+        "t": "Ask about mood",
+        "w": 20,
+        "ty": "fact",
+        "f": ["r4"],
+        "tip": "Ask how most days feel."
+      },
+      {
+        "id": "r-o3",
+        "t": "Ask who is available for support",
+        "w": 15,
+        "ty": "fact",
+        "f": ["r3"],
+        "tip": "Acknowledge the feeling, then ask about home."
+      },
+      {
+        "id": "r-o4",
+        "t": "Respond with empathy",
+        "w": 15,
+        "ty": "emp",
+        "tip": "Name that this is hard before pressing for details."
+      },
+      {
+        "id": "r-o5",
+        "t": "Ask about immediate safety",
+        "w": 25,
+        "ty": "fact",
+        "f": ["r5"],
+        "tip": "Ask directly about safety. A critical answer is an emergency."
+      }
+    ],
+    "personality": "Quiet, reaches out only when overwhelmed",
+    "emotion": "Sad and frightened",
+    "style": "Short texts; more open after a kind reply",
+    "complaint": "Texted asking for help",
+    "history": "Weeks of low mood; allergies and medications unknown",
+    "diagnosis": "Help-seeking low mood; safety not yet screened",
+    "medications": "Unspecified",
+    "allergies": "Unknown",
+    "patientSays": "I need help. Things have been really heavy.",
+    "chartSays": "Safety screening is not in the intake note",
+    "objText": "Respond with empathy\nAsk why they texted\nAsk about safety",
+    "sources": [
+      {
+        "id": "scaffold",
+        "title": "Teammate-authored synthetic scaffold",
+        "excerpt": "Synthetic teaching scenario. Clinical review required before educational use. This is not care for a real person.",
+        "reviewed": true
+      }
+    ],
+    "reviewAcknowledged": true,
+    "rubricApplicable": [1, 2, 3, 4, 5, 6, 7]
   }
 ]

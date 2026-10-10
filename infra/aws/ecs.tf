@@ -169,6 +169,11 @@ resource "aws_ecs_service" "app" {
     rollback = true
   }
 
+  # The two public subnets are in different Availability Zones. Fargate
+  # spreads these tasks across both, so the minimum of four containers is
+  # two per zone. Availability Zone rebalancing stays off: AWS requires
+  # maximumPercent above 100, and a rollout must not open the shared EFS
+  # database from two task revisions at once.
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]

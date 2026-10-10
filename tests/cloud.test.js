@@ -110,3 +110,27 @@ test("Incomplete output and unsupported drafts are rejected with safe actionable
     false,
   );
 });
+
+test("Grok 4.7 calls request high reasoning and leave room for the answer", async () => {
+  const original = BedrockRuntimeClient.prototype.send;
+  const calls = [];
+  BedrockRuntimeClient.prototype.send = async (command) => {
+    calls.push(command.input);
+    return response({ ok: true });
+  };
+  try {
+    const result = await cloud.json(
+      "Connectivity test.",
+      { test: "connection" },
+      { modelId: "us.xai.grok-4.7", maxTokens: 30 },
+    );
+    assert.equal(result.ok, true);
+    assert.equal(calls[0].modelId, "us.xai.grok-4.7");
+    assert.equal(calls[0].additionalModelRequestFields.reasoning_effort, "high");
+    assert.ok(calls[0].inferenceConfig.maxTokens >= 3000);
+    assert.equal(calls[0].inferenceConfig.temperature, undefined);
+    assert.equal(calls[0].outputConfig, undefined);
+  } finally {
+    BedrockRuntimeClient.prototype.send = original;
+  }
+});
