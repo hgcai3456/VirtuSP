@@ -68,7 +68,9 @@ resource "aws_ecs_task_definition" "app" {
         { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
         { name = "PGHOST", value = aws_db_instance.this.address },
         { name = "PGPORT", value = tostring(aws_db_instance.this.port) },
-        { name = "PGDATABASE", value = var.db_name }
+        { name = "PGDATABASE", value = var.db_name },
+        { name = "PROFILE_ARCHIVE", value = "true" },
+        { name = "PROFILE_S3_BUCKET", value = aws_s3_bucket.reports.id }
       ]
       secrets = [
         { name = "PGUSER", valueFrom = "${local.db_secret_arn}:username::" },

@@ -4,7 +4,7 @@ const os = require('os');
 const path = require('path');
 const { Client } = require('pg');
 
-const files = ['001_schema.sql', '002_seed.sql'];
+const files = ['001_schema.sql', '002_seed.sql', '003_profiles.sql'];
 const caUrl = 'https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem';
 let currentPassword = '';
 
@@ -191,7 +191,9 @@ async function main() {
         (SELECT COUNT(*)::int FROM medical_data) AS medical_data,
         (SELECT COUNT(*)::int FROM reports) AS reports,
         (SELECT COUNT(*)::int FROM conversations) AS conversations,
-        (SELECT COUNT(*)::int FROM conversation_turns) AS conversation_turns
+        (SELECT COUNT(*)::int FROM conversation_turns) AS conversation_turns,
+        (SELECT COUNT(*)::int FROM patient_profiles) AS patient_profiles,
+        (SELECT COUNT(*)::int FROM patient_profile_artifacts) AS patient_profile_artifacts
     `);
     console.log(JSON.stringify(counts.rows[0]));
   } catch (err) {

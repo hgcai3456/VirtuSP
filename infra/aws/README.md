@@ -1,6 +1,6 @@
 # VirtuSP on AWS
 
-This stack runs the Node server on ECS Fargate behind an Application Load Balancer. SQLite stays the live database and is stored on EFS. The service can run more than one task; those tasks share that file. PostgreSQL runs in private subnets. RDS generates the password and stores it in Secrets Manager. The server does not query PostgreSQL yet. `PGHOST`, `PGUSER`, and `PGPASSWORD` are on the task for that follow-up.
+This stack runs the Node server on ECS Fargate behind an Application Load Balancer. SQLite stays the live database and is stored on EFS. The service can run more than one task; those tasks share that file. PostgreSQL runs in private subnets. RDS generates the password and stores it in Secrets Manager. `PGHOST`, `PGUSER`, and `PGPASSWORD` are on the task. With `PROFILE_ARCHIVE=true`, each save copies every profile document and artifact file to the private reports bucket and upserts the same rows into PostgreSQL. Dialogue still reads the local profile store.
 
 What Terraform creates:
 

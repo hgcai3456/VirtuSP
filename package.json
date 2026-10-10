@@ -13,6 +13,7 @@
     "setup:aws": "node scripts/storage.js configure",
     "backup": "node scripts/storage.js backup",
     "restore": "node scripts/storage.js restore",
+    "profiles:archive": "node agents/profile-archive.js",
     "test:e2e": "cucumber-js --config tests/e2e/cucumber.js",
     "test:integration": "node --test --test-concurrency=1 --test-timeout=60000 tests/integration/live-stack.js",
     "test:regression": "node agents/regression.js",
@@ -41,7 +42,8 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.0.0",
     "@aws-sdk/client-s3": "^3.0.0",
-    "pdfjs-dist": "^6.2.108"
+    "pdfjs-dist": "^6.2.108",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.3.0",

@@ -68,6 +68,8 @@ The backend atomically saves drafts, immutable releases and encounters in `data/
 
 S3 saves a recovery manifest after its referenced attachments. Explicit versioned profile paths and completed encounter records are copied too. A cloud failure leaves local recovery available and is reported. A later save retries the manifest and unsynced files. This single-process prototype has no distributed transactions or automatic cloud failover.
 
+`npm run profiles:archive` also writes every profile document and artifact file to S3 and upserts those rows into RDS (`PGHOST`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE`). Without RDS, the same tables are written to the local SQLite file. Set `PROFILE_S3_BUCKET` to choose a bucket other than `S3_BUCKET`. Set `PROFILE_ARCHIVE=true` to queue that copy after each save.
+
 Stop the app before an explicit backup or restore:
 
 ```powershell

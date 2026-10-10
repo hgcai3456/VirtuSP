@@ -4,6 +4,10 @@
 
 The app is containerized and running on the existing ECS Fargate service in us-west-2. The image installs production npm dependencies, includes `corpus/`, and runs as uid 1000 so it can write the EFS data volume. Local Docker Desktop cannot start on this machine because virtualization is off, so the image was built with CodeBuild project `virtusp-image` and pushed to `389023343021.dkr.ecr.us-west-2.amazonaws.com/virtusp:latest`. Task definition `virtusp:5` loads the server as the main module. Public check: `https://d18g7r2mfy8mll.cloudfront.net/api/health` returned `ok: true` with Bedrock configured for `us.xai.grok-4.7`, and `/api/profiles` returned the seeded patients. Four tasks were running, matching the current autoscaling minimum.
 
+## Profile archive (2026-10-10)
+
+`npm run profiles:archive` copies every draft and published profile, including artifact and source files, to the private S3 bucket and upserts the same rows into RDS. Local SQLite receives the same tables when PostgreSQL is not configured. A missing artifact file is reported and is not replaced with an empty object, and neither database is updated for that run. With `PROFILE_ARCHIVE=true`, each local save queues the same copy. The ECS task definition points that flag at the private reports bucket. These are storage checks, not clinical validation.
+
 ## Current checkpoint
 
 Riley Chen is a synthetic adult mental-health case who calls in on video asking for help. Kind replies get a short empathetic lead, and rapport still gates the harder facts. A critical disclosure, including not feeling safe or thinking about ending life, records a 911 alert and tells the learner to call 911 and 988. The teaching app does not place that call. Allergies and medications stay unknown. `tests/safety.test.js` and `tests/riley-perf.test.js` cover the detector, the one-time alert, and eight concurrent local visits. `npx cucumber-js --config tests/e2e/cucumber.js --profile riley` runs the Selenium scenario. These checks are engineering tests, not clinical validation.
@@ -159,7 +163,7 @@ This is the remaining part of the roughly 24-hour project budget, not a new 24-h
 | Authoring/UI | `public/js/app.js`, `public/css/app.css`, `lib/profiles.js`      | Published schema; no patient-specific engine branches |
 | Dialogue     | `lib/cloud.js`, `lib/engine.js`, `lib/schemas.js`, `evaluation/` | Permitted context and disclosure gates                |
 | Assessment   | `lib/assessment.js`, schemas, reference transcripts              | Direct evidence, supplied rubric, semantic review     |
-| Storage/AWS  | `lib/store.js`, `scripts/storage.js`, `infra/aws`                | Local recovery first, server credentials              |
+| Storage/AWS  | `lib/store.js`, `lib/profile-archive.js`, `agents/profile-archive.js`, `scripts/storage.js`, `infra/aws` | Local recovery first, then S3 and RDS                  |
 | Presentation | `docs/DEMO.md`, landing page                                     | Verified results and reviewed recorded feedback       |
 
 Run `npm test` after consequential changes. Local/cloud evaluation and assessment-only regression commands are in [EVALUATION.md](EVALUATION.md). `node scripts/cloud-smoke.js` exercises Bedrock/S3 with isolated synthetic data and a separate S3 prefix; it fails if assessment is provisional. Cloud commands incur event-account inference/storage usage.
