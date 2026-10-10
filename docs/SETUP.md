@@ -38,6 +38,8 @@ npm start
 
 Open [the simulator](http://localhost:3000/app.html). The header says **configured**, not verified quality. Actual patient turns display their provider; a failed model request uses approved wording and records the reason. Storage status distinguishes local saves from pending, failed and successful S3 copies.
 
+Choose **Faculty** to author/review patients and assign prepared groups, or **Student** with a demo alias to practice. Prepare the comparison cases once before rehearsal using [DEMO-GROUPS.md](DEMO-GROUPS.md). Faculty results and bias integration are documented there and in [BIAS-INTEGRATION.md](BIAS-INTEGRATION.md).
+
 ## Create and edit patients
 
 Download the organizer-linked profiles with `npm run corpus:fetch`. See [CORPUS.md](CORPUS.md) for Omar/Yvette documents and required disclosure review. Files can be dragged into the faculty upload area or selected using Browse.
@@ -87,4 +89,4 @@ Restore creates `data-recovery-<timestamp>/`, preserving existing data. Set `VIR
 | Draft cannot launch                        | Resolve publication errors and acknowledge profile review.                              |
 | Static-only page fails                     | Start the Node backend; the app requires its API.                                       |
 
-The loopback app has no login or faculty/student access control. Student views enforce encounter disclosure, but someone with local API access can open faculty endpoints. Keep it local; shared deployment requires authentication, authorization, tenant isolation and a storage redesign.
+The loopback app has selectable demo roles and server-enforced role/encounter boundaries, but no passwords. Anyone using the local picker can choose Faculty or another alias. Keep it local; shared deployment requires real authentication, tenant isolation and a storage redesign.

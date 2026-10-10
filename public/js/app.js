@@ -26,6 +26,16 @@ const domainNames = [
   "Clinical reasoning and synthesis",
   "Professionalism, safety, and closure",
 ];
+let loginStudent = "",
+  newStudentAlias = "",
+  demoSession = null,
+  students = [],
+  groups = [],
+  assignments = [],
+  facultyResults = [],
+  selectedStudent = "",
+  selectedGroup = "",
+  selectedEvidenceId = "";
 let list = [],
   history = [],
   profile = null,
@@ -123,14 +133,24 @@ function storageText() {
         : "Local recovery storage";
 }
 async function refresh() {
-  const [patients, past, status] = await Promise.all([
+  const [patients, past, status, people, catalog, tasks] = await Promise.all([
     api("/api/profiles"),
     api("/api/encounters"),
     api("/api/health"),
+    api("/api/students"),
+    api("/api/groups"),
+    api("/api/assignments"),
   ]);
   list = patients.profiles;
   history = past.encounters;
   health = status;
+  students = people.students;
+  groups = catalog.groups;
+  assignments = tasks.assignments;
+  selectedStudent ||= students[0]?.id || "";
+  selectedGroup ||= groups[0]?.id || "";
+  if (demoSession.role === "faculty")
+    facultyResults = (await api("/api/faculty-results")).students;
 }
 async function pick(id) {
   const r = await api("/api/profiles/" + id);
@@ -150,6 +170,8 @@ function card(p, faculty = true) {
   return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"} · ${esc(p.origin || "")}</p><span class="chip">${p.version ? "Published v" + p.version : "Faculty draft"}</span><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
 }
 function studio() {
+  if (demoSession?.role === "student")
+    return `<div class="pn"><h1>Student workspace</h1>${testCatalog()}<h2>Single-patient practice</h2><div class="patient-grid">${list.map((p) => card(p, false)).join("")}</div></div>`;
   const preferred = [...list].sort(
     (a, b) =>
       (b.id === profile?.id) - (a.id === profile?.id) ||
@@ -168,123 +190,101 @@ function studio() {
  <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
  </div>`;
 }
+function recordSelect(label, path, options) {
+  const selected = value(path) || [];
+  const id = "field-" + path.replace(/\./g, "-");
+  return `<div class="field"><label for="${id}">${esc(label)}</label><select id="${id}" data-path="${esc(path)}" data-selection="true" multiple size="3">${options.map(([id, text]) => `<option value="${esc(id)}" ${selected.includes(id) ? "selected" : ""}>${esc(text)}</option>`).join("")}</select></div>`;
+}
 function editor() {
-  const group = (key, title, count, content) =>
-    `<details class="editor-group" data-detail="${key}"><summary>${title}<span class="chip">${count}</span></summary>${content}</details>`;
+  const group = (key, title, content) =>
+    `<details class="editor-group" data-detail="${key}"><summary>${title}</summary>${content}</details>`;
+  const factOptions = profile.facts.map((f) => [f.id, f.topic || f.label]);
   const facts = profile.facts
     .map(
-      (
-        f,
-        i,
-      ) => `<details class="card-edit" data-detail="fact-${esc(f.id)}"><summary>${esc(f.label || "New finding")}</summary>
-    ${control("Finding", `facts.${i}.label`)}${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}
-    <details class="advanced"><summary>Disclosure and clinical settings</summary><div class="fields">
-    ${control("Patient knowledge", `facts.${i}.vis`, {
-      options: [
-        ["ask", "Patient knows"],
-        ["chart", "Chart only"],
-      ],
-    })}
-    ${control("Question topic", `facts.${i}.topic`)}${control("Chart section", `facts.${i}.ehr`, { options: sections.slice(1) })}
-    ${control("Release section", `facts.${i}.sec`, { options: [["", "Not a chart finding"], ...sections.slice(1)] })}
-    ${control("Provenance", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}
-    ${control("Source", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}
-    ${control("Trust gate (0-3)", `facts.${i}.gate`, { type: "number" })}${control("Guarded reply", `facts.${i}.deflect`)}
-    ${control("Units", `facts.${i}.unit`)}${control("Interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}
-    ${control("Measurement", `facts.${i}.lab`, {
-      options: [
-        ["false", "No"],
-        ["true", "Yes"],
-      ],
-    })}
-    ${control("Medication identifier", `facts.${i}.drug`)}${control("Allergy identifier", `facts.${i}.allergyDrug`)}${control("Handoff key", `facts.${i}.k`)}${control("Fact ID", `facts.${i}.id`)}
-    </div></details>${button("Remove", "remove-fact", `data-index="${i}"`)}</details>`,
+      (f, i) =>
+        `<div class="clinical-row" data-fact-index="${i}"><div class="clinical-main">${control("Finding", `facts.${i}.label`)}${control(
+          "Available through",
+          `facts.${i}.vis`,
+          {
+            options: [
+              ["ask", "Patient interview"],
+              ["chart", "Chart only"],
+            ],
+          },
+        )}${button("Remove", "remove-fact", `data-index="${i}"`)}</div>${f.vis === "ask" ? `<div class="patient-phrasing">${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}</div>` : ""}</div>`,
     )
     .join("");
   const sources = profile.sources
     .map(
-      (
-        source,
-        i,
-      ) => `<details class="card-edit" data-detail="source-${esc(source.id)}"><summary>${esc(source.title || "New source")}</summary>
-    ${control("Title", `sources.${i}.title`)}${control("Excerpt", `sources.${i}.excerpt`, { type: "textarea" })}
-    <details class="advanced"><summary>Reference settings</summary>${control("Reference URL", `sources.${i}.url`)}${control("Source ID", `sources.${i}.id`)}</details>
-    ${source.fileId ? `<a href="/api/files/${esc(source.fileId)}" target="_blank" rel="noopener">View original</a>` : ""}
-    ${safeLink(source.url) ? `<a href="${safeLink(source.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove", "remove-source", `data-index="${i}"`)}</details>`,
+      (r, i) =>
+        `<div class="clinical-row">${control("Document or reference title", `sources.${i}.title`)}${control("Selected evidence", `sources.${i}.excerpt`, { type: "textarea" })}${control("Reference link (optional)", `sources.${i}.url`)}${r.fileId ? `<a href="/api/files/${esc(r.fileId)}" target="_blank" rel="noopener">View original</a>` : ""}${button("Remove", "remove-source", `data-index="${i}"`)}</div>`,
     )
     .join("");
   const artifacts = profile.artifacts
     .map(
-      (
-        a,
-        i,
-      ) => `<details class="card-edit" data-detail="artifact-${esc(a.id)}"><summary>${esc(a.title || "New report")}<span class="muted">${esc(a.date || "Date unspecified")}</span></summary>
-    <div class="fields">${control("Title", `artifacts.${i}.title`)}${control("Date (optional)", `artifacts.${i}.date`, { type: "date" })}</div>
-    <details class="advanced"><summary>Report and release settings</summary><div class="fields">
-    ${control("Chart section", `artifacts.${i}.sec`, { options: sections.slice(1) })}${control("Format", `artifacts.${i}.kind`, { options: ["lab", "note", "ecg", "ct", "image", "report"] })}
-    ${control("Release when", `artifacts.${i}.release`, {
-      options: [
-        ["section", "Chart section opens"],
-        ["question", "Matching question"],
-        ["both", "Section or question"],
-      ],
-    })}
-    ${control("Release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked findings", `artifacts.${i}.facts`, { list: true })}
-    ${control("Source", `artifacts.${i}.src`)}${control("Report ID", `artifacts.${i}.id`)}</div>
-    ${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}</details>
-    ${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">View report</a>` : ""}${button("Remove", "remove-artifact", `data-index="${i}"`)}</details>`,
+      (a, i) =>
+        `<div class="clinical-row"><div class="fields">${control("Report title", `artifacts.${i}.title`)}${control("Date (optional)", `artifacts.${i}.date`, { type: "date" })}${control("Chart section", `artifacts.${i}.sec`, { options: sections.slice(1) })}</div>${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">View report</a>` : ""}${button("Remove", "remove-artifact", `data-index="${i}"`)}</div>`,
     )
     .join("");
   const objectives = profile.obj
     .map(
-      (
-        o,
-        i,
-      ) => `<details class="card-edit" data-detail="objective-${esc(o.id)}"><summary>${esc(o.t || "New objective")}</summary>
-    ${control("Objective", `obj.${i}.t`)}${control("Coaching", `obj.${i}.tip`)}
-    <details class="advanced"><summary>Assessment settings</summary><div class="fields">
-    ${control("Weight", `obj.${i}.w`, { type: "number" })}${control(
-      "Evidence",
-      `obj.${i}.ty`,
-      {
-        options: [
-          ["fact", "Findings elicited"],
-          ["review", "Records reviewed"],
-          ["mm", "Discrepancy reconciled"],
-          ["emp", "Communication"],
-          ["ho", "SBAR handoff"],
-        ],
-      },
-    )}
-    ${control("Finding IDs", `obj.${i}.f`, { list: true })}${control("Chart sections", `obj.${i}.s`, { list: true })}${control("Objective ID", `obj.${i}.id`)}</div></details>${button("Remove", "remove-objective", `data-index="${i}"`)}</details>`,
+      (o, i) =>
+        `<div class="clinical-row"><div class="fields">${control("Objective", `obj.${i}.t`)}${control("Weight", `obj.${i}.w`, { type: "number" })}${control(
+          "Evidence",
+          `obj.${i}.ty`,
+          {
+            options: [
+              ["fact", "Findings elicited"],
+              ["review", "Records reviewed"],
+              ["mm", "Discrepancy reconciled"],
+              ["emp", "Communication"],
+              ["ho", "SBAR handoff"],
+            ],
+          },
+        )}</div>${control("Coaching", `obj.${i}.tip`)}${o.ty === "fact" ? recordSelect("Relevant findings", `obj.${i}.f`, factOptions) : ""}${o.ty === "review" ? recordSelect("Relevant chart sections", `obj.${i}.s`, sections.slice(1)) : ""}${button("Remove", "remove-objective", `data-index="${i}"`)}</div>`,
+    )
+    .join("");
+  const disclosure = profile.facts
+    .map(
+      (f, i) =>
+        `<div class="clinical-row"><b>${esc(f.topic || f.label || "New finding")}</b><div class="fields">${control("Question topic", `facts.${i}.topic`)}${control("Chart section", `facts.${i}.ehr`, { options: sections.slice(1) })}${control("Release section", `facts.${i}.sec`, { options: [["", "No chart release"], ...sections.slice(1)] })}${control("Source", `facts.${i}.src`, { options: [...new Set([f.src, "Faculty authored", ...profile.sources.map((r) => r.id)])].filter(Boolean).map((id) => [id, profile.sources.find((r) => r.id === id)?.title || id]) })}${control(
+          "Disclosure",
+          `facts.${i}.gate`,
+          {
+            options: [
+              [0, "On a relevant question"],
+              [1, "After initial rapport"],
+              [2, "After further rapport"],
+              [3, "After sustained rapport"],
+            ],
+          },
+        )}${control("Guarded reply", `facts.${i}.deflect`)}${control("Provenance", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}${control("Units (when supplied)", `facts.${i}.unit`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}${control("Interpretation context", `facts.${i}.ref`)}</div></div>`,
+    )
+    .join("");
+  const releases = profile.artifacts
+    .map(
+      (a, i) =>
+        `<div class="clinical-row"><b>${esc(a.title || "New report")}</b><div class="fields">${control(
+          "Release when",
+          `artifacts.${i}.release`,
+          {
+            options: [
+              ["section", "Chart section opens"],
+              ["question", "Matching question"],
+              ["both", "Section or question"],
+            ],
+          },
+        )}${control("Release phrases", `artifacts.${i}.unlock`, { list: true })}${control("Source", `artifacts.${i}.src`, { options: [...new Set([a.src, "Faculty authored", ...profile.sources.map((r) => r.id)])].filter(Boolean).map((id) => [id, profile.sources.find((r) => r.id === id)?.title || id]) })}</div>${recordSelect("Linked findings", `artifacts.${i}.facts`, factOptions)}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}</div>`,
     )
     .join("");
   return `<div class="editor"><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
-    ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
-    <div class="fields identity-fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}</div>
-    ${
-      profile.facts.length
-        ? `<div class="profile-preview">${profile.facts
-            .slice(0, 4)
-            .map(
-              (f) =>
-                `<p><b>${esc(f.label)}</b> ${esc(f.vis === "ask" ? f.say : f.label)}<span class="chip">${f.vis === "ask" ? "Patient knows" : "Chart"}</span></p>`,
-            )
-            .join(
-              "",
-            )}${profile.facts.length > 4 ? `<p class="muted">+${profile.facts.length - 4} more findings below</p>` : ""}</div>`
-        : ""
-    }
-    ${group("facts", "History & findings", profile.facts.length, facts + button("Add finding", "add-fact"))}
-    ${group("artifacts", "Clinical reports", profile.artifacts.length, artifacts + button("Add report", "add-artifact"))}
-    ${group("objectives", "Learning objectives", profile.obj.length, objectives + button("Add objective", "add-objective"))}
-    ${group("sources", "Documents & references", profile.sources.length, sources + button("Add source", "add-source") + button("Add teaching references", "references"))}
-    <details class="editor-group" data-detail="character"><summary>Patient character</summary><div class="fields">${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div></details>
-    <details class="editor-group" data-detail="advanced"><summary>Advanced scenario settings</summary>
-    ${profile.mm ? `<div class="fields">${control("Patient statement ID", "mm.a")}${control("Chart finding ID", "mm.b")}${control("Follow-up ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}
-    ${control("Applicable rubric domains (1-7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by patient age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}</details>
-    ${profile.missing?.length ? `<details class="editor-group" data-detail="missing"><summary>Unspecified information <span class="chip">${profile.missing.length}</span></summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
-    <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
+  ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
+  <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
+  ${group("facts", "History and clinical information", `<p class="muted">Patient wording is approved phrasing for a finding; dialogue may paraphrase it.</p>${facts}${button("Add finding", "add-fact")}`)}
+  ${group("sources", "Documents and references", `${sources}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
+  ${group("objectives", "Learning objectives", objectives + button("Add objective", "add-objective"))}
+  ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
+  <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
 function openPatientDialog(mode, selected = profile) {
   patientDialog = {
@@ -339,8 +339,10 @@ function openPatientDialog(mode, selected = profile) {
   }
 }
 function closePatientDialog(restore = true) {
+  const returnTab = patientDialog?.returnTab;
   if (restore) ({ profile, versions, issues, dirty } = patientDialog.previous);
   patientDialog = null;
+  if (restore && returnTab) tab = returnTab;
 }
 function syncDialogAttachments() {
   for (const file of patientDialog.files) {
@@ -470,9 +472,9 @@ async function submitPatient(publish) {
     closePatientDialog(false);
     await refresh();
     await pick(id);
-    tab = "studio";
+    tab = d.returnTab || "studio";
     message = publish
-      ? `${profile.name} published. Start a visit from the patient card.`
+      ? `${profile.name} published.${profile.comparisonOnly ? " Prepared-group status updated." : " Start a visit from the patient card."}`
       : `${profile.name || "Untitled patient"} saved as a draft.`;
   } catch (e) {
     if (patientDialog) {
@@ -531,12 +533,13 @@ function dismissPublicationError() {
   }
 }
 function encounter() {
+  if (demoSession?.role === "faculty" && enc?.studentId) return assessment();
   if (!enc)
     return `<div class="pn"><h1>Start an encounter</h1><p class="muted">Only published versions can be launched.</p><div class="patient-grid">${list
       .filter((p) => p.version)
       .map((p) => card(p, false))
       .join("")}</div></div>`;
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}, ${enc.age}</h1><div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}, ${enc.age}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div>${conversationFiles()}<div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -747,9 +750,11 @@ function reviewNotice(a) {
   return `<p class="warn"><b>Faculty review required.</b> ${esc(listed)} ${hit.length > 1 ? "were" : "was"} rated 1. The rubric asks for review whenever clinical reasoning or professionalism and safety is rated 1, even if the total is high. A 1 in other domains does not trigger it.</p>`;
 }
 function assessment() {
+  if (enc?.feedbackHeld)
+    return `<div class="pn"><h1>Trial saved</h1><p>Standard feedback becomes available after every trial in this group is complete.</p>${button("Continue assigned test", "nav", 'data-tab="tests"', "pri")}</div>`;
   if (!enc) return '<div class="pn"><h1>No active encounter</h1></div>';
   if (!enc.assessment)
-    return `<div class="pn"><h1>Encounter feedback</h1><p>Finish the encounter to assess the complete evidence.</p>${button("Finish & get feedback", "complete", "", "pri")}</div>`;
+    return `<div class="pn"><h1>Encounter feedback</h1><p>${demoSession.role === "faculty" && enc.studentId ? "The student is still completing this encounter." : "Finish the encounter to assess the complete evidence."}</p>${demoSession.role === "faculty" && enc.studentId ? biasEvidenceView() : button("Finish & get feedback", "complete", "", "pri")}</div>`;
   const a = enc.assessment,
     c = a.coaching,
     provisional = a.provider === "local-provisional";
@@ -776,8 +781,9 @@ function assessment() {
   <div class="score-hero"><div><div class="score-num">${a.total}/${a.denominator}</div><div class="muted">rubric${provisional ? " (provisional)" : ""}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
   ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
   <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
-  ${body}
-  <div class="row rep-actions">${button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
+  ${biasEvidenceView()}${body}
+  ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis) : ""}
+  <div class="row rep-actions">${enc.attemptId ? button("Assigned tests", "nav", 'data-tab="tests"', "pri") : button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
   <p class="muted small">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}${a.revised ? " · revised once after automated review" : ""}${a.failure ? " · fallback: " + esc(a.failure) : ""}</p></div>`;
 }
 function turnIndex() {
@@ -893,9 +899,37 @@ function transcriptView(a, c) {
   return `<h2>Annotated transcript</h2><p class="muted">Every question with what it achieved and where the feedback above refers to it. Question tags come from automated classification.</p><section class="obj-card annotated">${rows}</section>`;
 }
 function past() {
-  return `<div class="pn"><h1>Encounter history</h1><p class="muted">Each attempt retains its patient version, transcript and assessment.</p><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(new Date(e.createdAt).toLocaleString())} · ${e.turns} questions · ${e.status}${e.status === "complete" && e.objectivePercent != null ? ` · objectives ${e.objectivePercent}% · findings ${e.findingsElicited}/${e.findingsTotal} · rubric ${e.provisional ? "provisional" : e.total + "/" + e.denominator}` : ""}</p>${button(e.status === "complete" ? "View feedback" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+  return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+}
+function rolePicker() {
+  return `<div class="pn role-picker"><div class="panel-kicker">VirtuSP demo</div><h1>Choose your workspace</h1><p>Faculty prepares patients and reviews student results. Students practice and complete assigned tests.</p><div class="role-grid"><section><h2>Faculty</h2>${button("Enter Faculty", "choose-role", 'data-role="faculty"', "pri")}</section><section><h2>Student</h2><label for="demo-student">Demo student</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter Student", "choose-role", 'data-role="student"', "pri")}</section></div><p class="muted">Local demonstration identities; no passwords.</p></div>`;
+}
+function testCatalog() {
+  if (demoSession.role === "student")
+    return `<div class="pn"><h1>Assigned tests</h1><p>Complete all trials before reviewing your standard assessment.</p>${assignments.map((a) => `<article class="group-card"><h2>${esc(a.title)}</h2><p>${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} trials · Not started`}</p>${button(a.attempt?.status === "complete" ? "View feedback in history" : "Start / resume test", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`).join("") || "<p>No tests assigned. Faculty can assign a prepared group.</p>"}</div>`;
+  return `<div class="pn"><h1>Prepared comparison groups</h1><p>Select a prepared group and assign it to a student.</p><div class="row"><label for="assign-student">Assign to</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p><b>${g.trialCount} trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Clinical settings differ — review both cases" : "Faculty review required before rehearsal"}</b></p><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><div class="row">${g.cases.map((c) => button(`${c.version ? "Review" : "Review & publish"} ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}${g.preparationStatus === "ready" ? button("Assign group", "assign-group", `data-id="${esc(g.id)}"`, "pri") : ""}</div><details><summary>Comparison limits and source notes</summary><p>${esc(g.limitations)}</p><p>${esc(g.sourceNote)}</p></details></article>`).join("")}<h2>Demo students</h2><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div><h2>Assignments</h2>${assignments.map((a) => `<p>${esc(students.find((s) => s.id === a.studentId)?.alias)} · ${esc(a.title)} · ${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials` : "Not started"}</p>`).join("") || "<p>No assignments yet.</p>"}</div>`;
+}
+function biasPanel(result) {
+  const r = result || { status: "pending", findings: [], limitations: [] };
+  return `<section class="bias-panel"><h3>Possible bias indicators · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}${r.detectorVersion ? ` · ${esc(r.detectorVersion)}` : ""}</p>${r.findings.map((f) => `<p>${esc(f.text)}</p><div class="row">${f.evidence.map((ref) => button("View cited event", "bias-evidence", `data-id="${esc(ref.encounterId)}" data-event="${esc(ref.eventId)}"`)).join("")}</div>`).join("")}${r.status === "complete" && !r.findings.length ? "<p>No indicators reported by this detector.</p>" : ""}${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from rubric ratings. Encounter differences alone do not establish bias.</p></section>`;
+}
+function biasEvidenceView() {
+  if (demoSession?.role !== "faculty" || !selectedEvidenceId) return "";
+  const event = enc?.events.find((e) => e.id === selectedEvidenceId);
+  if (!event) return "";
+  const turn = enc.transcript.find((t) => t.id === event.id);
+  return `<section class="bias-panel cited-event"><h2>Cited encounter event</h2><p>${esc(event.type)} · ${esc(new Date(event.at).toLocaleString())}</p><p>${esc(turn?.text || event.text || "Recorded encounter action")}</p><p class="muted">${esc(event.id)}</p></section>`;
+}
+function resultsPage() {
+  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis)}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis)}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
 }
 function render() {
+  if (!demoSession) {
+    $("#nav").innerHTML = "";
+    $("#mode").textContent = "Local demo";
+    $("#app").innerHTML = rolePicker();
+    return;
+  }
   const focusId = document.activeElement?.id;
   const dialogScroll = $(".patient-form-body")?.scrollTop || 0;
   if (patientDialog && $("#patient-dialog")?.dataset.profileId === profile.id)
@@ -909,12 +943,24 @@ function render() {
     ["team", "Team"],
     ["rep", "Assessment"],
     ["history", "History"],
+    [
+      "tests",
+      demoSession.role === "faculty" ? "Prepared groups" : "Assigned tests",
+    ],
+    ...(demoSession.role === "faculty" ? [["results", "Student results"]] : []),
   ];
-  $("#nav").innerHTML = navs
-    .map(([k, name]) =>
-      button(name, "nav", `data-tab="${k}"`, tab === k ? "on" : ""),
-    )
-    .join("");
+  $("#nav").innerHTML =
+    navs
+      .map(([k, name]) =>
+        button(name, "nav", `data-tab="${k}"`, tab === k ? "on" : ""),
+      )
+      .join("") +
+    button(
+      demoSession.role === "faculty"
+        ? "Faculty · switch"
+        : `${students.find((s) => s.id === demoSession.studentId)?.alias || "Student"} · switch`,
+      "switch-role",
+    );
   $("#mode").textContent =
     health.dialogue === "local"
       ? "Local fallback"
@@ -922,7 +968,15 @@ function render() {
   $("#themeBtn").textContent = "Theme";
   $("#app").innerHTML =
     `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
-    { studio, enc: encounter, team, rep: assessment, history: past }[tab]() +
+    {
+      studio,
+      enc: encounter,
+      team,
+      rep: assessment,
+      history: past,
+      tests: testCatalog,
+      results: resultsPage,
+    }[tab]() +
     patientForm();
   if (patientDialog) {
     const dialog = $("#patient-dialog");
@@ -934,7 +988,7 @@ function render() {
     $(".patient-form-body").scrollTop = dialogScroll;
     const focus = focusId && document.getElementById(focusId);
     if (focus && dialog.contains(focus)) focus.focus();
-    else $("#patient-upload")?.focus();
+    else $("#patient-description")?.focus();
     dialog.addEventListener("cancel", (e) => {
       e.preventDefault();
       if (!busy) {
@@ -1298,6 +1352,9 @@ for (const type of ["dragenter", "dragover", "dragleave", "drop"])
   );
 document.addEventListener("input", (e) => {
   const t = e.target;
+  if (t.id === "demo-student") loginStudent = t.value;
+  if (t.id === "assign-student") selectedStudent = t.value;
+  if (t.id === "new-student-alias") newStudentAlias = t.value;
   if (t.id === "patient-description") {
     patientDialog.description = t.value;
     dirty = true;
@@ -1324,6 +1381,9 @@ document.addEventListener("input", (e) => {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+    if (t.dataset.selection)
+      v = Array.from(t.selectedOptions).map((o) => o.value);
+    if (keys.at(-1) === "gate") v = Number(v);
     if (t.dataset.rows)
       v = t.value
         .split("\n")
@@ -1335,6 +1395,10 @@ document.addEventListener("input", (e) => {
     if (t.dataset.path === "rubricApplicable") v = v.map(Number);
     if (keys.at(-1) === "lab") v = v === "true";
     obj[keys.at(-1)] = v;
+    if (keys.at(-1) === "vis" && keys[0] === "facts") {
+      if (v === "chart") obj.sec ||= obj.ehr || "hx";
+      render();
+    }
     if (t.dataset.path === "reviewAcknowledged") {
       for (const records of [profile.facts, profile.sources, profile.artifacts])
         records.forEach((r) => (r.reviewed = v));
@@ -1413,18 +1477,118 @@ document.addEventListener("click", async (e) => {
       return; // Keep the input mounted while the system file picker is open.
     }
     message = "";
+    if (
+      [
+        "choose-role",
+        "switch-role",
+        "assign-group",
+        "start-test",
+        "next-test",
+        "add-student",
+        "bias-evidence",
+      ].includes(a)
+    ) {
+      busy = true;
+      render();
+    }
+    if (a === "choose-role") {
+      const r = await api("/api/session", "POST", {
+        role: t.dataset.role,
+        studentId: loginStudent || students[0]?.id,
+      });
+      demoSession = r.session;
+      await refresh();
+      busy = false;
+      render();
+      return;
+    }
+    if (a === "switch-role") {
+      stopAudio();
+      await api("/api/session", "DELETE");
+      demoSession = null;
+      enc = null;
+      profile = null;
+      patientDialog = null;
+      history = [];
+      list = [];
+      facultyResults = [];
+      groups = [];
+      assignments = [];
+      issues = [];
+      versions = [];
+      health = {};
+      newStudentAlias = "";
+      selectedEvidenceId = "";
+      dirty = false;
+      tab = "studio";
+      repView = "summary";
+      expandedDocId = "";
+      message = "";
+      for (const k of Object.keys(formMemory)) formMemory[k] = "";
+      localStorage.removeItem("virtusp-active-v2");
+      busy = false;
+      render();
+      return;
+    }
+    if (a === "add-student") {
+      const alias = newStudentAlias;
+      await api("/api/students", "POST", { alias });
+      newStudentAlias = "";
+      await refresh();
+    }
+    if (a === "assign-group") {
+      selectedGroup = t.dataset.id;
+      await api("/api/assignments", "POST", {
+        groupId: selectedGroup,
+        studentId: selectedStudent,
+      });
+      await refresh();
+      message = "Group assigned.";
+    }
+    if (a === "start-test") {
+      const r = await api(`/api/assignments/${t.dataset.id}/start`, "POST", {});
+      if (r.attempt.status === "complete") {
+        tab = "history";
+        await refresh();
+      } else {
+        const n = await api(`/api/attempts/${r.attempt.id}/next`, "POST", {});
+        enc = n.encounter;
+        localStorage.setItem("virtusp-active-v2", enc.id);
+        section = "ov";
+        tab = "enc";
+      }
+    }
+    if (a === "next-test") {
+      const r = await api(`/api/attempts/${t.dataset.id}/next`, "POST", {});
+      enc = r.encounter;
+      localStorage.setItem("virtusp-active-v2", enc.id);
+      section = "ov";
+      tab = "enc";
+    }
+    if (a === "bias-evidence") {
+      enc = (await api(`/api/encounters/${t.dataset.id}`)).encounter;
+      selectedEvidenceId = t.dataset.event;
+      tab = "rep";
+      repView = "interview";
+      busy = false;
+      render();
+      $(".cited-event")?.scrollIntoView?.({ block: "center" });
+      return;
+    }
     if (a === "rep-view") repView = t.dataset.view;
     if (a === "nav") {
       if (tab === "studio" && dirty) await save();
       stopAudio();
       tab = t.dataset.tab;
-      if (tab === "history") await refresh();
+      if (["history", "tests", "results"].includes(tab)) await refresh();
     }
     if (a === "pick") {
       if (dirty) await save();
       await pick(t.dataset.id);
+      const returnTab = tab;
       tab = "studio";
       openPatientDialog("edit");
+      patientDialog.returnTab = returnTab;
     }
     if (a === "new") {
       if (dirty) await save();
@@ -1509,7 +1673,12 @@ document.addEventListener("click", async (e) => {
       formMemory.question = "";
       enc = (await api("/api/encounters/" + t.dataset.id)).encounter;
       localStorage.setItem("virtusp-active-v2", enc.id);
-      tab = enc.status === "complete" ? "rep" : "enc";
+      selectedEvidenceId = "";
+      tab =
+        enc.status === "complete" ||
+        (demoSession.role === "faculty" && enc.studentId)
+          ? "rep"
+          : "enc";
       repView = "summary";
     }
     if (a === "section") {
@@ -1620,6 +1789,7 @@ document.addEventListener("click", async (e) => {
       dirty = true;
       profile.reviewAcknowledged = false;
     }
+    busy = false;
     render();
   } catch (err) {
     busy = false;
@@ -1656,9 +1826,15 @@ async function boot() {
   try {
     document.documentElement.dataset.theme =
       localStorage.getItem("virtusp-theme") || "light";
+    students = (await api("/api/students")).students;
+    demoSession = (await api("/api/session")).session;
+    if (!demoSession) {
+      render();
+      return;
+    }
     await refresh();
     const selected = list.find((p) => p.name === "Omar Sinclair") || list[0];
-    if (selected) await pick(selected.id);
+    if (selected && demoSession.role === "faculty") await pick(selected.id);
     const id = localStorage.getItem("virtusp-active-v2");
     if (id)
       try {

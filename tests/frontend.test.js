@@ -14,6 +14,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   const errors = [];
   const console = new VirtualConsole();
   console.on("jsdomError", (e) => errors.push(e.message));
@@ -24,7 +25,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   });
   const window = dom.window;
   window.structuredClone = structuredClone;
-  window.fetch = (url, options) => fetch(new URL(url, base), options);
+  window.fetch = (url, options) => client(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
   const recognizers = [];
   window.SpeechRecognition = class {
@@ -79,7 +80,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       1,
     );
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
     );
     click("close-patient");
@@ -97,7 +98,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("dismiss-publication-error");
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
     );
     const pdf = require("./pdf-fixture")([
@@ -301,7 +302,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "Sections start closed after extraction",
     );
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
       "Extraction is only a preview",
     );
@@ -342,7 +343,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         doc.querySelectorAll(".patient-card").length === 11,
     );
     const created = (
-      await (await fetch(base + "/api/profiles")).json()
+      await (await client(base + "/api/profiles")).json()
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
@@ -363,14 +364,15 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => doc.querySelectorAll(".uploaded-document").length === 3);
     click("close-patient");
     click("pick", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
-    await wait(() =>
-      doc.querySelector(".editor")?.textContent.includes("Omar Sinclair"),
+    await wait(
+      () => doc.getElementById("field-name")?.value === "Omar Sinclair",
     );
     click("prepare");
     await wait(
       () =>
         !!doc.getElementById("field-facts-0-say") &&
-        doc.getElementById("field-facts-0-id").value === "concern",
+        doc.getElementById("field-facts-0-label").value ===
+          "Discomfort with taking medication",
     );
     const wording =
       "I want to discuss medication concerns. <b>Literal patient text</b>";

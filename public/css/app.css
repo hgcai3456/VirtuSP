@@ -1547,3 +1547,95 @@ summary:focus-visible {
     animation: none !important;
   }
 }
+.role-picker {
+  max-width: 840px;
+  margin: 36px auto;
+}
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.role-grid section,
+.group-card {
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 18px;
+  margin: 12px 0;
+}
+.role-grid select {
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px;
+}
+.student-results {
+  border-top: 1px solid var(--bd);
+  margin-top: 24px;
+  padding-top: 12px;
+}
+.result-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bd);
+}
+.bias-panel {
+  padding: 12px;
+  margin: 12px 0;
+  background: var(--soft);
+  border-left: 3px solid var(--ac);
+}
+.patient-category {
+  margin: 8px 0 16px;
+}
+.patient-dialog .clinical-row {
+  border-bottom: 1px solid var(--bd);
+  padding: 10px 0;
+  margin: 0;
+}
+.patient-dialog .clinical-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  align-items: end;
+  gap: 10px;
+}
+.patient-dialog .clinical-main .btn {
+  margin-bottom: 6px;
+}
+.patient-dialog .clinical-row .field {
+  margin: 0 0 8px;
+}
+.patient-dialog .clinical-row textarea {
+  min-height: 52px;
+}
+.patient-dialog .patient-phrasing textarea {
+  height: 54px;
+}
+.patient-dialog .editor-group {
+  padding: 8px 0;
+  margin: 6px 0;
+}
+.patient-dialog .editor-group > summary {
+  padding: 8px 0;
+}
+.patient-dialog .fields {
+  gap: 8px 12px;
+}
+.patient-dialog .fields .field {
+  min-width: 0;
+}
+.patient-dialog .form-section {
+  padding: 12px 0;
+}
+.patient-dialog .editor > .patient-category h2 {
+  margin: 10px 0;
+}
+@media (max-width: 680px) {
+  .role-grid {
+    grid-template-columns: 1fr;
+  }
+  .patient-dialog .clinical-main {
+    grid-template-columns: 1fr;
+  }
+  header {
+    flex-wrap: wrap;
+  }
+}

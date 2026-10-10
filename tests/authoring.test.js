@@ -15,8 +15,9 @@ test("Document roles, previews, clinical attachments and explicit creation prese
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${app.server.address().port}`,
     oldDraft = cloud.draft;
+  const client = await require("./http-client").facultyClient(() => base);
   const request = async (url, payload) => {
-    const r = await fetch(base + url, {
+    const r = await client(base + url, {
       method: payload ? "POST" : "GET",
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,
