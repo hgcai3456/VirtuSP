@@ -1,0 +1,9 @@
+{
+  "name": "virtusp-rds-load",
+  "private": true,
+  "description": "Applies the VirtuSP schema and seed SQL to RDS PostgreSQL.",
+  "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.700.0",
+    "pg": "^8.16.3"
+  }
+}

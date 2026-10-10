@@ -1,0 +1,15 @@
+{
+  "request": "Tell me how you take your metformin.",
+  "trust": 0,
+  "case_facts": {
+    "facts": [
+      {
+        "id": "d3",
+        "label": "Metformin: patient says she takes it every day",
+        "vis": "ask",
+        "kw": ["metformin", "taking"],
+        "say": "I take my metformin every day, like I'm supposed to."
+      }
+    ]
+  }
+}

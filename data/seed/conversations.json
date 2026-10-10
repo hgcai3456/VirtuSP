@@ -1,0 +1,978 @@
+[
+  {
+    "source_key": "greeting-1",
+    "title": "Greeting 1",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hi, come on in. How are you doing today?",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hey.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I got here a few minutes early.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-2",
+    "title": "Greeting 2",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hello. Thanks for making the time.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hi.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I came straight from the bus stop.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-3",
+    "title": "Greeting 3",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Good morning. Have a seat whenever you are ready.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hello.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I left the house with time to spare.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Right.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-4",
+    "title": "Greeting 4",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hey, I am glad you are here.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Good morning.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I wrote down a few things I wanted to mention.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-5",
+    "title": "Greeting 5",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hi there. How has the day been treating you?",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Morning.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I found parking on the first try.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Mm-hmm.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-6",
+    "title": "Greeting 6",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hello. We can go at your pace.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hi there.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "A friend dropped me off out front.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-7",
+    "title": "Greeting 7",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Good afternoon. What would you like to start with?",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hey.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I have my list in my pocket.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-8",
+    "title": "Greeting 8",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hi. I have a few questions, and you can stop me anytime.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hi.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "The waiting room was quiet when I walked in.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Right.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-9",
+    "title": "Greeting 9",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hey. Tell me how you want to begin.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hello.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I turned my phone off when I sat down.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-10",
+    "title": "Greeting 10",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hello. I will listen first.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Good morning.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I brought a sweater because it is cool in here.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Mm-hmm.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-11",
+    "title": "Greeting 11",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hi. Take a second if you need it.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Morning.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I am ready whenever you are.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "greeting-12",
+    "title": "Greeting 12",
+    "topic": "greeting",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Good morning. I am ready when you are.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hi there.",
+        "move": "greet"
+      },
+      {
+        "speaker": "patient",
+        "text": "I double checked the time before I left.",
+        "move": "share"
+      },
+      {
+        "speaker": "clinician",
+        "text": "What should we start with?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "acknowledgement-1",
+    "title": "Acknowledgement 1",
+    "topic": "acknowledgement",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hello. Thanks for making the time.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      },
+      {
+        "speaker": "patient",
+        "text": "I found parking on the first try.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Well.",
+        "move": "hedge"
+      }
+    ]
+  },
+  {
+    "source_key": "acknowledgement-2",
+    "title": "Acknowledgement 2",
+    "topic": "acknowledgement",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Good morning. Have a seat whenever you are ready.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      },
+      {
+        "speaker": "patient",
+        "text": "A friend dropped me off out front.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hmm.",
+        "move": "hedge"
+      }
+    ]
+  },
+  {
+    "source_key": "acknowledgement-3",
+    "title": "Acknowledgement 3",
+    "topic": "acknowledgement",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hey, I am glad you are here.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Right.",
+        "move": "ack"
+      },
+      {
+        "speaker": "patient",
+        "text": "I have my list in my pocket.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Let me think.",
+        "move": "hedge"
+      }
+    ]
+  },
+  {
+    "source_key": "acknowledgement-4",
+    "title": "Acknowledgement 4",
+    "topic": "acknowledgement",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Hi there. How has the day been treating you?",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      },
+      {
+        "speaker": "patient",
+        "text": "The waiting room was quiet when I walked in.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Give me a second.",
+        "move": "hedge"
+      }
+    ]
+  },
+  {
+    "source_key": "hesitation-1",
+    "title": "Hesitation 1",
+    "topic": "hesitation",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Take your time. There is no rush.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Well.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I turned my phone off when I sat down.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "hesitation-2",
+    "title": "Hesitation 2",
+    "topic": "hesitation",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Take your time. There is no rush.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hmm.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I brought a sweater because it is cool in here.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Right.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "hesitation-3",
+    "title": "Hesitation 3",
+    "topic": "hesitation",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Take your time. There is no rush.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Let me think.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I am ready whenever you are.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "hesitation-4",
+    "title": "Hesitation 4",
+    "topic": "hesitation",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Take your time. There is no rush.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Give me a second.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I double checked the time before I left.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Mm-hmm.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "clarification-1",
+    "title": "Clarification 1",
+    "topic": "clarification",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I want to be sure I understood that.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Say that again?",
+        "move": "clarify"
+      },
+      {
+        "speaker": "clinician",
+        "text": "Let me put it a different way.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Right.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "clarification-2",
+    "title": "Clarification 2",
+    "topic": "clarification",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I want to be sure I understood that.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Which part?",
+        "move": "clarify"
+      },
+      {
+        "speaker": "clinician",
+        "text": "Let me put it a different way.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "clarification-3",
+    "title": "Clarification 3",
+    "topic": "clarification",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I want to be sure I understood that.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Do you mean today?",
+        "move": "clarify"
+      },
+      {
+        "speaker": "clinician",
+        "text": "Let me put it a different way.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Mm-hmm.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "clarification-4",
+    "title": "Clarification 4",
+    "topic": "clarification",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I want to be sure I understood that.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "You mean at home?",
+        "move": "clarify"
+      },
+      {
+        "speaker": "clinician",
+        "text": "Let me put it a different way.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "closing-1",
+    "title": "Closing 1",
+    "topic": "closing",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I think that covers what I wanted to ask.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "Thanks.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "Someone held the door on my way in.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "So.",
+        "move": "bridge"
+      }
+    ]
+  },
+  {
+    "source_key": "closing-2",
+    "title": "Closing 2",
+    "topic": "closing",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I think that covers what I wanted to ask.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "Thank you.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "I grabbed a seat by the window.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Anyway.",
+        "move": "bridge"
+      }
+    ]
+  },
+  {
+    "source_key": "closing-3",
+    "title": "Closing 3",
+    "topic": "closing",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I think that covers what I wanted to ask.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "I appreciate it.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "My ride is coming back in a little while.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "So.",
+        "move": "bridge"
+      }
+    ]
+  },
+  {
+    "source_key": "closing-4",
+    "title": "Closing 4",
+    "topic": "closing",
+    "setting": "clinic",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "I think that covers what I wanted to ask.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sounds good.",
+        "move": "close"
+      },
+      {
+        "speaker": "patient",
+        "text": "I kept the notes from last time in my bag.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Anyway.",
+        "move": "bridge"
+      }
+    ]
+  },
+  {
+    "source_key": "bridge-1",
+    "title": "Bridge 1",
+    "topic": "bridge",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Go on, I am with you.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "So.",
+        "move": "bridge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I left the house with time to spare.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Hmm.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "Sure.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "bridge-2",
+    "title": "Bridge 2",
+    "topic": "bridge",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Go on, I am with you.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Anyway.",
+        "move": "bridge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I wrote down a few things I wanted to mention.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Let me think.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "Mm-hmm.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "bridge-3",
+    "title": "Bridge 3",
+    "topic": "bridge",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Go on, I am with you.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "So.",
+        "move": "bridge"
+      },
+      {
+        "speaker": "patient",
+        "text": "I found parking on the first try.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Give me a second.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "Yeah.",
+        "move": "ack"
+      }
+    ]
+  },
+  {
+    "source_key": "bridge-4",
+    "title": "Bridge 4",
+    "topic": "bridge",
+    "setting": "everyday",
+    "turns": [
+      {
+        "speaker": "clinician",
+        "text": "Go on, I am with you.",
+        "move": "ask"
+      },
+      {
+        "speaker": "patient",
+        "text": "Anyway.",
+        "move": "bridge"
+      },
+      {
+        "speaker": "patient",
+        "text": "A friend dropped me off out front.",
+        "move": "share"
+      },
+      {
+        "speaker": "patient",
+        "text": "Well.",
+        "move": "hedge"
+      },
+      {
+        "speaker": "patient",
+        "text": "Okay.",
+        "move": "ack"
+      }
+    ]
+  }
+]
