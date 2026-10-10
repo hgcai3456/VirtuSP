@@ -1,2197 +1,1675 @@
+"use strict";
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-const F = (id, label, k, o) => Object.assign({
-  id, label, k, type: 'reported', src: 'Approved case', role: 'Patient', vis: 'ask', kw: [], ehr: 'hx', gate: 0
-}, o);
-
-const SERVICES = { dialogue: 'local', voice: 'browser', avatar: 'photo' };
-const KEY = 'virtusp-v1';
-const LEGACY_KEY = 'ptl-v1';
-const THEME_KEY = 'virtusp-theme';
-const ROLES = ['Primary care physician', 'Nephrologist/Specialist', 'Dietitian', 'Nurse', 'Pharmacist'];
-const SEC = [
-  ['ov', 'Overview'],
-  ['hx', 'History'],
-  ['meds', 'Medications'],
-  ['labs', 'Labs'],
-  ['img', 'Imaging'],
-  ['notes', 'Notes'],
-  ['soc', 'Social']
+const esc = (s) =>
+  String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const sections = [
+  ["ov", "Overview"],
+  ["hx", "History"],
+  ["meds", "Medications"],
+  ["labs", "Labs"],
+  ["img", "Imaging"],
+  ["notes", "Notes"],
+  ["soc", "Social"],
 ];
-const EHR_HINTS = {
-  hx: 'Ask why they came in, about symptoms, or about their diagnosis.',
-  meds: 'Ask how they take their medications, then compare with the chart list.',
-  labs: 'Ask about labs or kidney numbers, or open this tab to release the report.',
-  img: 'Ask about an ECG, CT, or scan to unlock imaging artifacts.',
-  notes: 'Open this section to release prior clinician notes.',
-  soc: 'Ask about diet, cost, smoking, or daily routine.'
+const domainNames = [
+  "Opening and purpose",
+  "Rapport, respect, and empathy",
+  "Information gathering",
+  "Listening and response to cues",
+  "Explanation and shared decisions",
+  "Clinical reasoning and synthesis",
+  "Professionalism, safety, and closure",
+];
+let list = [],
+  history = [],
+  profile = null,
+  patientDialog = null,
+  enc = null,
+  issues = [],
+  versions = [],
+  health = {},
+  tab = "studio",
+  section = "ov",
+  message = "",
+  dirty = false,
+  busy = false,
+  muted = false,
+  recognition = null,
+  audio = null,
+  audioUrl = null,
+  speechGeneration = 0,
+  listening = false,
+  micRestartTimer = null,
+  repView = "summary",
+  expandedDocId = "",
+  voiceDisplay = { state: "ready", text: "Ready for your question" };
+const formMemory = {
+  handoff: "",
+  careplan: "",
+  note: "",
+  question: "",
 };
-
-const SEED = [{
-  id: 'denise',
-  name: 'Denise Carter',
-  age: 58,
-  intro: "Hi, I'm Denise.",
-  hints: [
-    'What brings you in today?',
-    'Tell me how you take your metformin.',
-    'I am sorry this has been hard. What gets in the way of every dose?',
-    'How are cost and meals affecting your routine?',
-    'What do you usually eat and drink?'
-  ],
-  facts: [
-    F('d1', 'Chief complaint: thirst and fatigue for months', 'thirst', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'tired', 'thirst', 'why'], say: "I've been really thirsty and tired for a few months. My doctor says it's diabetes." }),
-    F('d2', 'Understanding of diagnosis: partial, confused about diet', 'understand', { kw: ['understand', 'diabetes mean', 'know about', 'diagnos'], say: "They said my sugar is high. I think it means no sweets? Honestly I'm confused about the rest." }),
-    F('d3', 'Metformin: patient says she takes it every day', 'metformin', { kw: ['medication', 'medicine', 'pills', 'taking', 'metformin', 'prescri'], ehr: 'meds', say: 'I take my metformin every day, like I\'m supposed to.' }),
-    F('d4', 'Skips evening metformin dose (GI upset, runs out early)', 'evening', { kw: ['forget', 'miss', 'skip', 'adher', 'trouble', 'difficult', 'consistent', 'every dose', 'ever'], ehr: 'meds', gate: 1, deflect: 'I take it. Like I said.', say: '...Okay, honestly I skip the evening one a lot. It upsets my stomach and I run out before the refill.' }),
-    F('d5', 'Cost barrier: delays refills until payday', 'cost', { kw: ['cost', 'afford', 'insurance', 'pay', 'money'], ehr: 'soc', gate: 1, deflect: "I'd rather not talk about money.", say: 'Money is tight. Sometimes I wait to refill until payday.' }),
-    F('d6', 'Allergy: sulfa drugs (rash)', 'sulfa', { kw: ['allerg', 'reaction'], allergyDrug: 'sulfonamide', say: 'Sulfa drugs gave me a rash.' }),
-    F('d7', 'Recall of labs: does not remember values (unknown)', 'recall', { type: 'unknown', kw: ['kidney', 'lab', 'result', 'a1c', 'number'], say: "Someone mentioned my kidneys, but I don't remember any numbers." }),
-    F('d8', 'Diet: sweet tea, frequent takeout (shift work)', 'tea', { kw: ['eat', 'diet', 'food', 'drink', 'soda', 'meal'], ehr: 'soc', say: 'I drink a lot of sweet tea and eat out a lot because of my work hours.' }),
-    F('c1', 'eGFR 58 mL/min/1.73m² (ref ≥90), 2026-09-14', 'egfr', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Report LR-0914', ehr: 'labs', lab: true, unit: 'mL/min/1.73m²', ref: '≥90', kw: ['lab', 'kidney', 'egfr', 'result', 'number'] }),
-    F('c2', 'HbA1c 8.4 % (ref <5.7), 2026-09-14', 'a1c', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Report LR-0914', ehr: 'labs', lab: true, unit: '%', ref: '<5.7', kw: ['a1c', 'sugar', 'glucose', 'lab', 'result'] }),
-    F('c3', 'PCP note 09-21: pharmacy fill history shows 45-day gap in metformin refills', 'refill', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Primary care physician', src: 'Note N-0921', ehr: 'notes', kw: ['refill', 'pharmacy', 'chart', 'note'] }),
-    F('c4', 'Chart list: metformin 500 mg PO BID', '500', { vis: 'chart', sec: 'meds', type: 'documented', role: 'Primary care physician', src: 'Med list ML-1', ehr: 'meds' }),
-    F('c5', 'ECG 09-14: sinus rhythm, nonspecific T-wave changes', 'ecg', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Cardiology', src: 'ECG-0914', ehr: 'img', artifact: 'ecg', kw: ['ecg', 'ekg', 'heart', 'chest'] }),
-    F('c6', 'Abdominal CT 09-14: no acute renal obstruction', 'ct', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Radiology', src: 'CT-0914', ehr: 'img', artifact: 'ct', kw: ['ct', 'scan', 'imaging', 'kidney'] })
-  ],
-  artifacts: [
-    { id: 'den-lab', kind: 'lab', title: 'Laboratory report LR-0914', date: '2026-09-14', src: 'Report LR-0914', sec: 'labs', unlock: ['lab', 'kidney', 'a1c', 'result', 'number', 'egfr', 'glucose', 'sugar', 'blood work'], facts: ['c1', 'c2'], rows: [{ name: 'eGFR', value: '58', unit: 'mL/min/1.73m²', ref: '≥90', flag: 'low' }, { name: 'HbA1c', value: '8.4', unit: '%', ref: '<5.7', flag: 'high' }] },
-    { id: 'den-ecg', kind: 'ecg', title: '12-lead ECG', date: '2026-09-14', src: 'ECG-0914', sec: 'img', unlock: ['ecg', 'ekg', 'heart', 'chest pain', 'palpit'], facts: ['c5'], img: 'img/denise-ecg.jpg' },
-    { id: 'den-ct', kind: 'ct', title: 'Abdominal CT', date: '2026-09-14', src: 'CT-0914', sec: 'img', unlock: ['ct', 'scan', 'imaging', 'kidney scan', 'abdomen'], facts: ['c6'], img: 'img/denise-ct.jpg' }
-  ],
-  obj: [
-    { id: 'o1', t: 'Elicit adherence barrier (critical)', w: 25, ty: 'fact', f: ['d4'], tip: 'Ask open, nonjudgmental questions about missed doses.' },
-    { id: 'o2', t: 'Explore cost and diet barriers', w: 15, ty: 'fact', f: ['d5', 'd8'], tip: 'Ask how cost and daily routine affect the regimen.' },
-    { id: 'o3', t: 'Review eGFR and HbA1c', w: 20, ty: 'review', s: ['labs'], tip: 'Open the lab report before drawing conclusions.' },
-    { id: 'o4', t: 'Recognize and reconcile adherence discrepancy', w: 25, ty: 'mm', tip: 'Compare the patient report with the refill history, ask follow-ups, document the reconciliation.' },
-    { id: 'o5', t: 'Empathic, open-ended communication', w: 10, ty: 'emp', tip: 'Acknowledge feelings and use open questions.' },
-    { id: 'o6', t: 'Structured SBAR handoff', w: 5, ty: 'ho', tip: 'Include the barrier, the discrepancy and labs.' }
-  ],
-  mm: { a: 'd3', b: 'c3', fu: 'd4', kw: ['refill', 'gap', 'miss', 'skip', 'discrep', 'not taking', 'nonadher', 'adherence'] },
-  personality: 'Wants to be seen as a good patient',
-  emotion: 'Embarrassed about cost and missed doses',
-  style: 'Short answers until trust is earned',
-  complaint: 'Thirst and fatigue for months',
-  history: 'Newly diagnosed type 2 diabetes',
-  diagnosis: 'Type 2 diabetes',
-  medications: 'Metformin 500 mg twice a day',
-  allergies: 'Sulfa drugs, rash',
-  labs: 'eGFR | 58 | mL/min/1.73m² | ≥90\nHbA1c | 8.4 | % | <5.7',
-  patientSays: 'I take my metformin every day, like I\'m supposed to.',
-  chartSays: 'Pharmacy fill history shows a 45-day gap in metformin refills',
-  objText: 'Elicit adherence barrier\nReview eGFR and HbA1c\nReconcile the refill discrepancy'
-}, {
-  id: 'marcus',
-  name: 'Marcus Lee',
-  age: 67,
-  intro: "Morning, doc. I'm Marcus.",
-  hints: [
-    'What brings you in today?',
-    'Tell me about your inhaler.',
-    'That sounds worrying. How do you use it?',
-    'Can you tell me about smoking?'
-  ],
-  facts: [
-    F('m1', 'Chief complaint: breathless on stairs', 'stairs', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'breath', 'why'], say: "I get winded climbing one flight of stairs. It's worse than last winter." }),
-    F('m2', 'Rescue inhaler used about 4x/week', 'inhaler', { kw: ['inhaler', 'medication', 'medicine', 'taking', 'puff'], ehr: 'meds', say: 'I use my blue inhaler maybe four times a week.' }),
-    F('m3', 'Inhaler technique: does not use spacer, shallow breath', 'spacer', { kw: ['technique', 'show', 'how do you use', 'spacer', 'trouble', 'difficult'], ehr: 'meds', gate: 1, deflect: 'I use it fine.', say: "Truth is, nobody showed me. I just puff and breathe in quick." }),
-    F('m4', 'Smoking: half pack/day (patient says he quit)', 'smok', { kw: ['smok', 'cigar', 'tobacco', 'quit'], ehr: 'soc', gate: 1, deflect: 'I quit a while back.', say: "Okay... I still have about half a pack a day. I didn't want to say." }),
-    F('m5', 'Smoking status claimed: quit', 'quit', { kw: ['habit', 'lifestyle', 'social'], ehr: 'soc', say: 'I quit smoking years ago.' }),
-    F('x1', 'FEV1 52 % predicted (ref ≥80), 2026-08-30', 'fev1', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Spirometry SP-0830', ehr: 'labs', lab: true, unit: '% predicted', ref: '≥80', kw: ['lab', 'fev', 'spirom', 'result', 'lung'] }),
-    F('x2', 'Note 08-30: current smoker, 0.5 ppd, pack-years 30', 'ppd', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Pulmonologist', src: 'Note N-0830', ehr: 'notes', kw: ['note', 'chart', 'pack'] }),
-    F('x3', 'ECG 08-30: sinus rhythm, possible right atrial strain', 'ecg', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Cardiology', src: 'ECG-0830', ehr: 'img', artifact: 'ecg', kw: ['ecg', 'ekg', 'heart'] }),
-    F('x4', 'Chest CT 08-30: hyperinflation, no mass', 'ct', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Radiology', src: 'CT-0830', ehr: 'img', artifact: 'ct', kw: ['ct', 'scan', 'imaging', 'chest', 'xray'] })
-  ],
-  artifacts: [
-    { id: 'mar-lab', kind: 'lab', title: 'Spirometry SP-0830', date: '2026-08-30', src: 'Spirometry SP-0830', sec: 'labs', unlock: ['lab', 'fev', 'spirom', 'result', 'lung', 'breath test'], facts: ['x1'], rows: [{ name: 'FEV1', value: '52', unit: '% predicted', ref: '≥80', flag: 'low' }] },
-    { id: 'mar-ecg', kind: 'ecg', title: '12-lead ECG', date: '2026-08-30', src: 'ECG-0830', sec: 'img', unlock: ['ecg', 'ekg', 'heart'], facts: ['x3'], img: 'img/marcus-ecg.jpg' },
-    { id: 'mar-ct', kind: 'ct', title: 'Chest CT', date: '2026-08-30', src: 'CT-0830', sec: 'img', unlock: ['ct', 'scan', 'imaging', 'chest', 'xray'], facts: ['x4'], img: 'img/marcus-ct.jpg' }
-  ],
-  obj: [
-    { id: 'p1', t: 'Uncover true smoking status (critical)', w: 30, ty: 'fact', f: ['m4'], tip: 'Build rapport, then ask directly and kindly.' },
-    { id: 'p2', t: 'Assess inhaler technique', w: 20, ty: 'fact', f: ['m3'], tip: 'Ask the patient to describe how they use it.' },
-    { id: 'p3', t: 'Review spirometry', w: 20, ty: 'review', s: ['labs'], tip: 'Open labs before concluding.' },
-    { id: 'p4', t: 'Reconcile smoking status discrepancy', w: 20, ty: 'mm', tip: 'Compare statement vs note and document.' },
-    { id: 'p5', t: 'Empathic communication', w: 10, ty: 'emp', tip: 'Acknowledge feelings.' }
-  ],
-  mm: { a: 'm5', b: 'x2', fu: 'm4', kw: ['smok', 'current', 'quit', 'discrep', 'cigar'] },
-  personality: 'Proud, minimizes illness',
-  emotion: 'Guarded about smoking',
-  style: 'Casual, then more honest once rapport is there',
-  complaint: 'Breathless climbing stairs',
-  history: 'COPD, long smoking history',
-  diagnosis: 'COPD',
-  medications: 'Rescue inhaler about four times a week',
-  allergies: 'None known',
-  labs: 'FEV1 | 52 | % predicted | ≥80',
-  patientSays: 'I quit smoking years ago.',
-  chartSays: 'Current smoker, 0.5 packs per day, 30 pack-years',
-  objText: 'Uncover true smoking status\nAssess inhaler technique\nReconcile smoking discrepancy'
-}].concat(window.ROSTER || []);
-
-function templateGeneral() {
-  return {
-    id: 'general',
-    name: 'New Patient',
-    age: 55,
-    intro: 'Hello.',
-    hints: [
-      'What brings you in today?',
-      'Tell me how you take your medications.',
-      'I am sorry this has been hard. What gets in the way of every dose?',
-      'How are daily routines affecting your health?'
-    ],
-    facts: [
-      F('g1', 'Chief complaint: morning headaches for 3 weeks', 'head', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'head', 'why', 'pain'], say: "I've been waking up with headaches for about three weeks." }),
-      F('g2', 'Lisinopril: patient says they take it every day', 'lisin', { kw: ['medication', 'medicine', 'pills', 'taking', 'lisinopril', 'prescri', 'blood pressure'], ehr: 'meds', say: 'I take my blood pressure pill every day.' }),
-      F('g3', 'Misses evening lisinopril when working late', 'evening', { kw: ['forget', 'miss', 'skip', 'adher', 'trouble', 'difficult', 'consistent', 'every dose'], ehr: 'meds', gate: 1, deflect: 'I take it. Like I said.', say: 'Okay... I miss the evening one when I work late.' }),
-      F('g4', 'Allergy: penicillin (rash)', 'pen', { kw: ['allerg', 'reaction'], allergyDrug: 'penicillin', say: 'Penicillin gave me a rash years ago.' }),
-      F('c1', 'BP 158/94 mmHg (ref <120/80), 2026-09-10', 'bp', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Nurse', src: 'Vitals V-0910', ehr: 'labs', lab: true, unit: 'mmHg', ref: '<120/80' }),
-      F('c2', 'PCP note 09-12: fill history shows missed lisinopril refill', 'refill', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Primary care physician', src: 'Note N-0912', ehr: 'notes' }),
-      F('c3', 'Chart list: lisinopril 10 mg PO daily', '10mg', { vis: 'chart', sec: 'meds', type: 'documented', role: 'Primary care physician', src: 'Med list ML-2', ehr: 'meds' })
-    ],
-    obj: [
-      { id: 'q1', t: 'Elicit missed evening doses', w: 30, ty: 'fact', f: ['g3'], tip: 'Ask open questions about how they take the medicine.' },
-      { id: 'q2', t: 'Review blood pressure', w: 25, ty: 'review', s: ['labs'], tip: 'Open labs before concluding.' },
-      { id: 'q3', t: 'Reconcile adherence discrepancy', w: 25, ty: 'mm', tip: 'Compare the patient report with the refill note.' },
-      { id: 'q4', t: 'Empathic communication', w: 20, ty: 'emp', tip: 'Acknowledge feelings and use open questions.' }
-    ],
-    mm: { a: 'g2', b: 'c2', fu: 'g3', kw: ['refill', 'gap', 'miss', 'skip', 'discrep', 'not taking', 'adherence'] }
-  };
-}
-
-let drafts = {};
-let rel = [];
-let enc = null;
-let tab = 'studio';
-let rt = 'ov';
-let issues = [];
-let sel = 'denise';
-let msg = '';
-
-SEED.forEach((p) => {
-  drafts[p.id] = JSON.stringify(p, null, 2);
-});
-
-function readJson(key) {
-  try {
-    return JSON.parse(localStorage.getItem(key) || 'null');
-  } catch (err) {
-    return null;
-  }
-}
-
-function dumpEnc(value) {
-  if (!value) {
-    return null;
-  }
-
-  return {
-    id: value.id,
-    p: value.p,
-    trust: value.trust,
-    disc: [...value.disc.entries()],
-    opened: [...value.opened],
-    ev: value.ev,
-    tr: value.tr,
-    prov: value.prov,
-    role: value.role,
-    emp: value.emp,
-    open: value.open,
-    turns: value.turns,
-    ho: value.ho,
-    plan: value.plan,
-    notes: value.notes,
-    rec: value.rec,
-    blocked: value.blocked,
-    mmS: value.mmS || 0,
-    prof: value.prof || 0,
-    judg: value.judg || 0,
-    arts: [...(value.arts || new Map()).entries()],
-    lastArt: value.lastArt || null
-  };
-}
-
-function loadEnc(value) {
-  if (!value || !value.p) {
-    return null;
-  }
-
-  return Object.assign({}, value, {
-    disc: new Map(value.disc || []),
-    opened: new Set(value.opened || ['ov']),
-    arts: new Map(value.arts || [])
+async function api(url, method = "GET", body) {
+  const r = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : {},
+    body: body ? JSON.stringify(body) : undefined,
   });
-}
-
-function save() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify({
-      drafts,
-      rel,
-      sel,
-      tab,
-      enc: dumpEnc(enc)
-    }));
-  } catch (err) {
-    console.error('VirtuSP could not save local data', err);
-  }
-}
-
-function bootStorage() {
-  let stored = readJson(KEY);
-  if (!stored) {
-    stored = readJson(LEGACY_KEY);
-  }
-  if (!stored) {
-    SEED.forEach((p) => {
-      rel.push({ p: Object.assign(JSON.parse(JSON.stringify(p)), { version: 1 }), at: now() });
-    });
-
-    return;
-  }
-
-  const savedDrafts = stored.drafts || {};
-  SEED.forEach((p) => {
-    if (!savedDrafts[p.id]) {
-      savedDrafts[p.id] = drafts[p.id] || JSON.stringify(p, null, 2);
-    }
-  });
-  drafts = savedDrafts;
-  rel = stored.rel || [];
-  SEED.forEach((p) => {
-    if (!rel.some((item) => item.p && item.p.id === p.id)) {
-      rel.push({ p: Object.assign(JSON.parse(JSON.stringify(p)), { version: 1 }), at: now() });
-    }
-  });
-  if (stored.sel && drafts[stored.sel]) {
-    sel = stored.sel;
-  }
-  if (stored.tab) {
-    tab = stored.tab;
-  }
-  if (stored.enc) {
-    enc = loadEnc(stored.enc);
-  }
-}
-
-function currentProfile() {
-  try {
-    return JSON.parse(drafts[sel]);
-  } catch (err) {
-    return null;
-  }
-}
-
-function writeProfile(p) {
-  drafts[sel] = JSON.stringify(p, null, 2);
-  save();
-}
-
-function setStudio(field, value, el) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p[field] = field === 'age' ? (Number(value) || 0) : value;
-  if (field === 'age' && el && el.value === '') {
-    el.value = String(p.age);
-  }
-  writeProfile(p);
-}
-
-function hydrate(p) {
-  p.facts = p.facts || [];
-  p.obj = p.obj || [];
-  const isNewCase = p.facts.length < 3;
-
-  const ensure = (id, label, k, o) => {
-    if (!isNewCase || p.facts.some((f) => f.id === id)) {
-      return;
-    }
-    p.facts.push(F(id, label, k, o));
-  };
-
-  if (p.complaint) {
-    ensure('cc', p.complaint, 'cc', { say: p.complaint, kw: ['why', 'here', 'concern', 'problem', 'symptom'] });
-  }
-  if (p.history) {
-    ensure('hx1', 'History: ' + p.history, 'hist', { say: p.history, kw: ['history', 'before', 'past'] });
-  }
-  if (p.diagnosis) {
-    ensure('dx', 'Diagnosis: ' + p.diagnosis, 'dx', { say: 'They told me I have ' + p.diagnosis + '.', kw: ['diagnos', 'mean', 'know about'] });
-  }
-  if (p.medications) {
-    ensure('med', 'Medications: ' + p.medications, 'med', {
-      ehr: 'meds',
-      say: p.patientSays || ('I take ' + p.medications + '.'),
-      kw: ['medication', 'medicine', 'pills', 'taking']
+  const data = await r.json();
+  if (!r.ok) {
+    if (data.issues) issues = data.issues;
+    throw Object.assign(new Error(data.error || "Request failed"), {
+      status: r.status,
+      issues: data.issues,
     });
   }
-  if (p.allergies) {
-    ensure('alg', 'Allergy: ' + p.allergies, 'alg', { say: p.allergies, kw: ['allerg', 'reaction'] });
-  }
-  String(p.labs || '').split('\n').map((line) => line.trim()).filter(Boolean).forEach((line, i) => {
-    const parts = line.split('|').map((s) => s.trim());
-    const name = parts[0] || 'Lab';
-    const value = parts[1] || '';
-    const unit = parts[2] || '';
-    const ref = parts[3] || '—';
-    ensure('lab' + i, name + ' ' + value + ' ' + unit + ' (ref ' + ref + ')', 'lab', {
-      vis: 'chart',
-      sec: 'labs',
-      type: 'confirmed',
-      role: 'Lab',
-      src: 'Approved case',
-      ehr: 'labs',
-      lab: true,
-      unit,
-      ref,
-      kw: ['lab', 'result', name.toLowerCase()]
-    });
-  });
-  if (p.patientSays && p.chartSays) {
-    ensure('say', p.patientSays, 'say', { ehr: 'meds', say: p.patientSays, kw: ['medication', 'taking', 'every day'] });
-    ensure('chr', p.chartSays, 'chr', {
-      vis: 'chart',
-      sec: 'notes',
-      type: 'documented',
-      role: 'Primary care physician',
-      src: 'Approved case',
-      ehr: 'notes'
-    });
-    if (!p.mm || !p.mm.a) {
-      p.mm = { a: 'say', b: 'chr', fu: 'say', kw: ['discrep', 'not taking', 'miss', 'gap'] };
-    }
-  }
-  if (p.objText && !p.obj.length) {
-    const lines = String(p.objText).split('\n').map((s) => s.trim()).filter(Boolean);
-    const w = Math.floor(100 / Math.max(lines.length, 1));
-    p.obj = lines.map((t, i) => ({
-      id: 'o' + i,
-      t,
-      w: i === 0 ? 100 - w * (lines.length - 1) : w,
-      ty: i === 1 ? 'review' : 'fact',
-      f: p.facts[0] ? [p.facts[0].id] : [],
-      s: i === 1 ? ['labs'] : undefined,
-      tip: 'Ask about this directly and review the chart.'
-    }));
-  }
-  if (!p.obj.length) {
-    p.obj = [{ id: 'o0', t: 'Gather the chief complaint', w: 100, ty: 'fact', f: p.facts[0] ? [p.facts[0].id] : ['cc'], tip: 'Start with why they came in.' }];
-  }
-  if (!p.intro) {
-    p.intro = "Hi, I'm " + String(p.name || 'the patient').split(' ')[0] + '.';
-  }
-  if (!p.src) {
-    p.facts.forEach((f) => {
-      if (!f.src) {
-        f.src = 'Approved case';
-      }
-    });
-  }
-
-  return p;
-}
-
-function newPatient() {
-  const id = 'pt' + Date.now().toString(36);
-  const p = {
-    id,
-    name: 'New Patient',
-    age: 50,
-    intro: 'Hello.',
-    personality: '',
-    emotion: '',
-    style: '',
-    complaint: '',
-    history: '',
-    diagnosis: '',
-    medications: '',
-    allergies: '',
-    labs: '',
-    patientSays: '',
-    chartSays: '',
-    objText: 'Gather the chief complaint\nReview available labs\nLook for a chart discrepancy',
-    facts: [],
-    obj: [],
-    hints: ['What brings you in today?']
-  };
-  drafts[id] = JSON.stringify(p, null, 2);
-  sel = id;
-  issues = [];
-  msg = 'Fill in the case fields, then Check and Publish.';
-  save();
-  render();
-}
-
-function validate(p) {
-  const found = [];
-  const err = (m, r) => found.push({ s: 'error', m, r });
-  const warn = (m, r) => found.push({ s: 'warning', m, r });
-  const ids = new Set();
-
-  (p.facts || []).forEach((f) => {
-    if (ids.has(f.id)) {
-      err('Duplicate fact id', f.id);
-    }
-    ids.add(f.id);
-    if (!f.src) {
-      err('Missing source', f.id);
-    } else if (/unverified/i.test(f.src)) {
-      warn('Unverified source: faculty must confirm', f.id);
-    }
-    if (f.vis === 'ask' && !f.say) {
-      err('Disclosable fact has no approved patient wording (model could not ground it)', f.id);
-    }
-    if (f.lab && (!f.unit || !f.ref)) {
-      err('Lab missing unit or reference range', f.id);
-    }
-    if (f.vis === 'chart' && !f.sec) {
-      err('Chart fact has no release section', f.id);
-    }
-  });
-
-  (p.facts || []).filter((f) => f.allergyDrug).forEach((a) => {
-    (p.facts || []).filter((f) => f.drug === a.allergyDrug).forEach((m) => {
-      err('Allergy conflicts with medication', a.id + '/' + m.id);
-    });
-  });
-
-  if (!(p.obj || []).length) {
-    err('No learning objectives', 'obj');
-  }
-  (p.obj || []).forEach((o) => {
-    (o.f || []).forEach((i) => {
-      if (!ids.has(i)) {
-        err('Objective references unknown fact ' + i, o.id);
-      }
-    });
-  });
-
-  const total = (p.obj || []).reduce((a, o) => a + Number(o.w || 0), 0);
-  if (total !== 100) {
-    warn('Objective weights sum to ' + total + ', not 100', 'obj');
-  }
-  if (p.mm && (!ids.has(p.mm.a) || !ids.has(p.mm.b))) {
-    err('Mismatch references unknown facts', 'mm');
-  }
-
-  return found;
-}
-
-function runValidate() {
-  const p = currentProfile();
-  if (!p) {
-    msg = 'Could not read this patient. Create a new one.';
-    issues = [];
-    render();
-
-    return;
-  }
-
-  hydrate(p);
-  writeProfile(p);
-  issues = validate(p);
-  msg = issues.some((i) => i.s === 'error') ? 'Validation found errors.' : 'Case looks ready to publish.';
-  render();
-}
-
-function publish(id) {
-  let p;
-  try {
-    p = JSON.parse(drafts[id]);
-  } catch (err) {
-    msg = 'Could not read this patient. Create a new one.';
-    render();
-
-    return;
-  }
-
-  hydrate(p);
-  drafts[id] = JSON.stringify(p, null, 2);
-  issues = validate(p);
-  if (issues.some((i) => i.s === 'error')) {
-    msg = 'Publish blocked: fix errors and rerun validation.';
-    render();
-
-    return;
-  }
-
-  p.version = rel.filter((r) => r.p.id === p.id).length + 1;
-  rel.push({ p: JSON.parse(JSON.stringify(p)), at: now() });
-  msg = `Published ${p.name} v${p.version} (immutable). Ready to launch.`;
-  save();
-}
-
-function cloneCase(base, meta) {
-  const p = JSON.parse(JSON.stringify(base));
-  p.id = meta.id;
-  p.name = meta.name;
-  p.age = meta.age;
-  p.intro = "Hi, I'm " + meta.name.split(' ')[0] + '.';
-
-  return p;
-}
-
-function nlDraft(txt) {
-  const ageMatch = String(txt || '').match(/(\d+)\s*-?\s*year/);
-  const age = ageMatch ? Number(ageMatch[1]) : 55;
-  const nameMatch = String(txt || '').match(/\b(?:named|called|patient)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
-  const name = nameMatch ? nameMatch[1] : 'New Patient';
-  const id = 'pt' + Date.now().toString(36);
-  const lower = String(txt || '').toLowerCase();
-  let kind = 'general';
-  let base = templateGeneral();
-
-  if (/diabet|metformin|a1c|glucose|sugar/.test(lower)) {
-    kind = 'diabetes';
-    base = SEED.find((p) => p.id === 'denise');
-  } else if (/copd|smok|inhaler|breath|asthma|spirom/.test(lower)) {
-    kind = 'respiratory';
-    base = SEED.find((p) => p.id === 'marcus');
-  }
-
-  const p = cloneCase(base, { id, name, age });
-  drafts[id] = JSON.stringify(p, null, 2);
-  sel = id;
-  issues = validate(p);
-  msg = `Created a publishable ${kind} case for ${name}, ${age}. Review every fact against your description, then publish.`;
-  save();
-}
-
-function launch(pid, version) {
-  let release;
-  if (version != null) {
-    release = rel.find((item) => item.p.id === pid && Number(item.p.version) === Number(version));
-  }
-  if (!release) {
-    release = [...rel].reverse().find((item) => item.p.id === pid);
-  }
-  if (!release) {
-    return;
-  }
-
-  enc = {
-    id: 'ENC-' + Math.random().toString(36).slice(2, 7).toUpperCase(),
-    p: attachCaseExtras(release.p),
-    trust: 0,
-    disc: new Map(),
-    opened: new Set(['ov']),
-    ev: [],
-    tr: [{ w: 'Patient', t: release.p.intro }],
-    prov: [],
-    role: ROLES[0],
-    emp: 0,
-    open: 0,
-    turns: 0,
-    ho: null,
-    plan: [],
-    notes: [],
-    rec: false,
-    blocked: 0,
-    prof: 0,
-    judg: 0,
-    arts: new Map(),
-    lastArt: null
-  };
-  log('start', `Launched ${release.p.name} profile v${release.p.version}`);
-  tab = 'enc';
-  rt = 'ov';
-  window.__convo = true;
-  window.__type = false;
-  window.__busy = true;
-  save();
-  render();
-  speak(release.p.intro, 'neutral');
-}
-
-function log(type, text) {
-  enc.ev.push({ n: enc.ev.length + 1, t: now(), role: enc.role, type, text });
-}
-
-function attachCaseExtras(p) {
-  const copy = JSON.parse(JSON.stringify(p));
-  const seed = SEED.find((s) => s.id === copy.id);
-  if (!seed) {
-    return copy;
-  }
-  if (!(copy.artifacts || []).length && seed.artifacts) {
-    copy.artifacts = JSON.parse(JSON.stringify(seed.artifacts));
-  }
-  const have = new Set((copy.facts || []).map((f) => f.id));
-  (seed.facts || []).forEach((f) => {
-    if (!have.has(f.id) && (f.ehr === 'img' || f.artifact)) {
-      copy.facts.push(JSON.parse(JSON.stringify(f)));
-    }
-  });
-
-  return copy;
-}
-
-function releaseArtifact(art, via) {
-  if (!art || enc.arts.has(art.id)) {
-    return;
-  }
-
-  enc.arts.set(art.id, { via, t: now() });
-  enc.lastArt = art.id;
-  (art.facts || []).forEach((id) => {
-    const fact = enc.p.facts.find((f) => f.id === id);
-    if (fact) {
-      disclose(fact, via);
-    }
-  });
-  if (art.sec) {
-    enc.opened.add(art.sec);
-    rt = art.sec;
-  }
-  log('artifact', art.title + ' released via ' + via);
-}
-
-function releaseByQuestion(q) {
-  const lower = String(q).toLowerCase();
-  (enc.p.artifacts || []).forEach((art) => {
-    if ((art.unlock || []).some((k) => lower.includes(k))) {
-      releaseArtifact(art, q);
-    }
-  });
-  enc.p.facts.filter((f) => f.vis === 'chart').forEach((f) => {
-    if ((f.kw || []).some((k) => lower.includes(k))) {
-      disclose(f, q);
-    }
-  });
-}
-
-function disclose(f, q) {
-  if (enc.disc.has(f.id)) {
-    return;
-  }
-
-  enc.disc.set(f.id, { q });
-  enc.prov.push({
-    f,
-    who: f.vis === 'chart' ? f.role : 'Patient',
-    rec: enc.role,
-    t: now(),
-    st: f.type
-  });
-  log('disclose', `${f.id} released (${f.type}) via ${q}`);
-}
-
-const UNKNOWN = "I'm not sure about that. Could you ask me another way?";
-
-function caseFactsForService() {
-  const profile = enc && enc.p;
-  if (!profile) {
-    return { intro: '', facts: [] };
-  }
-
-  return {
-    intro: profile.intro || '',
-    facts: (profile.facts || []).map((f) => ({
-      id: f.id,
-      say: f.say || '',
-      deflect: f.deflect || '',
-      label: f.label || '',
-      kw: f.kw || [],
-      vis: f.vis || 'ask',
-      gate: f.gate || 0
-    }))
-  };
-}
-
-function documentsForService() {
-  const profile = enc && enc.p;
-  if (!profile) {
-    return [];
-  }
-
-  const docs = [];
-  (profile.artifacts || []).forEach((art) => {
-    const rows = (art.rows || []).map((row) => [row.name, row.value, row.unit, row.ref, row.flag]
-      .filter((part) => part != null && part !== '')
-      .join(' '));
-    docs.push({
-      id: art.id,
-      source: 'faculty',
-      title: art.title || art.src || 'Faculty document',
-      date: art.date || '',
-      text: [art.title, art.date, art.src, art.kind].concat(rows).filter(Boolean).join('\n')
-    });
-  });
-  (profile.facts || []).filter((fact) => fact.vis === 'chart').forEach((fact) => {
-    docs.push({
-      id: fact.id,
-      source: /patient/i.test(fact.role || '') ? 'patient' : 'faculty',
-      title: fact.src || fact.label || 'Chart document',
-      date: '',
-      text: [fact.label, fact.say, fact.src, fact.role].filter(Boolean).join('\n')
-    });
-  });
-
-  return docs;
-}
-
-function citeLabel(side) {
-  if (!side || !side.allow) {
-    return 'blocked';
-  }
-  const first = (side.matches || [])[0];
-  if (!first) {
-    return side.kind === 'interview' ? 'interview' : 'allowed';
-  }
-  if (first.source === 'case') {
-    return first.id ? 'case:' + first.id : 'case';
-  }
-
-  return first.pmid ? 'PMID ' + first.pmid : ('data:' + first.id);
-}
-
-function scoreStudent(lower) {
-  if (/(understand|sorry|must be|sounds|thank you for|worr|concern about|appreciate|no judg|i hear|that must)/.test(lower)) {
-    enc.emp += 1;
-    enc.prof += 1;
-    enc.trust = Math.min(3, enc.trust + 1);
-    log('empathy', 'Empathic acknowledgment');
-  }
-  if (/please|appreciate your time/.test(lower)) {
-    enc.prof += 1;
-  }
-  if (/(noncompliant|you need to|why didn't you|should have taken|that's stupid)/.test(lower)) {
-    enc.judg += 1;
-    log('professionalism', 'Judgmental wording logged');
-  }
-  if (/^(how|what|tell|can you|could you|walk me)/.test(lower)) {
-    enc.open += 1;
-  }
-}
-
-function logReview(verdict) {
-  const stages = (verdict && verdict.stages) || {};
-  const identified = stages.identify || {};
-  const searched = stages.search || {};
-  const wide = stages.exhaustive || {};
-  const review = stages.review || {};
-  log('identify', identified.unique ? 'Problem: ' + identified.problem : 'No single problem identified');
-  log('search', searched.confirmed ? 'Search confirmed ' + searched.fact_id : 'Search did not confirm one problem');
-  log('exhaustive', wide.unique ? 'Exhaustive search kept ' + wide.fact_id : 'Exhaustive search was not conclusive');
-  log('review', review.reason || 'Review finished');
-  const guard = stages.interceptor || {};
-  log('interceptor', guard.reason || 'Reply reviewed before send');
-}
-
-async function consultPatient(request) {
-  const res = await fetch('/api/patient', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      request,
-      trust: enc.trust,
-      patient_id: enc.p && enc.p.id,
-      disclosed: [...enc.disc.keys()],
-      case_facts: caseFactsForService(),
-      documents: documentsForService()
-    })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || 'Patient review is unavailable');
-  }
-
   return data;
 }
-
-async function ask(q) {
-  if (!enc || !String(q).trim() || window.__gating) {
-    return;
-  }
-
-  const text = String(q).trim();
-  window.__gating = true;
-  window.__busy = true;
-  stopListen();
-  av('checking', 'neutral');
-  const status = $('#mst');
-  if (status) {
-    status.textContent = 'Reviewing the reply for relevance, timing, and the patient and faculty sources…';
-  }
-
+function value(path) {
+  return path.split(".").reduce((obj, key) => obj?.[key], profile);
+}
+function control(
+  label,
+  path,
+  { type = "text", options = null, list = false, rows = false } = {},
+) {
+  let v = value(path);
+  if (list) v = (v || []).join(", ");
+  if (rows)
+    v = (v || [])
+      .map((r) => [r.name, r.value, r.unit, r.ref].join(" | "))
+      .join("\n");
+  const id = "field-" + path.replace(/\./g, "-");
+  const attr = `id="${id}" data-path="${esc(path)}" ${list ? 'data-list="true"' : ""} ${rows ? 'data-rows="true"' : ""}`;
+  let input;
+  if (options)
+    input = `<select ${attr}>${options
+      .map((o) => {
+        const [val, text] = Array.isArray(o) ? o : [o, o];
+        return `<option value="${esc(val)}" ${String(v) === String(val) ? "selected" : ""}>${esc(text)}</option>`;
+      })
+      .join("")}</select>`;
+  else if (type === "textarea")
+    input = `<textarea ${attr} rows="3">${esc(v)}</textarea>`;
+  else if (type === "checkbox")
+    input = `<input ${attr} type="checkbox" ${v ? "checked" : ""}>`;
+  else input = `<input ${attr} type="${type}" value="${esc(v)}">`;
+  return `<div class="field ${type === "checkbox" ? "checkfield" : ""}"><label for="${id}">${esc(label)}</label>${input}</div>`;
+}
+const button = (text, action, extra = "", cls = "") =>
+  `<button type="button" class="btn ${cls}" data-action="${action}" ${extra} ${busy ? "disabled" : ""}>${text}</button>`;
+function safeLink(url) {
   try {
-    const verdict = await consultPatient(text);
-    logReview(verdict);
-    if (!verdict.send || !verdict.request || !verdict.request.allow) {
-      enc.tr.push({ w: 'Student', t: text, g: 'blocked' });
-      enc.tr.push({
-        w: 'Gate',
-        t: (verdict.request && verdict.request.reason) || 'Request blocked: not grounded on the publication library.',
-        g: 'blocked'
-      });
-      log('gate', 'Request not sent: ' + ((verdict.request && verdict.request.reason) || 'blocked'));
-      enc.blocked += 1;
-      save();
-      render(true);
-    } else {
-      scoreStudent(text.toLowerCase());
-      enc.turns += 1;
-      enc.tr.push({ w: 'Student', t: text, g: citeLabel(verdict.request) });
-      log('student', text);
-      log('gate', verdict.request.reason);
-
-      const reply = verdict.certain ? verdict.reply : (verdict.reply || UNKNOWN);
-      const grounded = verdict.certain ? verdict.grounded : 'fallback';
-      const emotion = verdict.certain ? (verdict.emotion || 'neutral') : 'neutral';
-      const fact = (enc.p.facts || []).find((item) => item.id === verdict.fact_id);
-      if (verdict.certain && verdict.trust_hold) {
-        enc.blocked += 1;
-        log('gate', `${verdict.fact_id} withheld (trust ${enc.trust})`);
-      } else if (verdict.certain && fact) {
-        disclose(fact, text);
-      }
-
-      enc.tr.push({ w: 'Patient', t: reply, g: grounded });
-      releaseByQuestion(text);
-      surfaceMM();
-      save();
-      render(true);
-      speak(reply, emotion);
-
-      return;
+    const u = new URL(url);
+    return ["https:", "http:"].includes(u.protocol) ? esc(u.href) : "";
+  } catch {
+    return "";
+  }
+}
+function storageText() {
+  const s = health.storage || {};
+  return s.status === "synced"
+    ? "AWS copy saved"
+    : s.status === "pending"
+      ? "AWS save pending"
+      : s.status === "failed"
+        ? "AWS save failed · local copy saved"
+        : "Local recovery storage";
+}
+async function refresh() {
+  const [patients, past, status] = await Promise.all([
+    api("/api/profiles"),
+    api("/api/encounters"),
+    api("/api/health"),
+  ]);
+  list = patients.profiles;
+  history = past.encounters;
+  health = status;
+}
+async function pick(id) {
+  const r = await api("/api/profiles/" + id);
+  profile = r.profile;
+  issues = r.issues;
+  versions = r.versions;
+  dirty = false;
+}
+async function save() {
+  if (!profile || patientDialog?.mode === "new") return;
+  const r = await api("/api/profiles/" + profile.id, "PUT", { profile });
+  issues = r.issues;
+  dirty = false;
+  await refresh();
+}
+function card(p, faculty = true) {
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"} · ${esc(p.origin || "")}</p><span class="chip">${p.version ? "Published v" + p.version : "Faculty draft"}</span><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+}
+function studio() {
+  const preferred = [...list].sort(
+    (a, b) =>
+      (b.id === profile?.id) - (a.id === profile?.id) ||
+      (a.name === "Omar Sinclair"
+        ? -2
+        : a.name === "Yvette Armstrong"
+          ? -1
+          : 0) -
+        (b.name === "Omar Sinclair"
+          ? -2
+          : b.name === "Yvette Armstrong"
+            ? -1
+            : 0),
+  );
+  return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("New patient", "new", "", "pri")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
+ <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ </div>`;
+}
+function editor() {
+  const group = (key, title, count, content) =>
+    `<details class="editor-group" data-detail="${key}"><summary>${title}<span class="chip">${count}</span></summary>${content}</details>`;
+  const facts = profile.facts
+    .map(
+      (
+        f,
+        i,
+      ) => `<details class="card-edit" data-detail="fact-${esc(f.id)}"><summary>${esc(f.label || "New finding")}</summary>
+    ${control("Finding", `facts.${i}.label`)}${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}
+    <details class="advanced"><summary>Disclosure and clinical settings</summary><div class="fields">
+    ${control("Patient knowledge", `facts.${i}.vis`, {
+      options: [
+        ["ask", "Patient knows"],
+        ["chart", "Chart only"],
+      ],
+    })}
+    ${control("Question topic", `facts.${i}.topic`)}${control("Chart section", `facts.${i}.ehr`, { options: sections.slice(1) })}
+    ${control("Release section", `facts.${i}.sec`, { options: [["", "Not a chart finding"], ...sections.slice(1)] })}
+    ${control("Provenance", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}
+    ${control("Source", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}
+    ${control("Trust gate (0-3)", `facts.${i}.gate`, { type: "number" })}${control("Guarded reply", `facts.${i}.deflect`)}
+    ${control("Units", `facts.${i}.unit`)}${control("Interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}
+    ${control("Measurement", `facts.${i}.lab`, {
+      options: [
+        ["false", "No"],
+        ["true", "Yes"],
+      ],
+    })}
+    ${control("Medication identifier", `facts.${i}.drug`)}${control("Allergy identifier", `facts.${i}.allergyDrug`)}${control("Handoff key", `facts.${i}.k`)}${control("Fact ID", `facts.${i}.id`)}
+    </div></details>${button("Remove", "remove-fact", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const sources = profile.sources
+    .map(
+      (
+        source,
+        i,
+      ) => `<details class="card-edit" data-detail="source-${esc(source.id)}"><summary>${esc(source.title || "New source")}</summary>
+    ${control("Title", `sources.${i}.title`)}${control("Excerpt", `sources.${i}.excerpt`, { type: "textarea" })}
+    <details class="advanced"><summary>Reference settings</summary>${control("Reference URL", `sources.${i}.url`)}${control("Source ID", `sources.${i}.id`)}</details>
+    ${source.fileId ? `<a href="/api/files/${esc(source.fileId)}" target="_blank" rel="noopener">View original</a>` : ""}
+    ${safeLink(source.url) ? `<a href="${safeLink(source.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove", "remove-source", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const artifacts = profile.artifacts
+    .map(
+      (
+        a,
+        i,
+      ) => `<details class="card-edit" data-detail="artifact-${esc(a.id)}"><summary>${esc(a.title || "New report")}<span class="muted">${esc(a.date || "Date unspecified")}</span></summary>
+    <div class="fields">${control("Title", `artifacts.${i}.title`)}${control("Date (optional)", `artifacts.${i}.date`, { type: "date" })}</div>
+    <details class="advanced"><summary>Report and release settings</summary><div class="fields">
+    ${control("Chart section", `artifacts.${i}.sec`, { options: sections.slice(1) })}${control("Format", `artifacts.${i}.kind`, { options: ["lab", "note", "ecg", "ct", "image", "report"] })}
+    ${control("Release when", `artifacts.${i}.release`, {
+      options: [
+        ["section", "Chart section opens"],
+        ["question", "Matching question"],
+        ["both", "Section or question"],
+      ],
+    })}
+    ${control("Release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked findings", `artifacts.${i}.facts`, { list: true })}
+    ${control("Source", `artifacts.${i}.src`)}${control("Report ID", `artifacts.${i}.id`)}</div>
+    ${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}</details>
+    ${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">View report</a>` : ""}${button("Remove", "remove-artifact", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const objectives = profile.obj
+    .map(
+      (
+        o,
+        i,
+      ) => `<details class="card-edit" data-detail="objective-${esc(o.id)}"><summary>${esc(o.t || "New objective")}</summary>
+    ${control("Objective", `obj.${i}.t`)}${control("Coaching", `obj.${i}.tip`)}
+    <details class="advanced"><summary>Assessment settings</summary><div class="fields">
+    ${control("Weight", `obj.${i}.w`, { type: "number" })}${control(
+      "Evidence",
+      `obj.${i}.ty`,
+      {
+        options: [
+          ["fact", "Findings elicited"],
+          ["review", "Records reviewed"],
+          ["mm", "Discrepancy reconciled"],
+          ["emp", "Communication"],
+          ["ho", "SBAR handoff"],
+        ],
+      },
+    )}
+    ${control("Finding IDs", `obj.${i}.f`, { list: true })}${control("Chart sections", `obj.${i}.s`, { list: true })}${control("Objective ID", `obj.${i}.id`)}</div></details>${button("Remove", "remove-objective", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  return `<div class="editor"><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
+    ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
+    <div class="fields identity-fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}</div>
+    ${
+      profile.facts.length
+        ? `<div class="profile-preview">${profile.facts
+            .slice(0, 4)
+            .map(
+              (f) =>
+                `<p><b>${esc(f.label)}</b> ${esc(f.vis === "ask" ? f.say : f.label)}<span class="chip">${f.vis === "ask" ? "Patient knows" : "Chart"}</span></p>`,
+            )
+            .join(
+              "",
+            )}${profile.facts.length > 4 ? `<p class="muted">+${profile.facts.length - 4} more findings below</p>` : ""}</div>`
+        : ""
     }
-  } catch (err) {
-    enc.tr.push({ w: 'Student', t: text, g: 'blocked' });
-    enc.tr.push({
-      w: 'Gate',
-      t: 'Request was not sent. ' + (err.message || 'Grounding gate failed.'),
-      g: 'blocked'
+    ${group("facts", "History & findings", profile.facts.length, facts + button("Add finding", "add-fact"))}
+    ${group("artifacts", "Clinical reports", profile.artifacts.length, artifacts + button("Add report", "add-artifact"))}
+    ${group("objectives", "Learning objectives", profile.obj.length, objectives + button("Add objective", "add-objective"))}
+    ${group("sources", "Documents & references", profile.sources.length, sources + button("Add source", "add-source") + button("Add teaching references", "references"))}
+    <details class="editor-group" data-detail="character"><summary>Patient character</summary><div class="fields">${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div></details>
+    <details class="editor-group" data-detail="advanced"><summary>Advanced scenario settings</summary>
+    ${profile.mm ? `<div class="fields">${control("Patient statement ID", "mm.a")}${control("Chart finding ID", "mm.b")}${control("Follow-up ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}
+    ${control("Applicable rubric domains (1-7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by patient age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}</details>
+    ${profile.missing?.length ? `<details class="editor-group" data-detail="missing"><summary>Unspecified information <span class="chip">${profile.missing.length}</span></summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
+    <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
+}
+function openPatientDialog(mode, selected = profile) {
+  patientDialog = {
+    mode,
+    previous: { profile, versions, issues, dirty },
+    files: [],
+    description: "",
+    notice: "",
+    validationError: null,
+    openSections: {},
+  };
+  profile =
+    mode === "new"
+      ? {
+          id: crypto.randomUUID(),
+          name: "",
+          age: null,
+          intro: "Hello.",
+          personality: "",
+          style: "",
+          emotion: "",
+          origin: "faculty",
+          facts: [],
+          sources: [],
+          artifacts: [],
+          obj: [],
+          hints: [],
+          missing: [],
+          rubricApplicable: [1, 2, 3, 4, 5, 6, 7],
+          reviewAcknowledged: false,
+          createdAt: new Date().toISOString(),
+        }
+      : structuredClone(selected);
+  versions = mode === "new" ? [] : versions;
+  issues = [];
+  dirty = false;
+  if (mode === "edit") {
+    patientDialog.description =
+      profile.sources.find((s) => s.id === "description")?.excerpt || "";
+    patientDialog.files = profile.sources
+      .filter((s) => s.fileId)
+      .map((s) => {
+        const artifact = profile.artifacts.find((a) => a.fileId === s.fileId);
+        return {
+          id: s.fileId,
+          name: s.title,
+          excerpt: s.excerpt,
+          role: artifact ? "clinical" : s.role || "case",
+          section: artifact?.sec || "notes",
+        };
+      });
+  }
+}
+function closePatientDialog(restore = true) {
+  if (restore) ({ profile, versions, issues, dirty } = patientDialog.previous);
+  patientDialog = null;
+}
+function syncDialogAttachments() {
+  for (const file of patientDialog.files) {
+    let source = profile.sources.find((s) => s.fileId === file.id);
+    if (!source) {
+      source = {
+        id: "upload-" + file.id,
+        title: file.name,
+        excerpt: file.excerpt || "",
+        fileId: file.id,
+        reviewed: false,
+      };
+      profile.sources.push(source);
+    }
+    source.role = file.role;
+    const report = profile.artifacts.find((a) => a.fileId === file.id);
+    if (file.role === "clinical") {
+      if (report) report.sec = file.section;
+      else
+        profile.artifacts.push({
+          id: "report-" + file.id,
+          title: file.name,
+          src: source.id,
+          fileId: file.id,
+          kind: "report",
+          sec: file.section,
+          date: file.date || "",
+          release: "section",
+          unlock: [],
+          facts: profile.facts
+            .filter((f) => f.src === source.id && f.vis === "chart")
+            .map((f) => f.id),
+          rows: [],
+          reviewed: false,
+        });
+    } else if (report)
+      profile.artifacts = profile.artifacts.filter((a) => a !== report);
+  }
+}
+function patientForm() {
+  if (!patientDialog) return "";
+  const d = patientDialog,
+    isNew = d.mode === "new";
+  return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
+    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
+    <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
+    <section class="form-section" id="patient-upload-area"><h2>Case documents</h2>
+      <div class="upload-zone" id="patient-drop-zone"><button type="button" class="upload-browse" data-action="browse-patient" aria-describedby="patient-upload-hint" ${busy ? "disabled" : ""}><span class="upload-icon" aria-hidden="true">↑</span><strong>${busy ? "Uploading files…" : "Drop files here"}</strong><span class="upload-prompt">or click to browse</span><span id="patient-upload-hint" class="upload-hint">PDF, TXT, PNG or JPG · Multiple files · 5 MB each</span></button><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" hidden ${busy ? "disabled" : ""}></div>
+      ${d.files
+        .map(
+          (f, i) =>
+            `<div class="uploaded-document"><div><b>${esc(f.name)}</b><p class="muted">${f.excerpt?.trim() ? "Text extracted" : "No selectable text; enter details manually. OCR is planned."} · <a href="/api/files/${esc(f.id)}" target="_blank" rel="noopener">View original</a></p></div><div class="file-purpose" role="group" aria-label="Purpose of ${esc(f.name)}">${[
+              ["case", "Case brief"],
+              ["clinical", "Chart report"],
+              ["reference", "Reference"],
+            ]
+              .map(([v, label]) =>
+                button(
+                  label,
+                  "file-purpose",
+                  `data-index="${i}" data-role="${v}" aria-pressed="${f.role === v}"`,
+                  f.role === v ? "on" : "",
+                ),
+              )
+              .join("")}</div>${
+              f.role === "clinical"
+                ? `<details data-detail="upload-${esc(f.id)}"><summary>Chart settings</summary><label>Chart section<select data-upload-index="${i}" data-upload-key="section">${sections
+                    .slice(1)
+                    .map(
+                      ([v, label]) =>
+                        `<option value="${v}" ${f.section === v ? "selected" : ""}>${label}</option>`,
+                    )
+                    .join("")}</select></label></details>`
+                : ""
+            }${button("Remove", "remove-upload", `data-index="${i}"`)}</div>`,
+        )
+        .join("")}
+      <label for="patient-description">Additional patient details (optional)</label><textarea id="patient-description" rows="2" placeholder="Describe the case or add missing details.">${esc(d.description)}</textarea>
+      ${button(busy ? "Extracting…" : "Extract & fill form", "parse-patient", "", "pri")}<p class="muted">Text PDFs supported; scans need transcription. Extraction replaces the fields below.</p>
+    </section>
+    <section class="form-section"><h2>Patient details</h2>${editor()}</section>
+    </fieldset></div>
+    <div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${button("Save draft", "save-patient")}${button(isNew ? "Create & publish patient" : "Publish version", "submit-patient", "", "pri")}</div></div>
+  </form></dialog>${d.validationError ? `<dialog id="publication-error" class="submission-error" role="alertdialog" aria-labelledby="publication-error-title" aria-describedby="publication-error-message"><h2 id="publication-error-title">Before publishing</h2><p id="publication-error-message">${esc(d.validationError.text)}</p>${button("Back to form", "dismiss-publication-error", "", "pri")}</dialog>` : ""}`;
+}
+async function parsePatient() {
+  const d = patientDialog;
+  busy = true;
+  d.notice = "Extracting explicit patient details and checking their support…";
+  render();
+  try {
+    const r = await api("/api/generate", "POST", {
+      description: d.description,
+      files: d.files.map(({ id, role, section }) => ({ id, role, section })),
+      preview: true,
     });
-    log('gate', 'Request not sent: ' + (err.message || 'gate failed'));
-    enc.blocked += 1;
-    save();
-    render(true);
+    if (r.draftError) throw new Error(r.warning);
+    // Previewing must never create a library entry or change an existing identity.
+    profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
+    dirty = true;
+    d.notice =
+      r.provider === "bedrock-draft"
+        ? "Details filled. Review and publish."
+        : r.warning;
+  } catch (e) {
+    d.notice = e.message;
   } finally {
-    window.__gating = false;
-  }
-  window.__busy = false;
-  av('listening', 'neutral');
-  if (window.__convo !== false) {
-    startListen();
+    busy = false;
+    render();
   }
 }
-
-function askHint(i) {
-  const hints = (enc && enc.p && enc.p.hints) || [];
-  if (hints[i]) {
-    ask(hints[i]);
+async function submitPatient(publish) {
+  const d = patientDialog;
+  busy = true;
+  d.notice = publish
+    ? "Saving the reviewed patient and publishing…"
+    : "Saving draft…";
+  render();
+  try {
+    const id = profile.id;
+    if (d.mode === "new")
+      await api("/api/profiles", "POST", { profile, publish });
+    else {
+      await api("/api/profiles/" + id, "PUT", { profile });
+      if (publish) await api("/api/profiles/" + id + "/publish", "POST", {});
+    }
+    closePatientDialog(false);
+    await refresh();
+    await pick(id);
+    tab = "studio";
+    message = publish
+      ? `${profile.name} published. Start a visit from the patient card.`
+      : `${profile.name || "Untitled patient"} saved as a draft.`;
+  } catch (e) {
+    if (patientDialog) {
+      patientDialog.notice = "";
+      patientDialog.validationError = publicationError(e);
+    } else message = e.message;
+  } finally {
+    busy = false;
+    render();
+    if (!patientDialog)
+      $('[data-action="pick"][data-id="' + profile.id + '"]')?.focus();
   }
 }
-
-function surfaceMM() {
-  const mismatch = enc.p.mm;
-  if (mismatch && enc.disc.has(mismatch.a) && enc.disc.has(mismatch.b) && !enc.mmS) {
-    enc.mmS = 1;
-    log('mismatch', 'Patient report and chart now both visible (discrepancy surfaced)');
+function publicationError(error) {
+  const text =
+    error.issues?.find((i) => i.severity === "error")?.message || error.message;
+  if (
+    /faculty review|review this fact|verify artifact|review of the complete/i.test(
+      text,
+    )
+  )
+    return {
+      text: "Confirm faculty review to publish this patient.",
+      field: "field-reviewAcknowledged",
+    };
+  if (/name and an age/.test(text))
+    return {
+      text: "Enter a patient name and an age from 0 to 120.",
+      field: "field-name",
+    };
+  for (const key of ["facts", "artifacts", "sources", "obj"]) {
+    const index = profile[key].findIndex((r) => text.startsWith(r.id + ":"));
+    if (index < 0) continue;
+    const record = profile[key][index];
+    const label = record.label || record.title || record.t || "this item";
+    return {
+      text: `${label}: ${text.slice(record.id.length + 1).trim()}`,
+      field: `field-${key}-${index}-${key === "facts" ? "label" : key === "obj" ? "t" : "title"}`,
+    };
+  }
+  return { text, field: null };
+}
+function dismissPublicationError() {
+  const field = patientDialog.validationError?.field;
+  patientDialog.validationError = null;
+  render();
+  const target = field && document.getElementById(field);
+  if (target) {
+    let ancestor = target.parentElement;
+    while (ancestor && ancestor.id !== "patient-dialog") {
+      if (ancestor.tagName === "DETAILS") ancestor.open = true;
+      ancestor = ancestor.parentElement;
+    }
+    target.focus();
+    target.scrollIntoView?.({ block: "nearest" });
   }
 }
-
-function openSec(s) {
-  if (!enc.opened.has(s)) {
-    enc.opened.add(s);
-    log('open', 'Opened ' + s);
-    enc.p.facts.filter((f) => f.sec === s).forEach((f) => disclose(f, 'section ' + s));
-    (enc.p.artifacts || []).filter((a) => a.sec === s).forEach((a) => releaseArtifact(a, 'opened ' + s));
-    surfaceMM();
-    save();
-  }
-  rt = s;
-  renderEhr();
+function encounter() {
+  if (!enc)
+    return `<div class="pn"><h1>Start an encounter</h1><p class="muted">Only published versions can be launched.</p><div class="patient-grid">${list
+      .filter((p) => p.version)
+      .map((p) => card(p, false))
+      .join("")}</div></div>`;
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}, ${enc.age}</h1><div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+ <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div>${conversationFiles()}<div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}${docLightbox()}</section></div>`;
 }
-
-function reconcile(t) {
-  if (!String(t).trim()) {
-    return;
-  }
-
-  const ok = enc.p.mm && enc.mmS && enc.p.mm.kw.some((k) => t.toLowerCase().includes(k));
-  enc.notes.push({ t, who: enc.role, at: now(), ok });
-  if (ok) {
-    enc.rec = true;
-  }
-  log('reconcile', `Clinician claim documented${ok ? ' (addresses discrepancy)' : ''}: ${t}`);
-  save();
-  renderEhr();
+function isVisualDoc(a) {
+  return ["ecg", "ct", "image"].includes(a.kind);
 }
-
-let mouthTimer;
-let recActive = null;
-
-function photoSet(p) {
-  if (p && p.photo) {
-    return { still: p.photo, talk: p.photo, pos: p.photoPos || 'center 22%' };
-  }
-  const known = { denise: true, marcus: true };
-  const base = p && known[p.id] ? p.id : 'patient';
-
-  return { still: 'img/' + base + '.jpg', talk: 'img/' + base + '-talk.jpg', pos: 'center 20%' };
+function artifactBody(a, expanded = false) {
+  const visual = a.fileUrl && isVisualDoc(a);
+  return `${a.rows?.length ? `<table class="lab-table"><thead><tr><th>Test</th><th>Result</th><th>Reference</th></tr></thead><tbody>${a.rows.map((r) => `<tr class="${esc(r.flag || "")}"><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit)}</td><td>${esc(r.ref)}</td></tr>`).join("")}</tbody></table>` : ""}${a.text ? `<p>${esc(a.text)}</p>` : ""}${visual ? `<img class="art-img${expanded ? " expanded" : ""}" src="${esc(a.fileUrl)}" alt="${esc(a.title)}">` : ""}${!visual && a.fileUrl ? `<iframe class="art-frame" title="${esc(a.title)}" src="${esc(a.fileUrl)}"></iframe>` : ""}`;
 }
+function artifactCard(a) {
+  if (!a.released) return "";
 
-function avatarHtml(p) {
-  const pics = photoSet(p);
-
-  return `<div class="av-frame" id="avf">
-    <img class="av-still" src="${pics.still}" alt="${esc(p.name)}" style="object-position:${esc(pics.pos)}">
-  </div>`;
+  return `<article class="art released open ${a.justReleased ? "just-in" : ""}"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Expand", "expand-doc", `data-id="${esc(a.id)}"`)}</div><p class="chip">${esc(a.src || "Chart")} · ${esc(a.date || "Date unspecified")}</p>${artifactBody(a)}${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</article>`;
 }
+function conversationFiles() {
+  const released = enc.artifacts.filter((a) => a.released);
+  if (!released.length) return "";
 
-function setMicLabel() {
-  const btn = $('#micBtn');
-  if (!btn) {
-    return;
-  }
-  btn.textContent = window.__busy ? 'Speaking…' : (recActive ? 'Listening…' : 'Tap to talk');
+  return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
+function chart() {
+  const facts = enc.disclosed.filter(
+    (f) => section === "ov" || f.ehr === section,
+  );
 
-function av(state, em) {
-  const status = $('#avs');
-  if (status) {
-    const label = state === 'speaking' ? 'Speaking' : state === 'listening' ? 'Listening' : state === 'checking' ? 'Checking ground truth' : state;
-    status.textContent = label + (em && em !== 'neutral' ? ' · ' + em : '');
-  }
-
-  const frame = $('#avf');
-  if (frame) {
-    frame.classList.toggle('is-listening', state === 'listening');
-  }
-
-  clearInterval(mouthTimer);
-  setMicLabel();
+  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b></article>`).join("")}
+ ${!facts.length ? '<div class="empty">Nothing in this section yet.</div>' : ""}
+ ${section !== "ov" && facts.length && !enc.reviewedSections.includes(section) ? button("Record review of these findings", "review-section", `data-section="${section}"`) : ""}`;
 }
+function docLightbox() {
+  const a = enc.artifacts.find((d) => d.id === expandedDocId && d.released);
+  if (!a) return "";
 
-function speak(t, em) {
-  window.__busy = true;
-  stopListen();
-  av('speaking', em);
-  const status = $('#mst');
-  if (status) {
-    status.textContent = 'The patient is talking…';
+  return `<div class="doc-lightbox" data-action="close-doc" role="dialog" aria-modal="true" aria-label="${esc(a.title)}"><div class="doc-sheet" data-action="noop"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Close", "close-doc")}</div>${artifactBody(a, true)}</div></div>`;
+}
+function team() {
+  if (!enc) return '<div class="pn"><h1>Launch an encounter first</h1></div>';
+  return `<div class="grid"><div class="pn"><h1>Team record</h1><label for="team-role">Current role</label><select id="team-role"><option>${esc(enc.role)}</option>${[
+    "Primary care physician",
+    "Dietitian",
+    "Nurse",
+    "Pharmacist",
+    "Specialist",
+  ]
+    .filter((r) => r !== enc.role)
+    .map((r) => `<option>${r}</option>`)
+    .join(
+      "",
+    )}</select><h3>Document findings or reconcile a discrepancy</h3><textarea data-memory="note" id="note" rows="4">${esc(formMemory.note)}</textarea>${button("Save clinical note", "note")}<h3>SBAR handoff</h3><textarea data-memory="handoff" id="handoff" rows="7" placeholder="S: Situation\nB: Background\nA: Assessment and uncertainty\nR: Recommendation / next steps">${esc(formMemory.handoff)}</textarea>${button("Submit handoff", "handoff", "", "pri")}<h3>Care plan</h3><input id="careplan" data-memory="careplan" value="${esc(formMemory.careplan)}" placeholder="Record an educational next step">${button("Add plan item", "plan")}</div><div class="pn"><h2>Saved clinical claims</h2>${enc.notes.map((n) => `<article class="fx"><p>${esc(n.text)}</p><span class="chip">${esc(n.role)} · ${esc(n.at)}${n.addressesMismatch ? " · addresses authored discrepancy" : ""}</span></article>`).join("")}${enc.handoff ? `<h3>Submitted SBAR</h3><pre>${esc(enc.handoff.text)}</pre>` : ""}${enc.plan.map((p) => `<p>${esc(p.text)} <span class="chip">${esc(p.role)}</span></p>`).join("")}<p class="muted">Student notes remain student claims. They do not rewrite approved patient facts.</p></div></div>`;
+}
+function attempts() {
+  // Completed attempts on this patient, oldest first, from the encounter log.
+  return history
+    .filter((e) => e.profileId === enc.profileId && e.status === "complete")
+    .sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+}
+function duration() {
+  if (!enc.completedAt || !enc.createdAt) return "";
+  const minutes = Math.max(
+    1,
+    Math.round((new Date(enc.completedAt) - new Date(enc.createdAt)) / 60000),
+  );
+  return ` · ${minutes} min`;
+}
+function sinceLast() {
+  // Change from the previous completed attempt on this patient, if any.
+  const all = attempts();
+  const index = all.findIndex((e) => e.id === enc.id);
+  const now = all[index],
+    before = all[index - 1];
+  if (
+    !before ||
+    now?.objectivePercent == null ||
+    before.objectivePercent == null
+  )
+    return "";
+  const change = (value, unit) =>
+    value === 0
+      ? "no change"
+      : (value > 0 ? "+" : "−") + Math.abs(value) + unit;
+  const parts = [
+    "objectives " +
+      change(now.objectivePercent - before.objectivePercent, " points"),
+    "findings " + change(now.findingsElicited - before.findingsElicited, ""),
+  ];
+  if (!now.provisional && !before.provisional)
+    parts.push("rubric " + change(now.total - before.total, ""));
+  return `<p><b>Since your last attempt:</b> ${parts.join(" · ")}</p>`;
+}
+function progress() {
+  const all = attempts();
+  const index = all.findIndex((e) => e.id === enc.id);
+  if (index < 0 || all.length < 2) return "";
+  const score = (e) =>
+    e.total == null
+      ? "–"
+      : e.provisional
+        ? "provisional"
+        : `${e.total}/${e.denominator}`;
+  return `<section class="obj-card"><h2>Your attempts with this patient</h2><div class="sc"><table><tr><th>Attempt</th><th>Date</th><th>Questions</th><th>Findings</th><th>Objectives</th><th>Rubric</th></tr>${all.map((e, i) => `<tr class="${e.id === enc.id ? "current" : ""}"><td>${i + 1}${e.id === enc.id ? " (this one)" : ""}</td><td>${esc(new Date(e.completedAt).toLocaleString())}</td><td>${e.turns}</td><td>${e.findingsTotal == null ? "–" : `${e.findingsElicited}/${e.findingsTotal}`}</td><td>${e.objectivePercent == null ? "–" : e.objectivePercent + "%"}</td><td>${score(e)}</td></tr>`).join("")}</table></div></section>`;
+}
+function findingsView(a, c) {
+  const f = c.findings;
+  const tag = (o) =>
+    o ? ` <span class="chip">Objective: ${esc(o)}</span>` : "";
+  const elicited = f.elicited.length
+    ? f.elicited
+        .map(
+          (x) =>
+            `<li>${esc(x.label)} <span class="muted">· ${x.source === "chart" ? "from the chart" : x.turn ? "question " + x.turn : "from the patient"}</span>${tag(x.objective)}${evidence(x.evidence)}</li>`,
+        )
+        .join("")
+    : '<li class="muted">No findings were elicited.</li>';
+  const missed = f.missed.length
+    ? f.missed
+        .map(
+          (x) =>
+            `<li>${esc(x.topic)} <span class="muted">· ${x.source === "chart" ? "in the chart" + (x.section ? " (" + esc(x.section) + ")" : "") : x.heldBack ? "asked, but the patient held it back" : "not asked"}</span>${tag(x.objective)}${x.evidence.length ? evidence(x.evidence) : ""}</li>`,
+        )
+        .join("")
+    : '<li class="ok">Every authored finding was reached.</li>';
+  const reports = f.reports.length
+    ? `<h3>Reports</h3><ul class="plain">${f.reports.map((r) => `<li>${esc(r.title)} <span class="muted">· ${esc(r.section)} · ${esc(r.status)}</span></li>`).join("")}</ul>`
+    : "";
+  return `<h2>Learning objectives${c.objectivePercent == null ? "" : ` · ${c.objectivePercent}% complete`}</h2>${a.objectives.map((o) => `<article class="obj-card"><h3>${esc(o.title)} · ${o.earned}/${o.weight}</h3><div class="meter" role="img" aria-label="${Math.round(o.credit * 100)}% complete"><i style="width:${Math.round(o.credit * 100)}%"></i></div>${o.credit < 1 && o.next ? `<p>Next attempt: ${esc(o.next)}</p>` : ""}${evidence(o.evidence)}</article>`).join("")}
+  <h2>Findings · ${f.elicited.length} of ${f.total} reached</h2><p class="muted">Findings you did not reach are named by topic only, so the next attempt is still yours to work out.</p>
+  <div class="fb-grid"><section class="obj-card"><h3>Elicited</h3><ul class="plain">${elicited}</ul></section><section class="obj-card"><h3>Not reached</h3><ul class="plain">${missed}</ul>${reports}</section></div>`;
+}
+function flowView(a, c) {
+  const marks = { strength: "Went well", improve: "To improve", note: "Note" };
+  const observations = c.flow.observations
+    .map(
+      (o) =>
+        `<li class="obs ${o.kind}"><b>${marks[o.kind]}</b> ${esc(o.text)}${o.evidence.length ? evidence(o.evidence) : ""}</li>`,
+    )
+    .join("");
+  return `${rewritesView(c)}<h2>How the interview went</h2><p class="muted">${esc(c.notice)}</p><section class="obj-card"><ul class="plain">${observations}</ul></section>${transcriptView(a, c)}`;
+}
+function caseRubricView(r) {
+  if (!r) return "";
+  const marks = {
+    met: "Met",
+    partly: "Partly met",
+    not_met: "Not met",
+    not_observable: "Not observable",
+    not_scored: "Not scored",
+  };
+  const scored = r.total != null;
+  return `<h2>Case rubric · ${esc(r.title)}${scored ? ` · ${r.total} / ${r.max}` : ""}</h2><p class="muted">${esc([r.course, r.session].filter(Boolean).join(" · "))}</p><p>${esc(r.notice)}${scored && r.max !== r.fullPoints ? ` Scored out of ${r.max} because part of the ${r.fullPoints}-point rubric could not be observed.` : ""}</p>${r.failure ? `<p class="warn">Model scoring was unavailable for this checklist (${esc(r.failure)}). The criteria are listed for faculty scoring.</p>` : ""}${r.sections.map((sec) => `<section class="obj-card"><h3>${esc(sec.title)} · ${scored ? `${sec.earned} / ${sec.available}` : `${sec.points} points`}</h3><ul class="plain">${sec.criteria.map((cr) => `<li><span class="chip status-${cr.status}">${marks[cr.status]}</span> ${esc(cr.text)} <span class="muted">· ${cr.earned == null ? cr.points : cr.earned + " / " + cr.points} pts</span>${cr.reason ? `<div class="muted">${esc(cr.reason)}</div>` : ""}${cr.evidence.length ? evidence(cr.evidence) : ""}</li>`).join("")}</ul></section>`).join("")}<p class="muted">${esc(r.pointsNote)}${r.model ? " Scored by " + esc(r.model) + "." : ""}</p>`;
+}
+function rubricView(a) {
+  // One line per domain; the detail opens on demand.
+  const domain = (d) =>
+    `<details class="domain-row"><summary><span class="rating">${d.score === null ? "N/A" : d.score + " / 4"}</span><span><b>${d.domain}. ${esc(d.name)}</b>${d.label ? ` · ${esc(d.label)}` : ""}<span class="muted why">${esc(d.reason)}</span></span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+  const fields = a.rubric?.evidenceFields || {
+    strengths: "Strengths demonstrated",
+    gaps: "Missed opportunities",
+    concerns: "Safety or accuracy concerns",
+  };
+  const intro = a.rubric
+    ? `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p><p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
+    : "";
+  return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2>${intro}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section>
+  <h2>Evidence from the encounter</h2>${["strengths", "gaps", "concerns"].map((k) => `<h3>${esc(fields[k])}</h3>${a[k].length ? a[k].map((n) => `<p>${esc(n.text)}</p>${evidence(n.evidence)}`).join("") : '<p class="muted">None identified by this assessment.</p>'}`).join("")}
+  ${caseRubricView(a.caseRubric)}`;
+}
+function summaryView(a, c) {
+  // The three most useful things, then a short balance of what worked and what did not.
+  const steps = c?.nextSteps || [];
+  const good = [
+      ...a.strengths.map((s) => s.text),
+      ...(c?.flow.observations || [])
+        .filter((o) => o.kind === "strength")
+        .map((o) => o.text),
+    ].slice(0, 3),
+    work = [
+      ...a.gaps.map((s) => s.text),
+      ...(c?.flow.observations || [])
+        .filter((o) => o.kind === "improve")
+        .map((o) => o.text),
+    ].slice(0, 3);
+  const list = (items, empty) =>
+    items.length
+      ? `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
+      : `<p class="muted">${empty}</p>`;
+  return `<section class="obj-card plan"><h2>Focus for your next attempt</h2>${
+    steps.length
+      ? `<ol>${steps
+          .slice(0, 3)
+          .map((s) => `<li>${esc(s.text)}</li>`)
+          .join("")}</ol>`
+      : '<p class="ok">All learning objectives were met. Try again with fewer questions, or a different patient.</p>'
+  }</section>
+  <div class="fb-grid"><section class="obj-card"><h3>What went well</h3>${list(good, "Nothing recorded yet.")}</section><section class="obj-card"><h3>What to work on</h3>${list(work, "Nothing flagged.")}</section></div>
+  ${progress()}`;
+}
+// Names the domains that actually triggered review. The rubric sets this rule
+// for clinical reasoning and for professionalism/safety only.
+function reviewNotice(a) {
+  if (!a.reviewRequired) return "";
+  const rule = a.rubric?.reviewDomains || [6, 7];
+  const hit = a.domains.filter((d) => rule.includes(d.domain) && d.score === 1);
+  const names = hit.map((d) => `${d.domain}. ${d.name}`);
+  const listed =
+    names.length > 1
+      ? names.slice(0, -1).join(", ") + " and " + names.at(-1)
+      : names[0];
+  return `<p class="warn"><b>Faculty review required.</b> ${esc(listed)} ${hit.length > 1 ? "were" : "was"} rated 1. The rubric asks for review whenever clinical reasoning or professionalism and safety is rated 1, even if the total is high. A 1 in other domains does not trigger it.</p>`;
+}
+function assessment() {
+  if (!enc) return '<div class="pn"><h1>No active encounter</h1></div>';
+  if (!enc.assessment)
+    return `<div class="pn"><h1>Encounter feedback</h1><p>Finish the encounter to assess the complete evidence.</p>${button("Finish & get feedback", "complete", "", "pri")}</div>`;
+  const a = enc.assessment,
+    c = a.coaching,
+    provisional = a.provider === "local-provisional";
+  const views = [
+    ["summary", "Summary"],
+    ...(c ? [["findings", "Objectives & findings"]] : []),
+    ...(c ? [["interview", "Interview"]] : []),
+    ["rubric", a.caseRubric ? "Rubrics" : "Rubric"],
+  ];
+  if (!views.some(([k]) => k === repView)) repView = "summary";
+  const body =
+    repView === "findings"
+      ? findingsView(a, c)
+      : repView === "interview"
+        ? flowView(a, c)
+        : repView === "rubric"
+          ? rubricView(a)
+          : summaryView(a, c);
+  const caseScore =
+    a.caseRubric?.total != null
+      ? `<div><div class="score-num">${a.caseRubric.total}/${a.caseRubric.max}</div><div class="muted">case rubric</div></div>`
+      : "";
+  return `<div class="pn"><div class="panel-kicker">Encounter feedback</div><h1>${esc(enc.name)} · feedback on this attempt</h1>
+  <div class="score-hero"><div><div class="score-num">${a.total}/${a.denominator}</div><div class="muted">rubric${provisional ? " (provisional)" : ""}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
+  ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
+  <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
+  ${body}
+  <div class="row rep-actions">${button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
+  <p class="muted small">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}${a.revised ? " · revised once after automated review" : ""}${a.failure ? " · fallback: " + esc(a.failure) : ""}</p></div>`;
+}
+function turnIndex() {
+  // Event ID → the question number it belongs to (0 before the first question).
+  let n = 0;
+  const map = new Map();
+  for (const e of enc.events) {
+    if (e.type === "student") n++;
+    map.set(e.id, n);
   }
-  const done = () => {
-    window.__busy = false;
-    av('listening', 'neutral');
-    if (window.__convo !== false) {
-      startListen();
+  return map;
+}
+function evidence(ids) {
+  const turns = turnIndex();
+  const kinds = {
+    student: "You asked",
+    patient: "The patient replied",
+    disclose: "Finding shared",
+    gate: "The patient held a topic back",
+    open: "Chart opened",
+    review: "Chart reviewed",
+    release: "Report released",
+    reconcile: "Clinical note recorded",
+    handoff: "Handoff submitted",
+    start: "Encounter started",
+    complete: "Encounter completed",
+  };
+  return `<details class="evidence"><summary>Evidence (${ids.length})</summary>${
+    ids.length
+      ? ids
+          .map((id) => {
+            const e = enc.events.find((e) => e.id === id);
+            if (!e) return `<p>${esc(id)}</p>`;
+            const n = turns.get(id);
+            const detail =
+              e.type === "communication"
+                ? [
+                    e.openQuestion && "open question",
+                    e.empathy && "acknowledged the patient's perspective",
+                    e.judgmental && "judgmental wording",
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "no tag"
+                : e.type === "gate"
+                  ? ""
+                  : e.text || "";
+            return `<p><b>${n ? "Question " + n : "Start"} · ${esc(kinds[e.type] || (e.type === "communication" ? "Automated question tag" : e.type))}</b> ${esc(detail)}${n ? ` <a class="turn-link" href="#turn-${n}">Show in transcript</a>` : ""}</p>`;
+          })
+          .join("")
+      : "<p>No observed evidence cited.</p>"
+  }</details>`;
+}
+function rewritesView(c) {
+  if (!c.rewrites?.length)
+    return c.rewriteFailure
+      ? `<p class="muted">Wording suggestions were unavailable for this attempt.</p>`
+      : "";
+  return `<section class="obj-card"><h2>Try wording it this way</h2><p class="muted">Model suggestions for questions you actually asked${c.rewriteModel ? " · " + esc(c.rewriteModel) : ""}. They change wording only and are not part of any rating.</p><ul class="plain">${c.rewrites.map((r) => `<li><div class="muted">Question ${r.turn} · ${esc(r.issue)}</div><div class="reword"><div><b>You asked</b> ${esc(r.question)}</div><div><b>Instead</b> ${esc(r.rewrite)}</div></div><div class="muted">${esc(r.why)} <a class="turn-link" href="#turn-${r.turn}">Show in transcript</a></div></li>`).join("")}</ul></section>`;
+}
+function transcriptView(a, c) {
+  const turns = turnIndex();
+  // Which rubric domains and feedback items cite each question.
+  const cited = new Map();
+  const cite = (ids, label) => {
+    for (const id of ids || []) {
+      const n = turns.get(id);
+      if (!n) continue;
+      if (!cited.has(n)) cited.set(n, new Set());
+      cited.get(n).add(label);
     }
   };
-
-  if (SERVICES.voice === 'browser' && 'speechSynthesis' in window && !window.__mute) {
-    try {
-      speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(t);
-      utter.onend = done;
-      utter.onerror = done;
-      speechSynthesis.speak(utter);
-
-      return;
-    } catch (err) {
-      console.error('VirtuSP speech synthesis fallback', err);
+  for (const d of a.domains)
+    cite(
+      d.evidence,
+      `${d.domain}. ${d.name}${d.score === null ? "" : " · " + d.score + "/4"}`,
+    );
+  for (const s of a.strengths) cite(s.evidence, "Strength");
+  for (const g of a.gaps) cite(g.evidence, "Missed opportunity");
+  for (const x of a.concerns) cite(x.evidence, "Concern");
+  const steps = new Map(
+    (c?.flow.steps || [])
+      .filter((s) => s.kind === "question")
+      .map((s) => [s.eventId, s]),
+  );
+  let n = 0;
+  const rows = enc.transcript
+    .map((t) => {
+      if (t.role !== "student")
+        return `<div class="bubble patient"><b>${esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p></div>`;
+      n++;
+      const s = steps.get(t.id);
+      const tags = s
+        ? [
+            s.open && "open question",
+            s.empathy && "acknowledged perspective",
+            s.judgmental && "judgmental wording",
+          ].filter(Boolean)
+        : [];
+      const result = !s
+        ? ""
+        : s.gained.length
+          ? `<span class="ok">New: ${s.gained.map(esc).join("; ")}</span>`
+          : s.heldBack
+            ? "The patient held this back"
+            : "No new finding";
+      const credit = s?.credited.length
+        ? ` · counts toward: ${s.credited.map(esc).join("; ")}`
+        : "";
+      const refs = [...(cited.get(n) || [])];
+      return `<div class="turn" id="turn-${n}"><div class="bubble student"><b>Question ${n}</b><p>${esc(t.text)}</p></div><div class="turn-notes">${tags.map((x) => `<span class="chip">${x}</span>`).join(" ")} <span class="muted">${result}${credit}</span>${refs.length ? `<div class="muted">Cited in: ${refs.map(esc).join(" · ")}</div>` : ""}</div></div>`;
+    })
+    .join("");
+  return `<h2>Annotated transcript</h2><p class="muted">Every question with what it achieved and where the feedback above refers to it. Question tags come from automated classification.</p><section class="obj-card annotated">${rows}</section>`;
+}
+function past() {
+  return `<div class="pn"><h1>Encounter history</h1><p class="muted">Each attempt retains its patient version, transcript and assessment.</p><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(new Date(e.createdAt).toLocaleString())} · ${e.turns} questions · ${e.status}${e.status === "complete" && e.objectivePercent != null ? ` · objectives ${e.objectivePercent}% · findings ${e.findingsElicited}/${e.findingsTotal} · rubric ${e.provisional ? "provisional" : e.total + "/" + e.denominator}` : ""}</p>${button(e.status === "complete" ? "View feedback" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+}
+function render() {
+  const focusId = document.activeElement?.id;
+  const dialogScroll = $(".patient-form-body")?.scrollTop || 0;
+  if (patientDialog && $("#patient-dialog")?.dataset.profileId === profile.id)
+    for (const detail of document.querySelectorAll(
+      "#patient-dialog details[data-detail]",
+    ))
+      patientDialog.openSections[detail.dataset.detail] = detail.open;
+  const navs = [
+    ["studio", "Patient Studio"],
+    ["enc", "Encounter"],
+    ["team", "Team"],
+    ["rep", "Assessment"],
+    ["history", "History"],
+  ];
+  $("#nav").innerHTML = navs
+    .map(([k, name]) =>
+      button(name, "nav", `data-tab="${k}"`, tab === k ? "on" : ""),
+    )
+    .join("");
+  $("#mode").textContent =
+    health.dialogue === "local"
+      ? "Local fallback"
+      : `Bedrock configured · ${health.region}`;
+  $("#themeBtn").textContent = "Theme";
+  $("#app").innerHTML =
+    `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+    { studio, enc: encounter, team, rep: assessment, history: past }[tab]() +
+    patientForm();
+  if (patientDialog) {
+    const dialog = $("#patient-dialog");
+    dialog.dataset.profileId = profile.id;
+    for (const detail of dialog.querySelectorAll("details[data-detail]"))
+      detail.open = patientDialog.openSections[detail.dataset.detail] === true;
+    if (dialog.showModal) dialog.showModal();
+    else dialog.setAttribute("open", "");
+    $(".patient-form-body").scrollTop = dialogScroll;
+    const focus = focusId && document.getElementById(focusId);
+    if (focus && dialog.contains(focus)) focus.focus();
+    else $("#patient-upload")?.focus();
+    dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      if (!busy) {
+        closePatientDialog();
+        render();
+        $('[data-action="new"]')?.focus();
+      }
+    });
+    if (patientDialog.validationError) {
+      const errorDialog = $("#publication-error");
+      if (errorDialog.showModal) errorDialog.showModal();
+      else errorDialog.setAttribute("open", "");
+      errorDialog.addEventListener("cancel", (e) => {
+        e.preventDefault();
+        dismissPublicationError();
+      });
+      const field =
+        patientDialog.validationError.field &&
+        document.getElementById(patientDialog.validationError.field);
+      if (field) {
+        field.setAttribute("aria-invalid", "true");
+        field.classList.add("invalid-field");
+      }
+      $('[data-action="dismiss-publication-error"]')?.focus();
     }
   }
-  setTimeout(done, Math.min(5000, String(t).length * 45));
-}
-
-function stopListen() {
-  if (!recActive) {
-    return;
+  if ($("#question")) {
+    $("#question").value = formMemory.question;
+    $("#question").dataset.memory = "question";
   }
-
+  if (tab === "enc") $("#transcript")?.scrollTo(0, 1e9);
+  voiceState(voiceDisplay.state, voiceDisplay.text);
+  updateMicButton();
+}
+function stopAudio() {
+  speechGeneration++;
+  listening = false;
+  clearTimeout(micRestartTimer);
   try {
-    recActive.onend = null;
-    recActive.onerror = null;
-    recActive.stop();
-  } catch (err) {}
-  recActive = null;
+    recognition?.abort();
+  } catch {
+    /* A disconnected recognizer is already stopped. */
+  }
+  recognition = null;
+  if (audio) {
+    audio.pause();
+    audio = null;
+  }
+  if (audioUrl) {
+    URL.revokeObjectURL(audioUrl);
+    audioUrl = null;
+  }
+  window.speechSynthesis?.cancel();
+  $("#avf")?.classList.remove("speaking", "listening");
+  voiceState(
+    "ready",
+    enc?.status === "complete"
+      ? "Encounter complete"
+      : "Ready for your question",
+  );
+  updateMicButton();
 }
-
-function startListen() {
-  if (window.__busy || window.__convo === false) {
+function voiceState(state, text) {
+  voiceDisplay = { state, text };
+  $("#avf")?.classList.toggle("speaking", state === "speaking");
+  $("#avf")?.classList.toggle("listening", state === "listening");
+  if ($("#voice-status")) $("#voice-status").textContent = text;
+}
+async function speak(turn) {
+  stopAudio();
+  const generation = speechGeneration;
+  const updateVoice = (state, text) => {
+    if (generation === speechGeneration) voiceState(state, text);
+  };
+  if (muted || tab !== "enc") return;
+  if (health.speech === "elevenlabs-configured")
+    try {
+      voiceState("thinking", "Preparing patient voice…");
+      const response = await fetch(`/api/encounters/${enc.id}/speech`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turnId: turn.id }),
+      });
+      if (!response.ok) throw new Error();
+      const blob = await response.blob();
+      if (generation !== speechGeneration) return;
+      audioUrl = URL.createObjectURL(blob);
+      audio = new Audio(audioUrl);
+      audio.onplay = () =>
+        updateVoice("speaking", "Patient speaking · ElevenLabs");
+      audio.onended = () => updateVoice("ready", "Ready for your question");
+      audio.onerror = () =>
+        updateVoice("ready", "Audio unavailable; transcript remains available");
+      await audio.play();
+      return;
+    } catch {
+      if (generation !== speechGeneration) return;
+      voiceState("ready", "Cloud speech unavailable · browser voice fallback");
+    }
+  if ("speechSynthesis" in window) {
+    const utter = new SpeechSynthesisUtterance(turn.text);
+    utter.onstart = () =>
+      updateVoice("speaking", "Patient speaking · browser voice");
+    utter.onend = () => updateVoice("ready", "Ready for your question");
+    utter.onerror = () =>
+      updateVoice("ready", "Audio unavailable; use the transcript");
+    speechSynthesis.speak(utter);
+  }
+}
+async function mutate(action, payload) {
+  const r = await api(`/api/encounters/${enc.id}/${action}`, "POST", payload);
+  enc = r.encounter;
+  health.storage = r.storage;
+}
+async function question(text) {
+  if (busy || !text.trim() || enc?.status !== "active") return;
+  stopAudio();
+  busy = true;
+  message = "";
+  render();
+  let delivered = false;
+  try {
+    await mutate("turn", { question: text, requestId: crypto.randomUUID() });
+    formMemory.question = "";
+    delivered = true;
+  } catch (e) {
+    message = e.message;
+  } finally {
+    busy = false;
+    render();
+  }
+  if (delivered && enc?.transcript.at(-1)?.role === "patient")
+    speak(enc.transcript.at(-1));
+}
+function updateMicButton() {
+  const button = $('[data-action="mic"]');
+  if (!button) return;
+  button.textContent = recognition?.sendOnEnd
+    ? "Finishing…"
+    : listening
+      ? "Stop & send"
+      : "Tap to talk";
+  button.setAttribute("aria-pressed", String(listening));
+  button.disabled =
+    busy || !!recognition?.sendOnEnd || enc?.status !== "active";
+}
+function mic() {
+  if (busy || enc?.status !== "active") return;
+  if (listening && recognition) {
+    listening = false;
+    recognition.sendOnEnd = true;
+    clearTimeout(micRestartTimer);
+    updateMicButton();
+    voiceState("thinking", "Finishing your question…");
+    try {
+      recognition.stop();
+    } catch {
+      recognition.onend();
+    }
     return;
   }
-
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const status = $('#mst');
   if (!Rec) {
-    if (status) {
-      status.textContent = 'Voice is not available here. Use Type instead.';
-    }
-
+    message = "Microphone recognition is unavailable. Type your question.";
+    render();
     return;
   }
-
-  stopListen();
+  stopAudio();
+  const generation = speechGeneration;
   const rec = new Rec();
-  recActive = rec;
-  rec.lang = 'en-US';
+  recognition = rec;
+  listening = true;
+  let prefix = formMemory.question.trim(),
+    restarts = 0,
+    fatalError = false;
+  const current = () =>
+    generation === speechGeneration &&
+    tab === "enc" &&
+    enc?.status === "active" &&
+    recognition === rec;
+  const fail = (error) => {
+    fatalError = true;
+    listening = false;
+    rec.sendOnEnd = false;
+    updateMicButton();
+    const reason =
+      error === "not-allowed" || error === "service-not-allowed"
+        ? "Microphone permission was denied. Allow microphone access for this site in your browser, then tap again."
+        : `Microphone unavailable (${error}). Your text is kept; type or try again.`;
+    message = reason;
+    voiceState("ready", reason);
+  };
+  rec.lang = "en-US";
+  rec.continuous = true;
   rec.interimResults = true;
+  rec.onstart = () => {
+    if (current())
+      voiceState("listening", "Listening… Tap Stop & send when finished.");
+  };
   rec.onresult = (e) => {
-    const last = e.results[e.results.length - 1];
-    const text = last[0].transcript;
-    if (status) {
-      status.textContent = last.isFinal ? 'Listening…' : text;
-    }
-    if (last.isFinal && text.trim()) {
-      stopListen();
-      ask(text.trim());
-    }
+    if (
+      generation !== speechGeneration ||
+      tab !== "enc" ||
+      enc?.status !== "active" ||
+      recognition !== rec
+    )
+      return;
+    const text = Array.from(e.results)
+      .map((r) => r[0].transcript)
+      .join(" ")
+      .trim();
+    formMemory.question = [prefix, text].filter(Boolean).join(" ");
+    if ($("#question")) $("#question").value = formMemory.question;
+    restarts = 0;
   };
   rec.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') {
-      return;
-    }
-    if (status) {
-      status.textContent = 'Mic issue. Tap the button to talk, or type.';
-    }
+    if (!current()) return;
+    if (e.error !== "no-speech") fail(e.error);
   };
   rec.onend = () => {
-    recActive = null;
-    if (!window.__busy && window.__convo !== false) {
-      startListen();
-    }
-    setMicLabel();
-  };
-  if (status) {
-    status.textContent = 'Listening… speak whenever you are ready.';
-  }
-  av('listening', 'neutral');
-  try {
-    rec.start();
-  } catch (err) {}
-  setMicLabel();
-}
-
-function mic() {
-  window.__convo = true;
-  if (window.__busy) {
-    stopSpeech();
-  }
-  startListen();
-}
-
-function endConvo() {
-  window.__convo = false;
-  stopListen();
-  stopSpeech();
-  av('listening', 'neutral');
-  const status = $('#mst');
-  if (status) {
-    status.textContent = 'Conversation paused.';
-  }
-  setMicLabel();
-}
-
-function stopSpeech() {
-  window.__busy = false;
-  try {
-    speechSynthesis.cancel();
-  } catch (err) {}
-  av('listening', 'neutral');
-}
-
-function toggleType() {
-  window.__type = !window.__type;
-  const typeRow = $('#typeRow');
-  if (typeRow) {
-    typeRow.hidden = !window.__type;
-  }
-}
-
-function grade(o) {
-  const disclosed = enc.disc;
-  const evidence = [];
-  let credit = null;
-
-  if (o.ty === 'fact') {
-    const got = o.f.filter((i) => disclosed.has(i));
-    credit = got.length / o.f.length;
-    got.forEach((i) => evidence.push(`${i}: "${disclosed.get(i).q}"`));
-  } else if (o.ty === 'review') {
-    const got = o.s.filter((s) => enc.opened.has(s));
-    credit = got.length / o.s.length;
-    got.forEach((s) => evidence.push('Opened ' + s));
-  } else if (o.ty === 'mm') {
-    const mismatch = enc.p.mm;
-    if (!enc.mmS) {
-      return { c: null, E: ['Discrepancy never surfaced (open the chart sources)'] };
-    }
-    credit = 0;
-    if (disclosed.has(mismatch.fu)) {
-      credit += 0.5;
-      evidence.push('Follow-up elicited: ' + mismatch.fu);
-    }
-    if (enc.rec) {
-      credit += 0.5;
-      evidence.push('Reconciliation documented');
-    }
-  } else if (o.ty === 'emp') {
-    if (!enc.turns) {
-      return { c: null, E: ['No turns'] };
-    }
-    credit = (enc.emp > 0) * 0.5 + (enc.open >= 2) * 0.5;
-    evidence.push(`${enc.emp} empathic statement(s), ${enc.open} open question(s)`);
-  } else if (o.ty === 'ho') {
-    if (!enc.ho) {
-      return { c: null, E: ['No handoff submitted'] };
-    }
-    credit = enc.ho.inc / enc.ho.tot;
-    evidence.push(`${enc.ho.inc}/${enc.ho.tot} documented facts included`);
-  }
-
-  return { c: credit, E: evidence };
-}
-
-function interviewSequence() {
-  const notes = [];
-  const students = enc.tr.filter((m) => m.w === 'Student').map((m) => m.t.toLowerCase());
-  if (!students.length) {
-    return { c: null, notes: ['No interview yet'] };
-  }
-
-  let score = 0;
-  let parts = 0;
-  parts += 1;
-  if (/why|bring|here|concern|going on|what.*today/.test(students[0] || '')) {
-    score += 1;
-    notes.push('Opened with the reason for the visit.');
-  } else {
-    notes.push('Next attempt: start with why the patient is here before medications or conclusions.');
-  }
-
-  parts += 1;
-  const firstSensitive = enc.ev.find((e) => e.type === 'disclose' && /d4|d5|m3|m4|g3/.test(e.text));
-  const firstEmp = enc.ev.find((e) => e.type === 'empathy');
-  if (firstEmp && firstSensitive && firstEmp.n < firstSensitive.n) {
-    score += 1;
-    notes.push('Built rapport before asking the harder question.');
-  } else if (firstSensitive) {
-    notes.push('Next attempt: acknowledge feelings before pressing on adherence or smoking.');
-  } else {
-    notes.push('Sensitive findings were not reached yet.');
-  }
-
-  parts += 1;
-  const reviewed = enc.ev.some((e) => e.type === 'open' || e.type === 'artifact');
-  if (reviewed) {
-    score += 1;
-    notes.push('Reviewed chart evidence during the visit.');
-  } else {
-    notes.push('Next attempt: open labs or imaging before deciding what is true.');
-  }
-
-  return { c: score / parts, notes };
-}
-
-function professionalism() {
-  if (!enc.turns) {
-    return { c: null, notes: ['No turns'] };
-  }
-
-  let score = 0;
-  const notes = [];
-  if (enc.emp > 0) {
-    score += 0.4;
-    notes.push('Empathic language used.');
-  } else {
-    notes.push('Next attempt: name the feeling before asking a harder question.');
-  }
-  if (enc.open >= 2) {
-    score += 0.3;
-    notes.push('Used open questions.');
-  } else {
-    notes.push('Next attempt: ask how / what / tell me instead of closed questions.');
-  }
-  if (!(enc.judg)) {
-    score += 0.3;
-    notes.push('No judgmental wording logged.');
-  } else {
-    notes.push('Avoid language like noncompliant or you should have.');
-  }
-
-  return { c: score, notes };
-}
-
-function applyTheme() {
-  const theme = localStorage.getItem(THEME_KEY) || 'auto';
-  if (theme === 'auto') {
-    document.documentElement.removeAttribute('data-theme');
-  } else {
-    document.documentElement.setAttribute('data-theme', theme);
-  }
-}
-
-function themeLabel() {
-  const theme = localStorage.getItem(THEME_KEY) || 'auto';
-  if (theme === 'light') {
-    return 'Theme: Light';
-  }
-  if (theme === 'dark') {
-    return 'Theme: Dark';
-  }
-
-  return 'Theme: Auto';
-}
-
-function toggleTheme() {
-  const current = localStorage.getItem(THEME_KEY) || 'auto';
-  const next = current === 'auto' ? 'light' : current === 'light' ? 'dark' : 'auto';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme();
-  const btn = $('#themeBtn');
-  if (btn) {
-    btn.textContent = themeLabel();
-  }
-}
-
-function goTab(next) {
-  tab = next;
-  save();
-  render();
-  if (next === 'truth') {
-    loadTruth();
-  }
-}
-
-function setIdent(field, value) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p[field] = field === 'age' ? (Number(value) || 0) : value;
-  writeProfile(p);
-}
-
-function setHints(value) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p.hints = value.split('\n').map((s) => s.trim()).filter(Boolean);
-  writeProfile(p);
-}
-
-function setFact(i, field, value) {
-  const p = currentProfile();
-  if (!p || !p.facts[i]) {
-    return;
-  }
-  if (field === 'kw') {
-    p.facts[i].kw = value.split(',').map((s) => s.trim()).filter(Boolean);
-  } else if (field === 'gate') {
-    p.facts[i].gate = Number(value) || 0;
-  } else {
-    p.facts[i][field] = value;
-  }
-  writeProfile(p);
-}
-
-function setObj(i, field, value) {
-  const p = currentProfile();
-  if (!p || !p.obj[i]) {
-    return;
-  }
-  if (field === 'f' || field === 's') {
-    p.obj[i][field] = value.split(',').map((s) => s.trim()).filter(Boolean);
-  } else if (field === 'w') {
-    p.obj[i].w = Number(value) || 0;
-  } else {
-    p.obj[i][field] = value;
-  }
-  writeProfile(p);
-}
-
-function setMm(field, value) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p.mm = p.mm || {};
-  if (field === 'kw') {
-    p.mm.kw = value.split(',').map((s) => s.trim()).filter(Boolean);
-  } else {
-    p.mm[field] = value;
-  }
-  writeProfile(p);
-}
-
-function addFact() {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  const id = 'f' + Math.random().toString(36).slice(2, 6);
-  p.facts = p.facts || [];
-  p.facts.push(F(id, 'New approved fact', 'new', {
-    say: 'The faculty have not finished this wording yet.',
-    kw: ['why', 'here', 'concern'],
-    src: 'Approved case'
-  }));
-  writeProfile(p);
-  render();
-}
-
-function removeFact(i) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p.facts.splice(i, 1);
-  writeProfile(p);
-  render();
-}
-
-function addObjective() {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p.obj = p.obj || [];
-  p.obj.push({
-    id: 'obj' + Math.random().toString(36).slice(2, 5),
-    t: 'New learning objective',
-    w: 0,
-    ty: 'fact',
-    f: [],
-    tip: 'Describe what the student should do.'
-  });
-  writeProfile(p);
-  render();
-}
-
-function removeObjective(i) {
-  const p = currentProfile();
-  if (!p) {
-    return;
-  }
-  p.obj.splice(i, 1);
-  writeProfile(p);
-  render();
-}
-
-function resetDemo() {
-  if (!confirm('Reset all saved patients, releases, and the active encounter?')) {
-    return;
-  }
-  localStorage.removeItem(KEY);
-  localStorage.removeItem(LEGACY_KEY);
-  location.reload();
-}
-
-function latestReleases() {
-  return rel.filter((r, i, all) => all.findLastIndex((x) => x.p.id === r.p.id) === i);
-}
-
-function factCard(f, i) {
-  const types = ['reported', 'confirmed', 'documented', 'unknown'];
-  const ehrs = ['hx', 'meds', 'labs', 'notes', 'soc'];
-
-  return `<div class="card-edit">
-    <h3>${esc(f.id)} <button class="btn" type="button" onclick="removeFact(${i})">Remove</button></h3>
-    <div class="fields">
-      <div><label>ID</label><input value="${esc(f.id)}" oninput="setFact(${i},'id',this.value)"></div>
-      <div><label>Label</label><input value="${esc(f.label)}" oninput="setFact(${i},'label',this.value)"></div>
-      <div><label>Visibility</label>
-        <select onchange="setFact(${i},'vis',this.value)">
-          <option value="ask" ${f.vis === 'ask' ? 'selected' : ''}>Interview</option>
-          <option value="chart" ${f.vis === 'chart' ? 'selected' : ''}>Chart</option>
-        </select>
-      </div>
-      <div><label>EHR section</label>
-        <select onchange="setFact(${i},'ehr',this.value)">
-          ${ehrs.map((s) => `<option ${f.ehr === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Type</label>
-        <select onchange="setFact(${i},'type',this.value)">
-          ${types.map((s) => `<option ${f.type === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Chart release section</label><input value="${esc(f.sec || '')}" oninput="setFact(${i},'sec',this.value)" placeholder="labs / notes / meds"></div>
-      <div><label>Source</label><input value="${esc(f.src || '')}" oninput="setFact(${i},'src',this.value)"></div>
-      <div><label>Role</label><input value="${esc(f.role || '')}" oninput="setFact(${i},'role',this.value)"></div>
-      <div><label>Trust gate</label><input type="number" value="${esc(f.gate || 0)}" oninput="setFact(${i},'gate',this.value)"></div>
-      <div><label>Match key</label><input value="${esc(f.k || '')}" oninput="setFact(${i},'k',this.value)"></div>
-    </div>
-    <div class="stack"><label>Approved patient wording</label><textarea rows="2" oninput="setFact(${i},'say',this.value)">${esc(f.say || '')}</textarea></div>
-    <div class="stack"><label>Deflection if trust is too low</label><input value="${esc(f.deflect || '')}" oninput="setFact(${i},'deflect',this.value)"></div>
-    <div class="stack"><label>Keywords, comma separated</label><input value="${esc((f.kw || []).join(', '))}" oninput="setFact(${i},'kw',this.value)"></div>
-  </div>`;
-}
-
-function objCard(o, i) {
-  return `<div class="card-edit">
-    <h3>${esc(o.id)} <button class="btn" type="button" onclick="removeObjective(${i})">Remove</button></h3>
-    <div class="fields">
-      <div><label>Title</label><input value="${esc(o.t)}" oninput="setObj(${i},'t',this.value)"></div>
-      <div><label>Weight</label><input type="number" value="${esc(o.w)}" oninput="setObj(${i},'w',this.value)"></div>
-      <div><label>Type</label>
-        <select onchange="setObj(${i},'ty',this.value)">
-          ${['fact', 'review', 'mm', 'emp', 'ho'].map((s) => `<option ${o.ty === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Fact IDs</label><input value="${esc((o.f || []).join(', '))}" oninput="setObj(${i},'f',this.value)"></div>
-      <div><label>Review sections</label><input value="${esc((o.s || []).join(', '))}" oninput="setObj(${i},'s',this.value)"></div>
-    </div>
-    <div class="stack"><label>Coaching tip</label><input value="${esc(o.tip || '')}" oninput="setObj(${i},'tip',this.value)"></div>
-  </div>`;
-}
-
-function pickPatient(id) {
-  sel = id;
-  save();
-  render();
-}
-
-function vStudio() {
-  const p = currentProfile();
-  const cards = latestReleases().map((r) => {
-    const pics = photoSet(r.p);
-    const isOn = sel === r.p.id;
-
-    return `<div class="patient-card ${isOn ? 'on' : ''}">
-      <button class="patient-pick" type="button" onclick="pickPatient('${r.p.id}')">
-        <img src="${pics.still}" alt="" style="object-position:${esc(pics.pos)}">
-        <b>${esc(r.p.name)}</b>
-        <span class="chip">${r.p.age} · v${r.p.version}</span>
-      </button>
-      ${(r.p.video || (r.p.preview || []).length) ? `<button class="btn" type="button" onclick="openTheater('${r.p.id}')">Watch conversation</button>` : ''}
-      <button class="btn pri" type="button" onclick="launch('${r.p.id}',${r.p.version})">Start visit</button>
-    </div>`;
-  }).join('');
-
-  if (!p) {
-    return `<div class="pn studio">
-      <h2>Patient Studio</h2>
-      <p>This draft could not be read.</p>
-      <button class="btn pri" type="button" onclick="newPatient()">New patient</button>
-    </div>`;
-  }
-
-  return `<div class="pn studio">
-    <div class="studio-head">
-      <div>
-        <h2>Patient Studio</h2>
-        <p class="muted">Pick a patient or create one. No code.</p>
-      </div>
-      <div class="row">
-        <button class="btn" type="button" onclick="newPatient()">New patient</button>
-        <button class="btn" type="button" onclick="resetDemo()">Reset</button>
-      </div>
-    </div>
-    <div class="patient-grid">${cards}</div>
-    <div class="compact-edit">
-      <div class="fields">
-        <div><label>Name</label><input value="${esc(p.name || '')}" oninput="setStudio('name', this.value)"></div>
-        <div><label>Age</label><input type="number" value="${esc(p.age == null || p.age === '' ? '' : p.age)}" oninput="setStudio('age', this.value, this)"></div>
-        <div><label>Opening line</label><input value="${esc(p.intro || '')}" oninput="setStudio('intro', this.value)"></div>
-      </div>
-      <div class="fields">
-        <div><label>Personality</label><input value="${esc(p.personality || '')}" oninput="setStudio('personality', this.value)"></div>
-        <div><label>Emotional state</label><input value="${esc(p.emotion || '')}" oninput="setStudio('emotion', this.value)"></div>
-        <div><label>Communication style</label><input value="${esc(p.style || '')}" oninput="setStudio('style', this.value)"></div>
-      </div>
-      <div class="fields">
-        <div><label>Chief complaint / symptoms</label><input value="${esc(p.complaint || '')}" oninput="setStudio('complaint', this.value)"></div>
-        <div><label>Medical history</label><input value="${esc(p.history || '')}" oninput="setStudio('history', this.value)"></div>
-        <div><label>Diagnosis</label><input value="${esc(p.diagnosis || '')}" oninput="setStudio('diagnosis', this.value)"></div>
-      </div>
-      <div class="fields">
-        <div><label>Medications</label><input value="${esc(p.medications || '')}" oninput="setStudio('medications', this.value)"></div>
-        <div><label>Allergies</label><input value="${esc(p.allergies || '')}" oninput="setStudio('allergies', this.value)"></div>
-      </div>
-      <div class="stack"><label>Labs (one per line: name | value | unit | reference)</label>
-        <textarea rows="2" oninput="setStudio('labs', this.value)">${esc(p.labs || '')}</textarea>
-      </div>
-      <div class="fields">
-        <div><label>What the patient says</label><input value="${esc(p.patientSays || '')}" oninput="setStudio('patientSays', this.value)"></div>
-        <div><label>What the chart says (intentional conflict)</label><input value="${esc(p.chartSays || '')}" oninput="setStudio('chartSays', this.value)"></div>
-      </div>
-      <div class="stack"><label>Learning objectives (one per line)</label>
-        <textarea rows="3" oninput="setStudio('objText', this.value)">${esc(p.objText || (p.obj || []).map((o) => o.t).join('\n'))}</textarea>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="btn" type="button" onclick="runValidate()">Check</button>
-        <button class="btn pri" type="button" onclick="publish(sel);render()">Publish</button>
-      </div>
-      <p>${esc(msg)}</p>
-      ${issues.length ? issues.map((i) => `<div class="issue ${i.s === 'error' ? 'err' : ''}"><b>${i.s}</b> ${esc(i.m)}</div>`).join('') : ''}
-    </div>
-  </div>`;
-}
-
-function vEnc() {
-  if (!enc) {
-    return `<div class="pn">
-      <h2>Start a visit</h2>
-      <p class="muted">Choose a patient to begin the conversation.</p>
-      <div class="patient-grid" style="margin-top:12px">${latestReleases().map((r) => {
-        const pics = photoSet(r.p);
-
-        return `<div class="patient-card">
-          <button class="patient-pick" type="button" onclick="launch('${r.p.id}',${r.p.version})">
-            <img src="${pics.still}" alt="" style="object-position:${esc(pics.pos)}">
-            <b>${esc(r.p.name)}</b>
-            <span class="chip">${r.p.age} · v${r.p.version}</span>
-          </button>
-          ${(r.p.video || (r.p.preview || []).length) ? `<button class="btn" type="button" onclick="openTheater('${r.p.id}')">Watch conversation</button>` : ''}
-          <button class="btn pri" type="button" onclick="launch('${r.p.id}',${r.p.version})">Start visit</button>
-        </div>`;
-      }).join('')}</div>
-    </div>`;
-  }
-
-  return `<div class="grid enc-grid">
-    <div class="pn enc-talk">
-      <div class="panel-kicker">Virtual patient</div>
-      ${avatarHtml(enc.p)}
-      <h2>${esc(enc.p.name)}, ${enc.p.age}</h2>
-      <div class="av-status" id="avs">Listening</div>
-      <button class="mic-btn" id="micBtn" type="button" onclick="mic()">Tap to talk</button>
-      <div class="chip" id="mst">Every ask is identified, searched, and reviewed before the patient answers.</div>
-      <div class="row" style="margin-top:10px">
-        <button class="btn" type="button" onclick="endConvo()">Pause</button>
-        <button class="btn" type="button" onclick="toggleType()">Type instead</button>
-      </div>
-      <div class="row" id="typeRow" ${window.__type ? '' : 'hidden'}>
-        <input id="q" aria-label="Ask the patient" placeholder="Type if you need to…" onkeydown="if(event.key==='Enter'){ask(this.value);this.value=''}">
-        <button class="btn pri" type="button" onclick="ask($('#q').value);$('#q').value=''">Send</button>
-      </div>
-      <div class="tr" id="tr" aria-live="polite"></div>
-    </div>
-    <div class="pn ehr-panel">
-      <div class="ehr-head">
-        <div>
-          <div class="panel-kicker">Dynamic EHR</div>
-          <h2>Chart · ${esc(enc.p.name)}</h2>
-        </div>
-        <span class="chip">${enc.id} · v${enc.p.version}</span>
-      </div>
-      <div class="tabs" id="tb"></div>
-      <div id="eh"></div>
-    </div>
-  </div>`;
-}
-
-function renderTr() {
-  const box = $('#tr');
-  if (!box) {
-    return;
-  }
-
-  box.innerHTML = enc.tr.map((m) => {
-    const who = m.w === 'Student' ? 'student' : m.w === 'Gate' ? 'gate' : 'patient';
-
-    return `<div class="bubble ${who}"><b>${esc(m.w)}${m.g ? ` <span class="chip">grounded: ${esc(m.g)}</span>` : ''}</b><p>${esc(m.t)}</p></div>`;
-  }).join('');
-  box.scrollTop = 1e9;
-}
-
-function emptyEhr(section) {
-  return `<div class="empty"><b>Nothing released yet.</b><div>${esc(EHR_HINTS[section] || 'Ask a question or open another chart section.')}</div></div>`;
-}
-
-function conflictCard() {
-  if (!enc.mmS || !enc.p.mm) {
-    return '';
-  }
-  const said = enc.p.facts.find((f) => f.id === enc.p.mm.a);
-  const chart = enc.p.facts.find((f) => f.id === enc.p.mm.b);
-
-  return `<div class="warn conflict">
-    <b>Authored conflict — both records stay locked as written.</b>
-    <div class="conflict-grid">
-      <div><span class="chip">Patient said</span><p>${esc((said && (said.say || said.label)) || '')}</p></div>
-      <div><span class="chip">EHR record</span><p>${esc((chart && chart.label) || '')}</p></div>
-    </div>
-    <p>This mismatch is intentional. Investigate, then document what you think is going on.</p>
-  </div>`;
-}
-
-function artifactCard(art) {
-  const released = enc.arts.has(art.id);
-  const fresh = enc.lastArt === art.id ? ' just-in' : '';
-  if (!released) {
-    return `<div class="art locked">
-      <b>${esc(art.title)}</b>
-      <div class="chip">Locked · ask the right question or open ${esc(art.sec || 'the chart')}</div>
-    </div>`;
-  }
-
-  const meta = enc.arts.get(art.id);
-  let body = '';
-  if (art.kind === 'lab' && art.rows) {
-    body = `<table class="lab-table"><tr><th>Test</th><th>Result</th><th>Ref</th></tr>${art.rows.map((r) =>
-      `<tr class="${r.flag || ''}"><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit || '')}</td><td>${esc(r.ref || '')}</td></tr>`
-    ).join('')}</table>`;
-  } else if (art.img) {
-    body = `<img class="art-img" src="${esc(art.img)}" alt="${esc(art.title)}">`;
-  }
-
-  return `<div class="art released${fresh}">
-    <div class="art-head"><b>${esc(art.title)}</b><span class="st confirmed">released</span></div>
-    <div class="chip">${esc(art.src)} · ${esc(art.date || '')} · via ${esc(meta.via)} · ${meta.t} · SYNTHETIC</div>
-    ${body}
-  </div>`;
-}
-
-function renderEhr() {
-  const tabs = $('#tb');
-  if (!tabs) {
-    return;
-  }
-
-  tabs.innerHTML = SEC.map(([k, v]) => `<button class="${rt === k ? 'on' : ''}" type="button" onclick="openSec('${k}')">${v}</button>`).join('');
-
-  const rows = (k) => {
-    const items = enc.prov.filter((p) => p.f.ehr === k);
-    if (!items.length) {
-      return emptyEhr(k);
-    }
-
-    return items.map((p) => `<div class="fx">
-      <b>${esc(p.f.label)}</b><span class="st ${p.st}">${p.st}</span>
-      <div class="chip">by ${esc(p.who)} · recorded by ${esc(p.rec)} · ${p.t} · ${esc(p.f.src)}</div>
-    </div>`).join('');
-  };
-
-  const arts = enc.p.artifacts || [];
-  const sectionArts = (sec) => arts.filter((a) => a.sec === sec).map(artifactCard).join('');
-  const mismatch = conflictCard();
-
-  let html = '';
-  if (rt === 'ov') {
-    const unlocked = arts.filter((a) => enc.arts.has(a.id)).length;
-    html = `<div class="ehr-banner">
-        <h3>${esc(enc.p.name)}, ${enc.p.age}</h3>
-        <p class="chip">Released ${enc.disc.size} findings · ${unlocked}/${arts.length || 0} artifacts · sections ${[...enc.opened].join(', ')}</p>
-      </div>
-      ${mismatch}
-      <h3>Clinical artifacts</h3>
-      ${arts.length ? arts.map(artifactCard).join('') : '<p class="chip">No artifacts on this profile.</p>'}
-      <p class="chip">Hidden faculty keys stay hidden. Locked reports do not exist for the student until earned.</p>`;
-  } else {
-    html = ((rt === 'meds' || rt === 'notes' || rt === 'labs') ? mismatch : '') + sectionArts(rt) + rows(rt);
-    if (rt === 'notes') {
-      html += enc.notes.map((n) => `<div class="fx"><b>${esc(n.t)}</b><span class="st claim">clinician claim</span><div class="chip">${esc(n.who)} · ${n.at}</div></div>`).join('');
-    }
-    if (rt === 'meds') {
-      html += `<h3>Document the conflict</h3>
-        <textarea id="rn" rows="3" placeholder="Record why the patient story and the chart do not match"></textarea>
-        <div class="row" style="margin-top:8px"><button class="btn pri" type="button" onclick="reconcile($('#rn').value)">Save note</button></div>`;
-    }
-  }
-  $('#eh').innerHTML = html;
-}
-
-function sbar() {
-  const listed = [...enc.disc.keys()].map((i) => enc.p.facts.find((f) => f.id === i)).filter(Boolean);
-
-  return `S: Follow-up for ${enc.p.name}, ${enc.p.age}.
-B: ${listed.filter((f) => f.vis === 'ask').map((f) => f.label).join('; ') || '(none elicited)'}.
-A: ${listed.filter((f) => f.vis === 'chart').map((f) => f.label).join('; ') || '(no chart review)'}. ${enc.mmS ? 'Patient report conflicts with chart; reconcile.' : ''}
-R: `;
-}
-
-function addPlan() {
-  const input = $('#cp');
-  if (!input || !input.value.trim()) {
-    return;
-  }
-  enc.plan.push({ t: input.value, r: enc.role, at: now(), v: enc.plan.length + 1 });
-  log('careplan', input.value);
-  save();
-  render();
-}
-
-function changeRole(value) {
-  enc.role = value;
-  log('role', 'Switched role to ' + value);
-  save();
-  render();
-}
-
-function vTeam() {
-  if (!enc) {
-    return '<div class="pn"><h2>No active encounter</h2><p class="muted">Launch a patient first.</p></div>';
-  }
-
-  return `<div class="grid">
-    <div class="pn">
-      <h2>Role and SBAR handoff</h2>
-      <select id="rl" onchange="changeRole(this.value)">${ROLES.map((r) => `<option ${r === enc.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
-      <textarea id="sb" rows="9" style="margin-top:8px">${esc(sbar())}</textarea>
-      <div class="row" style="margin-top:8px"><button class="btn pri" type="button" onclick="submitHO()">Submit handoff</button></div>
-      <p>${enc.ho ? `<span class="ok">Submitted: ${enc.ho.inc}/${enc.ho.tot} documented facts included. Omitted: ${esc(enc.ho.om.join('; ') || 'none')}</span>` : ''}</p>
-      <h3>Care plan</h3>
-      <div class="row">
-        <input id="cp" placeholder="Add care plan item">
-        <button class="btn" type="button" onclick="addPlan()">Add</button>
-      </div>
-      ${enc.plan.map((c) => `<div class="fx">${esc(c.t)}<div class="chip">${esc(c.r)} · ${c.at}</div></div>`).join('')}
-    </div>
-    <div class="pn">
-      <h2>Shared team record</h2>
-      <div class="sc"><table>
-        <tr><th>Fact</th><th>Status</th><th>Said by</th><th>Role recording</th><th>Time</th><th>Encounter</th></tr>
-        ${enc.prov.map((p) => `<tr><td>${esc(p.f.label)}</td><td><span class="st ${p.st}">${p.st}</span></td><td>${esc(p.who)}</td><td>${esc(p.rec)}</td><td>${p.t}</td><td>${enc.id}</td></tr>`).join('')}
-      </table></div>
-      <p class="chip">Patient-reported items stay distinct from confirmed measurements. Contradictions remain visible until reconciled.</p>
-    </div>
-  </div>`;
-}
-
-function submitHO() {
-  const box = $('#sb');
-  if (!box) {
-    return;
-  }
-
-  const text = box.value.toLowerCase();
-  const facts = [...enc.disc.keys()].map((i) => enc.p.facts.find((f) => f.id === i)).filter(Boolean);
-  const included = facts.filter((f) => text.includes(f.k) || text.includes(f.label.toLowerCase().slice(0, 14)));
-  enc.ho = {
-    inc: included.length,
-    tot: facts.length,
-    om: facts.filter((f) => !included.includes(f)).map((f) => f.label)
-  };
-  log('handoff', `SBAR submitted by ${enc.role}`);
-  save();
-  render();
-}
-
-function vRep() {
-  if (!enc) {
-    return '<div class="pn"><h2>No active encounter</h2><p class="muted">Complete an interview first.</p></div>';
-  }
-
-  let assessedWeight = 0;
-  let earned = 0;
-  const cards = enc.p.obj.map((o) => {
-    const g = grade(o);
-    if (g.c != null) {
-      assessedWeight += o.w;
-      earned += o.w * g.c;
-    }
-    const score = g.c == null ? 'Not assessed' : Math.round(g.c * o.w) + '/' + o.w;
-    const next = (g.c != null && g.c < 1) || g.c == null ? o.tip : 'On target';
-
-    return `<div class="obj-card">
-      <h3>${esc(o.t)}</h3>
-      <div class="chip">Learning objective · weight ${o.w} · ${score}</div>
-      <p>${g.E.map(esc).join('<br>') || 'No evidence yet.'}</p>
-      <p class="muted"><b>Next attempt:</b> ${esc(next)}</p>
-    </div>`;
-  }).join('');
-
-  const pct = assessedWeight ? Math.round(earned / assessedWeight * 100) : 0;
-  const askFacts = (enc.p.facts || []).filter((f) => f.vis === 'ask');
-  const elicited = askFacts.filter((f) => enc.disc.has(f.id));
-  const missed = askFacts.filter((f) => !enc.disc.has(f.id));
-  const arts = enc.p.artifacts || [];
-  const seenArts = arts.filter((a) => enc.arts.has(a.id));
-  const missedArts = arts.filter((a) => !enc.arts.has(a.id));
-  const seq = interviewSequence();
-  const prof = professionalism();
-
-  return `<div class="pn">
-    <h2>Explainable feedback</h2>
-    <div class="score-hero">
-      <div class="score-num">${pct}%</div>
-      <div>
-        <div>on assessed faculty objectives</div>
-        <div class="chip">${assessedWeight} of 100 weight · profile v${enc.p.version} · ${enc.turns} turns logged</div>
-        <p class="muted">Every score is tied to a transcript line, an opened record, or a missing action. Nothing is invented.</p>
-      </div>
-    </div>
-    <div class="fb-grid">
-      <div class="obj-card">
-        <h3>Findings elicited</h3>
-        ${elicited.length ? elicited.map((f) => `<p>${esc(f.label)}</p>`).join('') : '<p class="muted">None yet.</p>'}
-        <h3>Artifacts reviewed</h3>
-        ${seenArts.length ? seenArts.map((a) => `<p>${esc(a.title)}</p>`).join('') : '<p class="muted">No reports opened.</p>'}
-      </div>
-      <div class="obj-card">
-        <h3>Missed opportunities</h3>
-        ${missed.length ? missed.map((f) => `<p>${esc(f.label)}</p>`).join('') : '<p class="ok">No interview findings left on the table.</p>'}
-        ${missedArts.map((a) => `<p>Did not unlock ${esc(a.title)}</p>`).join('')}
-      </div>
-    </div>
-    <div class="fb-grid">
-      <div class="obj-card">
-        <h3>Empathy and professionalism</h3>
-        <p>${prof.c == null ? 'Not assessed' : Math.round(prof.c * 100) + '%'}</p>
-        ${prof.notes.map((n) => `<p class="muted">${esc(n)}</p>`).join('')}
-      </div>
-      <div class="obj-card">
-        <h3>Interview sequence</h3>
-        <p>${seq.c == null ? 'Not assessed' : Math.round(seq.c * 100) + '%'}</p>
-        ${seq.notes.map((n) => `<p class="muted">${esc(n)}</p>`).join('')}
-      </div>
-    </div>
-    <h3>Mapped to the faculty rubric</h3>
-    ${cards}
-    <h3>Interaction log</h3>
-    <div class="sc"><table>
-      <tr><th>#</th><th>Time</th><th>Role</th><th>Type</th><th>Detail</th></tr>
-      ${enc.ev.map((e) => `<tr><td>${e.n}</td><td>${e.t}</td><td>${esc(e.role)}</td><td>${e.type}</td><td>${esc(e.text)}</td></tr>`).join('')}
-    </table></div>
-  </div>`;
-}
-
-let truth = {
-  journals: [],
-  facts: [],
-  q: '',
-  pmid: '',
-  query: '',
-  limit: 5,
-  json: '',
-  status: '',
-  busy: false,
-  counts: { journals: 0, medical_data: 0 },
-  nih: null
-};
-
-function cite(row) {
-  const bits = [row.authors, row.journal_name, row.year].filter(Boolean);
-
-  return bits.join('. ') + (row.pmid ? ' · PMID ' + row.pmid : '');
-}
-
-async function loadTruth(keepStatus) {
-  try {
-    const q = encodeURIComponent(truth.q || '');
-    const [journalsRes, factsRes, healthRes, nihRes] = await Promise.all([
-      fetch('/api/journals'),
-      fetch('/api/medical-data?q=' + q),
-      fetch('/api/health'),
-      fetch('/api/ingest/status')
-    ]);
-    if (!journalsRes.ok || !factsRes.ok) {
-      throw new Error('Ground truth API is not running. Restart with node server.js.');
-    }
-    const journals = await journalsRes.json();
-    const facts = await factsRes.json();
-    const health = healthRes.ok ? await healthRes.json() : {};
-    truth.journals = journals.journals || [];
-    truth.facts = facts.medical_data || [];
-    const nih = nihRes.ok ? await nihRes.json() : {};
-    truth.counts = {
-      journals: health.journals || truth.journals.length,
-      medical_data: health.medical_data || truth.facts.length
-    };
-    truth.nih = nih;
-    if (!keepStatus) {
-      truth.status = '';
-    }
-  } catch (err) {
-    truth.status = err.message || String(err);
-  }
-  truth.busy = false;
-  if (tab === 'truth') {
-    render();
-  }
-}
-
-async function ingestTruth(kind) {
-  if (truth.busy) {
-    return;
-  }
-
-  const body = {};
-  try {
-    if (kind === 'seed') {
-      body.seed = true;
-    } else if (kind === 'pmid') {
-      if (!truth.pmid.trim()) {
-        throw new Error('Enter a PubMed ID.');
-      }
-      body.pmid = truth.pmid.trim();
-    } else if (kind === 'query') {
-      if (!truth.query.trim()) {
-        throw new Error('Enter a PubMed search.');
-      }
-      body.query = truth.query.trim();
-      body.limit = Number(truth.limit) || 5;
-    } else if (kind === 'json') {
-      body.publication = JSON.parse(truth.json);
-    } else {
-      throw new Error('Unknown ingest type.');
-    }
-  } catch (err) {
-    truth.status = err.message || String(err);
-    render();
-
-    return;
-  }
-
-  truth.busy = true;
-  truth.status = 'Ingesting grounded publications…';
-  render();
-  try {
-    const res = await fetch('/api/ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || 'Ingest failed');
-    }
-    const added = (data.results || []).reduce((sum, row) => sum + (row.facts_added || 0), 0);
-    truth.status = 'Ingested ' + (data.results || []).length + ' publication(s) and added ' + added + ' grounded fact(s). Ungrounded claims were rejected.';
-    await loadTruth(true);
-  } catch (err) {
-    truth.busy = false;
-    truth.status = err.message || String(err);
-    render();
-  }
-}
-
-function vTruth() {
-  const journalRows = truth.journals.map((j) => `<tr>
-    <td>${esc(j.year || '')}</td>
-    <td>${esc(j.title)}</td>
-    <td>${esc(j.authors || '')}</td>
-    <td>${j.pmid ? `<a href="${esc(j.url || ('https://pubmed.ncbi.nlm.nih.gov/' + j.pmid + '/'))}" target="_blank" rel="noreferrer">${esc(j.pmid)}</a>` : ''}</td>
-    <td>${j.fact_count || 0}</td>
-  </tr>`).join('') || '<tr><td colspan="5">No journals yet. Load the seed set or ingest a PubMed record.</td></tr>';
-
-  const factRows = truth.facts.map((f) => `<tr>
-    <td>${esc(f.claim)}</td>
-    <td class="quote">${esc(f.quote)}</td>
-    <td>${esc(f.topic || '')}</td>
-    <td>${esc(cite(f))}</td>
-  </tr>`).join('') || '<tr><td colspan="4">No grounded medical_data rows match this search.</td></tr>';
-
-  return `<div class="pn studio">
-    <div class="studio-head">
-      <div>
-        <h2>Ground Truth</h2>
-        <p class="muted">The ingest agent writes only claims that quote their source. The model does not invent medical facts.</p>
-      </div>
-      <div class="row">
-        <button class="btn pri" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('seed')">Load seed publications</button>
-      </div>
-    </div>
-    <div class="truth-meta">
-      <span class="chip mode">${truth.counts.journals} journals</span>
-      <span class="chip mode">${truth.counts.medical_data} medical_data rows</span>
-      ${(truth.nih && truth.nih.workers || []).map((w) => {
-        const c = w.checkpoint;
-        if (!c) {
-          return `<span class="chip mode">shard ${w.shard} idle · ${esc(w.file)}</span>`;
-        }
-
-        return `<span class="chip mode">shard ${w.shard} ${esc(c.status || '')} · ${esc(c.current_illness || 'idle')} · ${esc(String((c.done || []).length))} done</span>`;
-      }).join('') || '<span class="chip mode">NIH catalog ready · run npm run ingest:nih</span>'}
-    </div>
-    ${truth.status ? `<p class="${/fail|error|not running|Enter |Invalid|Unknown/i.test(truth.status) ? 'err' : 'ok'}">${esc(truth.status)}</p>` : ''}
-    <div class="fields truth-actions">
-      <div><label>PubMed ID</label>
-        <div class="row">
-          <input value="${esc(truth.pmid)}" placeholder="11942998" oninput="truth.pmid=this.value">
-          <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('pmid')">Ingest PMID</button>
-        </div>
-      </div>
-      <div><label>PubMed search</label>
-        <div class="row">
-          <input value="${esc(truth.query)}" placeholder="metformin adherence type 2 diabetes" oninput="truth.query=this.value">
-          <input type="number" min="1" max="20" value="${esc(truth.limit)}" style="max-width:90px" oninput="truth.limit=this.value" title="Limit">
-          <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('query')">Ingest search</button>
-        </div>
-      </div>
-    </div>
-    <div class="stack"><label>Paste a publication JSON object</label>
-      <textarea rows="4" placeholder='{"title":"...","abstract":"...","facts":[{"claim":"...","quote":"..."}]}' oninput="truth.json=this.value">${esc(truth.json)}</textarea>
-      <div class="row" style="margin-top:8px">
-        <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('json')">Ingest JSON</button>
-      </div>
-    </div>
-    <div class="row" style="margin:16px 0 8px">
-      <input value="${esc(truth.q)}" placeholder="Search grounded facts" oninput="truth.q=this.value" onkeydown="if(event.key==='Enter')loadTruth()">
-      <button class="btn" type="button" onclick="loadTruth()">Search</button>
-    </div>
-    <h3>journals</h3>
-    <div class="sc"><table>
-      <tr><th>Year</th><th>Title</th><th>Authors</th><th>PMID</th><th>Facts</th></tr>
-      ${journalRows}
-    </table></div>
-    <h3>medical_data</h3>
-    <div class="sc"><table>
-      <tr><th>Claim</th><th>Source quote</th><th>Topic</th><th>Citation</th></tr>
-      ${factRows}
-    </table></div>
-  </div>`;
-}
-
-function render(keep) {
-  const nav = $('#nav');
-  if (nav) {
-    nav.innerHTML = [
-      ['studio', 'Patient Studio'],
-      ['enc', 'Encounter'],
-      ['team', 'Team'],
-      ['rep', 'Assessment'],
-      ['truth', 'Ground Truth']
-    ].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" type="button" onclick="goTab('${k}')">${v}</button>`).join('');
-  }
-
-  const themeBtn = $('#themeBtn');
-  if (themeBtn) {
-    themeBtn.textContent = themeLabel();
-  }
-
-  const mode = $('#mode');
-  if (mode) {
-    mode.textContent = tab === 'enc' ? 'Reviewed reply · approved facts only' : 'Local demo · no API keys';
-  }
-
-  if (keep && tab === 'enc') {
-    renderTr();
-    renderEhr();
-
-    return;
-  }
-
-  const views = { studio: vStudio, enc: vEnc, team: vTeam, rep: vRep, truth: vTruth };
-  $('#app').innerHTML = (views[tab] || vStudio)();
-  if (tab === 'enc' && enc) {
-    renderTr();
-    renderEhr();
-    if (window.__busy) {
-      av('speaking', 'neutral');
-    } else if (window.__convo !== false) {
-      startListen();
-    } else {
-      av('listening', 'neutral');
-    }
-  }
-}
-
-function findReleased(id) {
-  const hit = [...rel].reverse().find((item) => item.p && item.p.id === id);
-
-  return (hit && hit.p) || SEED.find((p) => p.id === id) || null;
-}
-
-function closeTheater() {
-  const root = document.getElementById('theater');
-  if (!root) {
-    return;
-  }
-  const vid = root.querySelector('video');
-  if (vid) {
-    vid.pause();
-  }
-  window.speechSynthesis && speechSynthesis.cancel();
-  root.hidden = true;
-  root.innerHTML = '';
-  document.removeEventListener('keydown', theaterKey);
-}
-
-function theaterKey(event) {
-  if (event.key === 'Escape') {
-    closeTheater();
-  }
-}
-
-function openTheater(id) {
-  const p = findReleased(id);
-  const root = document.getElementById('theater');
-  if (!p || !root) {
-    return;
-  }
-  const pics = photoSet(p);
-  closeTheater();
-  root.hidden = false;
-  root.innerHTML = `<div class="theater-backdrop" onclick="closeTheater()"></div>
-    <div class="theater-card" role="dialog" aria-modal="true" aria-label="Sample conversation with ${esc(p.name)}">
-      <div class="theater-head">
-        <div>
-          <div class="panel-kicker">Sample teaching conversation</div>
-          <h2>${esc(p.name)}, ${esc(p.age)}</h2>
-          <p class="muted">${esc(p.diagnosis || '')}. Synthetic case. The first ask gets the careful answer. Warmth, then the same question, opens the rest.</p>
-        </div>
-        <button class="btn" type="button" onclick="closeTheater()">Close</button>
-      </div>
-      <video src="${esc(p.video || ('video/' + p.id + '.mp4'))}" poster="${esc(pics.still)}" controls playsinline autoplay></video>
-    </div>`;
-  const vid = root.querySelector('video');
-  if (vid) {
-    const fallback = () => playScript(p);
-    vid.addEventListener('error', fallback);
-    if (vid.error) {
-      fallback();
-    }
-  }
-  document.addEventListener('keydown', theaterKey);
-}
-
-function playScript(p) {
-  const root = document.getElementById('theater');
-  const pics = photoSet(p);
-  const lines = p.preview || [];
-  if (!root || !lines.length) {
-    return;
-  }
-  let index = 0;
-  const draw = () => {
-    const shown = lines.slice(0, index + 1).slice(-4);
-    root.innerHTML = `<div class="theater-backdrop" onclick="closeTheater()"></div>
-      <div class="theater-card" role="dialog" aria-modal="true" aria-label="Sample conversation with ${esc(p.name)}">
-        <div class="theater-head">
-          <div>
-            <div class="panel-kicker">Sample teaching conversation</div>
-            <h2>${esc(p.name)}, ${esc(p.age)}</h2>
-          </div>
-          <button class="btn" type="button" onclick="closeTheater()">Close</button>
-        </div>
-        <div class="theater-stage">
-          <img src="${esc(pics.still)}" alt="" style="object-position:${esc(pics.pos)}">
-          <div class="theater-lines">
-            ${shown.map((line, i) => `<p class="tl ${line.w === 'Student' ? 'you' : line.w === 'Chart' ? 'chart' : 'pt'}${i === shown.length - 1 ? ' on' : ''}"><b>${esc(line.w)}</b> ${esc(line.t)}</p>`).join('')}
-          </div>
-        </div>
-      </div>`;
-  };
-  const step = () => {
-    if (root.hidden || index >= lines.length) {
+    if (!current()) return;
+    if (fatalError) {
+      recognition = null;
       return;
     }
-    draw();
-    const line = lines[index];
-    index += 1;
-    const wait = line.w === 'Chart' ? 2400 : Math.min(7000, 1200 + line.t.length * 45);
-    if (line.w !== 'Chart' && 'speechSynthesis' in window && !window.__mute) {
-      const utter = new SpeechSynthesisUtterance(line.t);
-      utter.onend = () => setTimeout(step, 350);
-      utter.onerror = () => setTimeout(step, wait);
-      speechSynthesis.cancel();
-      speechSynthesis.speak(utter);
-    } else {
-      setTimeout(step, wait);
+    if (rec.sendOnEnd) {
+      recognition = null;
+      updateMicButton();
+      const text = formMemory.question.trim();
+      if (text) question(text);
+      else
+        voiceState(
+          "ready",
+          "No speech captured. Tap to talk again or type your question.",
+        );
+      return;
     }
+    if (listening && restarts++ < 3) {
+      prefix = formMemory.question.trim();
+      micRestartTimer = setTimeout(() => {
+        if (!current() || !listening) return;
+        try {
+          rec.start();
+        } catch (e) {
+          fail(e.name || "start failed");
+          recognition = null;
+        }
+      }, 250);
+      return;
+    }
+    listening = false;
+    recognition = null;
+    updateMicButton();
+    voiceState(
+      "ready",
+      "Microphone paused after silence. Your text is kept; tap again or Send.",
+    );
   };
-  step();
+  updateMicButton();
+  voiceState("listening", "Starting microphone…");
+  try {
+    rec.start();
+  } catch (e) {
+    fail(e.name || "start failed");
+    recognition = null;
+  }
 }
-
-applyTheme();
-bootStorage();
-render();
-const watchId = new URLSearchParams(location.search).get('watch');
-if (watchId) {
-  openTheater(watchId);
+async function upload(file) {
+  if (file.size > 5 * 1024 * 1024) throw new Error("Upload files up to 5 MB.");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  const type =
+    file.type ||
+    (/\.pdf$/i.test(file.name)
+      ? "application/pdf"
+      : /\.png$/i.test(file.name)
+        ? "image/png"
+        : /\.jpe?g$/i.test(file.name)
+          ? "image/jpeg"
+          : "text/plain");
+  return (
+    await api("/api/files", "POST", {
+      name: file.name,
+      type,
+      data: btoa(binary),
+    })
+  ).file;
 }
-if (tab === 'truth') {
-  loadTruth();
+async function addPatientFiles(files) {
+  if (!patientDialog || busy || !files.length) return;
+  busy = true;
+  patientDialog.notice = "Uploading and extracting document text…";
+  render();
+  try {
+    // Validate the batch before uploading; browse and drop use the same path.
+    for (const file of files) {
+      if (!/\.(pdf|txt|png|jpe?g)$/i.test(file.name))
+        throw new Error("Choose PDF, TXT, PNG or JPG files.");
+      if (file.size > 5 * 1024 * 1024)
+        throw new Error(`${file.name}: upload files up to 5 MB.`);
+    }
+    for (const file of files)
+      patientDialog.files.push({
+        ...(await upload(file)),
+        role: "case",
+        section: "notes",
+      });
+    patientDialog.notice =
+      "Choose each document’s purpose, then Extract & fill form.";
+  } catch (error) {
+    patientDialog.notice = error.message;
+  } finally {
+    // A partially uploaded batch remains attached if a later file fails.
+    syncDialogAttachments();
+    profile.reviewAcknowledged = false;
+    dirty = true;
+    busy = false;
+    render();
+  }
 }
+for (const type of ["dragenter", "dragover", "dragleave", "drop"])
+  document.addEventListener(
+    type,
+    (e) => {
+      if (!patientDialog) return;
+      // Prevent file drops elsewhere in the form from navigating away.
+      if (type === "dragover" || type === "drop") e.preventDefault();
+      const zone = $("#patient-drop-zone");
+      if (!zone) return;
+      // Accept files throughout the document section, including its heading,
+      // nested button contents and previously uploaded cards.
+      const area = $("#patient-upload-area");
+      const inside = area?.contains(e.target);
+      if (type === "dragenter" || type === "dragover") {
+        zone.classList.toggle("drag-active", inside && !busy);
+        if (e.dataTransfer)
+          e.dataTransfer.dropEffect = inside && !busy ? "copy" : "none";
+      }
+      if (type === "dragleave" && !area?.contains(e.relatedTarget))
+        zone.classList.remove("drag-active");
+      if (type === "drop") {
+        zone.classList.remove("drag-active");
+        if (!inside || busy) return;
+        let files = Array.from(e.dataTransfer?.files || []);
+        if (!files.length)
+          files = Array.from(e.dataTransfer?.items || [])
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter(Boolean);
+        if (files.length) addPatientFiles(files);
+        else {
+          patientDialog.notice =
+            "Drag files from File Explorer, or click the upload area to browse.";
+          render();
+        }
+      }
+    },
+    true,
+  );
+document.addEventListener("input", (e) => {
+  const t = e.target;
+  if (t.id === "patient-description") {
+    patientDialog.description = t.value;
+    dirty = true;
+    return;
+  }
+  if (t.dataset.memory) {
+    formMemory[t.dataset.memory] = t.value;
+    return;
+  }
+  if (t.dataset.path) {
+    const keys = t.dataset.path.split(".");
+    let obj = profile;
+    for (const key of keys.slice(0, -1)) obj = obj[key];
+    let v =
+      t.type === "checkbox"
+        ? t.checked
+        : t.type === "number"
+          ? t.value === ""
+            ? null
+            : Number(t.value)
+          : t.value;
+    if (t.dataset.list)
+      v = t.value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    if (t.dataset.rows)
+      v = t.value
+        .split("\n")
+        .filter((s) => s.trim())
+        .map((line) => {
+          const [name, value, unit, ref] = line.split("|").map((s) => s.trim());
+          return { name, value, unit, ref };
+        });
+    if (t.dataset.path === "rubricApplicable") v = v.map(Number);
+    if (keys.at(-1) === "lab") v = v === "true";
+    obj[keys.at(-1)] = v;
+    if (t.dataset.path === "reviewAcknowledged") {
+      for (const records of [profile.facts, profile.sources, profile.artifacts])
+        records.forEach((r) => (r.reviewed = v));
+    }
+    if (t.dataset.path !== "reviewAcknowledged") {
+      profile.reviewAcknowledged = false;
+      if (
+        ["facts", "sources", "artifacts"].includes(keys[0]) &&
+        keys.at(-1) !== "reviewed"
+      ) {
+        obj.reviewed = false;
+        const reviewControl = $(
+          "#field-" + keys.slice(0, 2).join("-") + "-reviewed",
+        );
+        if (reviewControl) reviewControl.checked = false;
+      }
+      const acknowledgment = $("#field-reviewAcknowledged");
+      if (acknowledgment) acknowledgment.checked = false;
+    }
+    dirty = true;
+  }
+  if ($("#save-status"))
+    $("#save-status").textContent =
+      "Unsaved changes · Save draft before leaving the editor.";
+});
+document.addEventListener("submit", (e) => {
+  if (e.target.id === "patient-form") {
+    e.preventDefault();
+    if (!busy) submitPatient(true);
+  }
+  if (e.target.id === "question-form") {
+    e.preventDefault();
+    question($("#question").value);
+  }
+});
+document.addEventListener("change", async (e) => {
+  try {
+    if (e.target.dataset.uploadIndex !== undefined) {
+      patientDialog.files[Number(e.target.dataset.uploadIndex)][
+        e.target.dataset.uploadKey
+      ] = e.target.value;
+      syncDialogAttachments();
+      profile.reviewAcknowledged = false;
+      dirty = true;
+      render();
+    }
+    if (e.target.id === "patient-upload") {
+      await addPatientFiles(Array.from(e.target.files || []));
+    }
+    if (e.target.id === "csv-import") {
+      const r = await api("/api/import", "POST", {
+        csv: await e.target.files[0].text(),
+      });
+      message = `Imported ${r.added.length} drafts; skipped ${r.skipped.length} existing IDs.`;
+      await refresh();
+      render();
+    }
+    if (e.target.id === "team-role") {
+      await mutate("role", { role: e.target.value });
+      render();
+    }
+  } catch (err) {
+    busy = false;
+    if (patientDialog) patientDialog.notice = err.message;
+    else message = err.message;
+    render();
+  }
+});
+document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-action]");
+  if (!t || busy) return;
+  const a = t.dataset.action;
+  try {
+    if (a === "browse-patient") {
+      $("#patient-upload")?.click();
+      return; // Keep the input mounted while the system file picker is open.
+    }
+    message = "";
+    if (a === "rep-view") repView = t.dataset.view;
+    if (a === "nav") {
+      if (tab === "studio" && dirty) await save();
+      stopAudio();
+      tab = t.dataset.tab;
+      if (tab === "history") await refresh();
+    }
+    if (a === "pick") {
+      if (dirty) await save();
+      await pick(t.dataset.id);
+      tab = "studio";
+      openPatientDialog("edit");
+    }
+    if (a === "new") {
+      if (dirty) await save();
+      tab = "studio";
+      openPatientDialog("new");
+    }
+    if (a === "close-patient") {
+      closePatientDialog();
+      render();
+      $('[data-action="new"]')?.focus();
+      return;
+    }
+    if (a === "dismiss-publication-error") {
+      dismissPublicationError();
+      return;
+    }
+    if (a === "file-purpose") {
+      patientDialog.files[Number(t.dataset.index)].role = t.dataset.role;
+      syncDialogAttachments();
+      profile.reviewAcknowledged = false;
+      dirty = true;
+    }
+    if (a === "parse-patient") {
+      await parsePatient();
+      return;
+    }
+    if (a === "save-patient" || a === "submit-patient") {
+      await submitPatient(a === "submit-patient");
+      return;
+    }
+    if (a === "remove-upload") {
+      const [file] = patientDialog.files.splice(Number(t.dataset.index), 1);
+      const sources = profile.sources
+        .filter((s) => s.fileId === file.id)
+        .map((s) => s.id);
+      profile.sources = profile.sources.filter((s) => s.fileId !== file.id);
+      profile.artifacts = profile.artifacts.filter((a) => a.fileId !== file.id);
+      profile.facts = profile.facts.filter((f) => !sources.includes(f.src));
+      patientDialog.notice =
+        "File removed from extraction. Extract again to rebuild the form without it.";
+    }
+    if (a === "prepare") {
+      await save();
+      await api("/api/profiles/" + profile.id + "/prepare", "POST", {});
+      await pick(profile.id);
+      message =
+        "Organizer facts organized into reviewable suggestions. Missing details remain unspecified.";
+    }
+    if (a === "retry") {
+      stopAudio();
+      const r = await api("/api/encounters", "POST", {
+        profileId: enc.profileId,
+        version: enc.version,
+      });
+      enc = r.encounter;
+      localStorage.setItem("virtusp-active-v2", enc.id);
+      section = "ov";
+      tab = "enc";
+      await refresh();
+      render();
+      speak(enc.transcript.at(-1));
+      return;
+    }
+    if (a === "launch") {
+      if (dirty) await save();
+      stopAudio();
+      formMemory.question = "";
+      const r = await api("/api/encounters", "POST", {
+        profileId: t.dataset.id,
+        version: Number(t.dataset.version),
+      });
+      enc = r.encounter;
+      localStorage.setItem("virtusp-active-v2", enc.id);
+      section = "ov";
+      tab = "enc";
+      render();
+      speak(enc.transcript.at(-1));
+      return;
+    }
+    if (a === "resume") {
+      stopAudio();
+      formMemory.question = "";
+      enc = (await api("/api/encounters/" + t.dataset.id)).encounter;
+      localStorage.setItem("virtusp-active-v2", enc.id);
+      tab = enc.status === "complete" ? "rep" : "enc";
+      repView = "summary";
+    }
+    if (a === "section") {
+      if (enc.status === "active")
+        await mutate("open", { section: t.dataset.section });
+      section = t.dataset.section;
+    }
+    if (a === "expand-doc") expandedDocId = t.dataset.id;
+    if (a === "close-doc") expandedDocId = "";
+    if (a === "review") await mutate("review", { artifactId: t.dataset.id });
+    if (a === "review-section")
+      await mutate("review", { section: t.dataset.section });
+    if (a === "note") {
+      await mutate("note", { text: formMemory.note });
+      formMemory.note = "";
+    }
+    if (a === "handoff") await mutate("handoff", { text: formMemory.handoff });
+    if (a === "plan") {
+      await mutate("plan", { text: formMemory.careplan });
+      formMemory.careplan = "";
+    }
+    if (a === "complete") {
+      stopAudio();
+      busy = true;
+      message =
+        "Completing the encounter and preparing evidence-linked feedback…";
+      render();
+      await mutate("complete", {});
+      repView = "summary";
+      await refresh();
+      busy = false;
+      tab = "rep";
+      message = "Encounter saved.";
+    }
+    if (a === "mic") {
+      mic();
+      return;
+    }
+    if (a === "mute") {
+      muted = !muted;
+      stopAudio();
+    }
+    if (a === "pause") stopAudio();
+    if (a === "add-fact")
+      profile.facts.push({
+        id: "fact-" + crypto.randomUUID(),
+        label: "",
+        say: "",
+        topic: "",
+        kw: [],
+        type: "reported",
+        vis: "ask",
+        ehr: "hx",
+        gate: 0,
+        src: "Faculty authored",
+        origin: "faculty",
+        reviewed: false,
+      });
+    if (a === "add-source")
+      profile.sources.push({
+        id: "source-" + crypto.randomUUID(),
+        title: "",
+        excerpt: "",
+        reviewed: false,
+      });
+    if (a === "references") {
+      const r = await api("/api/references");
+      for (const source of r.sources)
+        if (!profile.sources.some((s) => s.id === source.id))
+          profile.sources.push(source);
+      message =
+        "Selected teaching summaries added for review. They do not add patient-specific facts.";
+    }
+    if (a === "add-artifact")
+      profile.artifacts.push({
+        id: "report-" + crypto.randomUUID(),
+        title: "",
+        kind: "lab",
+        src: "",
+        date: "",
+        sec: "labs",
+        release: "section",
+        unlock: [],
+        facts: [],
+        rows: [],
+        reviewed: false,
+      });
+    if (a === "add-objective")
+      profile.obj.push({
+        id: "objective-" + crypto.randomUUID(),
+        t: "",
+        ty: "fact",
+        w: 0,
+        f: [],
+        s: [],
+        tip: "",
+      });
+    if (a === "add-mm") profile.mm = { a: "", b: "", fu: "", kw: [] };
+    if (a === "remove-mm") delete profile.mm;
+    for (const [action, key] of [
+      ["remove-fact", "facts"],
+      ["remove-source", "sources"],
+      ["remove-artifact", "artifacts"],
+      ["remove-objective", "obj"],
+    ])
+      if (a === action) profile[key].splice(Number(t.dataset.index), 1);
+    if (/^(add-|remove-)/.test(a) || a === "references") {
+      dirty = true;
+      profile.reviewAcknowledged = false;
+    }
+    render();
+  } catch (err) {
+    busy = false;
+    if (patientDialog) patientDialog.notice = err.message;
+    else message = err.message;
+    render();
+  }
+});
+function toggleTheme() {
+  const theme =
+    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem("virtusp-theme", theme);
+}
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".turn-link");
+  if (!link || !enc?.assessment) return;
+  e.preventDefault();
+  repView = "interview";
+  render();
+  const turn = document.querySelector(link.getAttribute("href"));
+  if (!turn) return;
+  turn.classList.add("flash");
+  turn.scrollIntoView?.({ block: "center" });
+});
+window.addEventListener("beforeunload", (e) => {
+  stopAudio();
+  if (dirty) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+async function boot() {
+  try {
+    document.documentElement.dataset.theme =
+      localStorage.getItem("virtusp-theme") || "light";
+    await refresh();
+    const selected = list.find((p) => p.name === "Omar Sinclair") || list[0];
+    if (selected) await pick(selected.id);
+    const id = localStorage.getItem("virtusp-active-v2");
+    if (id)
+      try {
+        enc = (await api("/api/encounters/" + id)).encounter;
+      } catch {
+        localStorage.removeItem("virtusp-active-v2");
+      }
+    render();
+  } catch (e) {
+    $("#app").innerHTML =
+      `<div class="pn"><h1>Server unavailable</h1><p>${esc(e.message)}</p><p>Start this app with npm start; static-only hosting cannot run encounters.</p><button class="btn" onclick="location.reload()">Retry</button></div>`;
+  }
+}
+boot();

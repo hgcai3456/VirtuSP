@@ -1,0 +1,57 @@
+[
+  {
+    "id": "dev-1",
+    "review": "Engineering-reviewed synthetic behavior example, not a clinical reference",
+    "facts": [{ "id": "f1", "say": "I have been tired lately." }],
+    "question": "What has been bothering you?",
+    "response": { "text": "I've been feeling tired lately.", "factIds": ["f1"] }
+  },
+  {
+    "id": "dev-2",
+    "review": "Engineering-reviewed synthetic behavior example",
+    "facts": [],
+    "question": "Are you allergic to penicillin?",
+    "response": { "text": "I'm not sure about that.", "factIds": [] }
+  },
+  {
+    "id": "dev-3",
+    "review": "Engineering-reviewed synthetic behavior example",
+    "facts": [{ "id": "f1", "say": "I worry about taking medicine." }],
+    "question": "What concerns you about the pills?",
+    "response": { "text": "Taking medicine worries me.", "factIds": ["f1"] }
+  },
+  {
+    "id": "dev-4",
+    "review": "Engineering-reviewed synthetic behavior example",
+    "facts": [],
+    "deflection": "I'd rather not discuss that yet.",
+    "question": "Tell me about your drinking.",
+    "response": { "text": "I'd rather not discuss that yet.", "factIds": [] }
+  },
+  {
+    "id": "dev-5",
+    "review": "Engineering-reviewed synthetic behavior example",
+    "facts": [
+      {
+        "id": "f1",
+        "say": "My doctor mentioned blood tests, but I don't remember the numbers."
+      }
+    ],
+    "question": "What was your LDL?",
+    "response": {
+      "text": "I don't remember the number from those tests.",
+      "factIds": ["f1"]
+    }
+  },
+  {
+    "id": "dev-6",
+    "review": "Engineering-reviewed synthetic behavior example",
+    "facts": [{ "id": "f1", "say": "I live alone." }],
+    "history": [
+      { "role": "student", "text": "Who lives with you?" },
+      { "role": "patient", "text": "I live alone." }
+    ],
+    "question": "So nobody else is at home?",
+    "response": { "text": "That's right, I live on my own.", "factIds": ["f1"] }
+  }
+]

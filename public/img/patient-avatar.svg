@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" role="img" aria-label="Generic patient avatar">
+  <defs><linearGradient id="background" x2="1" y2="1"><stop stop-color="#dceceb"/><stop offset="1" stop-color="#b7d6d3"/></linearGradient></defs>
+  <rect width="640" height="480" fill="url(#background)"/>
+  <circle cx="320" cy="170" r="76" fill="#608c8c"/>
+  <path d="M172 418v-30c0-78 65-141 148-141s148 63 148 141v30" fill="#608c8c"/>
+  <circle cx="320" cy="170" r="93" fill="none" stroke="#f6fbfa" stroke-width="2" opacity=".55"/>
+</svg>

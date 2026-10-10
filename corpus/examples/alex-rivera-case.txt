@@ -1,0 +1,19 @@
+SYNTHETIC EDUCATIONAL CASE - authored example, not organizer-provided material
+
+Name: Alex Rivera
+Age: 42
+Reason for visit, patient wording: I want to discuss feeling tired.
+Patient-known history: I have felt tired for two weeks.
+Personality: Reserved; answers politely.
+Communication style: Short everyday sentences.
+Medications: Not specified. Keep unknown.
+Allergies: Not specified. Keep unknown; do not say "no allergies."
+
+Faculty learning objectives:
+- Elicit the patient's main concern.
+- Ask about symptom duration.
+
+Disclosure: Patient-known history may be discussed when asked. Any separately
+attached clinical report should follow its faculty-authored chart release rules.
+
+Upload purpose: Faculty case brief.
