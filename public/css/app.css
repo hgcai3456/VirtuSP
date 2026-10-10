@@ -1160,6 +1160,126 @@ main {
 .av-frame.listening {
   box-shadow: 0 0 0 3px var(--ac);
 }
+.av-frame .av-still {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.av-frame .patient-video,
+.av-frame .av-talk {
+  z-index: 0;
+}
+.av-jaw {
+  position: absolute;
+  left: 38%;
+  width: 24%;
+  top: calc(var(--mouth-top, 0.66) * 100%);
+  height: calc(var(--mouth-h, 0.2) * 55%);
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(40, 18, 18, 0.55),
+    rgba(20, 8, 8, 0.15) 70%,
+    transparent 75%
+  );
+  transform-origin: center top;
+  transform: scaleY(calc(0.12 + var(--mouth, 0) * 0.95));
+  opacity: calc(var(--mouth, 0) * 0.9);
+  pointer-events: none;
+  z-index: 1;
+}
+.av-frame.has-video .av-jaw {
+  opacity: 0;
+}
+.av-blink {
+  position: absolute;
+  left: 22%;
+  width: 56%;
+  top: 32%;
+  height: 8%;
+  background: rgba(20, 28, 32, 0.55);
+  border-radius: 40%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.av-frame:not(.paused):not(.has-video) .av-blink {
+  animation: av-blink 5.2s ease-in-out infinite;
+}
+@keyframes av-blink {
+  0%,
+  92%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0.2);
+  }
+  94%,
+  96% {
+    opacity: 0.85;
+    transform: scaleY(1);
+  }
+}
+.av-frame.speaking {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 60%, transparent);
+}
+.av-frame:not(.paused) .av-still {
+  animation: av-breathe 5.5s ease-in-out infinite;
+}
+.av-frame.speaking:not(.has-video) .av-still {
+  animation: av-talk 0.28s ease-in-out infinite alternate;
+}
+@keyframes av-breathe {
+  50% {
+    transform: scale(1.012) translateY(-0.4%);
+  }
+}
+@keyframes av-talk {
+  from {
+    transform: scale(1.01) rotate(-0.3deg) translateY(0);
+  }
+  to {
+    transform: scale(1.025) rotate(0.35deg) translateY(-0.6%);
+  }
+}
+.av-pause {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 39, 42, 0.55);
+  color: #fff;
+  font-weight: 600;
+}
+.av-frame.paused .av-pause {
+  display: flex;
+}
+.av-frame[role="button"] {
+  cursor: pointer;
+}
+.mic-btn.paused {
+  border-color: var(--mu);
+  background: color-mix(in srgb, var(--mu) 12%, var(--soft));
+}
+.mic-btn.paused .mic-glyph {
+  background: var(--mu);
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-frame .av-jaw,
+  .av-frame .av-blink,
+  .av-frame.speaking,
+  .av-frame:not(.paused) .av-still {
+    animation: none;
+    transition: none;
+    transform: none;
+    opacity: 0;
+  }
+}
 .voice-bars {
   position: absolute;
   top: 10px;
@@ -1216,21 +1336,25 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  width: min(100%, 320px);
+  width: min(100%, 280px);
   border: 2px solid color-mix(in srgb, var(--ac) 55%, var(--bd));
-  border-radius: 16px;
-  padding: 14px 18px;
+  border-radius: 999px;
+  padding: 10px 18px 10px 10px;
   background: color-mix(in srgb, var(--ac) 12%, var(--soft));
   color: var(--tx);
   text-align: left;
   box-shadow: 0 8px 24px rgba(16, 39, 42, 0.08);
+  cursor: pointer;
 }
 .mic-btn .mic-glyph {
   flex: 0 0 auto;
-  padding: 10px;
+  width: 44px;
+  height: 44px;
+  padding: 11px;
   border-radius: 50%;
   background: var(--ac);
   color: #fff;
+  box-sizing: border-box;
 }
 .mic-copy {
   display: flex;
