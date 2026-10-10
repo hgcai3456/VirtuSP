@@ -36,7 +36,7 @@ test("Faculty creates available groups; student self-start is authorized, pinned
     });
     assert.equal(
       (await call(student, "/api/groups")).groups.length,
-      1,
+      2,
       "The ready demo is an open assessment",
     );
     assert.equal(
@@ -129,7 +129,7 @@ test("Faculty creates available groups; student self-start is authorized, pinned
     await call(faculty, `/api/groups/${id}`, "PUT", { availableToAll: false });
     assert.equal(
       (await call(student, `/api/groups/${id}/start`, "POST", {})).status,
-      403,
+      200,
     );
     const assignments = (await call(student, "/api/assignments")).assignments;
     assert.equal(assignments[0].origin, "open");

@@ -509,6 +509,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         .querySelector('[data-action="section"][data-section="labs"]')
         ?.classList.contains("on"),
     );
+    assert.equal(doc.querySelector('[data-action="review"]'), null);
+    assert.equal(doc.querySelector('[data-action="review-section"]'), null);
     click("complete");
     // Feedback opens on a short summary; the rubric is one of its views.
     await wait(() => !!doc.querySelector(".rep-tabs"));

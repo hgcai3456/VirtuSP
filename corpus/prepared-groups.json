@@ -4,13 +4,40 @@
       "id": "omar-dyslipidemia-comparison",
       "title": "Practice patients",
       "purpose": "Practice interviews with published landing-page patients.",
-      "profileIds": ["nisha", "yvette"],
+      "profileIds": [
+        "nisha",
+        "yvette"
+      ],
       "kind": "practice",
       "differences": "",
       "provenance": "Published roster cases from the landing page. Alex Morgan is retired.",
       "limitations": "These are synthetic teaching cases, not clinical validation.",
       "sourceNote": "Team-prepared synthetic roster cases. Denise Carter, Marcus Lee and Alex Morgan are retired from this demo.",
       "seedRevision": 3,
+      "availableToAll": true
+    },
+    {
+      "id": "dyslipidemia-diverse-backgrounds",
+      "title": "Cholesterol care: four different lives",
+      "purpose": "Explore medication concerns and shared decisions with four patients who have similar cholesterol findings and different life circumstances.",
+      "kind": "comparison",
+      "comparisonDesign": "varied-backgrounds",
+      "variedFactIds": [
+        "work",
+        "education",
+        "background"
+      ],
+      "profileIds": [
+        "lipids-jordan-demo",
+        "lipids-daniel-demo",
+        "lipids-meera-demo",
+        "lipids-roberto-demo"
+      ],
+      "differences": "Ages 34–67; different self-described ethnicities, genders, education, work schedules, caregiving responsibilities and financial circumstances. Clinical findings, medication concerns, personality, communication style, disclosure gates and learning objectives are shared.",
+      "provenance": "Team-authored synthetic adaptations of supplied Omar Sinclair clinical material. Original source material is retained in each case.",
+      "limitations": "Exploratory comparison, not a controlled single-variable experiment. Four trials do not establish bias. Age and practical circumstances may appropriately change care; education must not be treated as a proxy for understanding. Order, repeated-case learning, model behavior and shared voice/portrait presentation are possible confounds. Faculty should assess each trial and review evidence before interpreting differences.",
+      "sourceNote": "Prepared before the demo. Source measurements retain their missing units and dates; no medications, allergies or imaging were invented. Independent clinical and bias calibration remains necessary.",
+      "seedRevision": 1,
       "availableToAll": true
     }
   ],
@@ -53,7 +80,11 @@
           "label": "Works as a small aircraft mechanic",
           "say": "I work as a small aircraft mechanic.",
           "topic": "Work and background",
-          "kw": ["work", "job", "background"],
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "soc",
@@ -67,7 +98,11 @@
           "label": "Diagnosed with dyslipidemia",
           "say": "I've been diagnosed with dyslipidemia.",
           "topic": "Diagnosis and medical history",
-          "kw": ["diagnos", "history", "cholesterol"],
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "hx",
@@ -81,7 +116,14 @@
           "label": "Organizer values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
           "say": "",
           "topic": "Lipid panel results in chart",
-          "kw": ["lab", "result", "ldl", "hdl", "panel", "number"],
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
           "type": "documented",
           "vis": "chart",
           "ehr": "labs",
@@ -96,7 +138,11 @@
           "label": "Organizer values: BMI 29, waist circumference 43 inches. Date unspecified.",
           "say": "",
           "topic": "Body measurements in chart",
-          "kw": ["bmi", "waist", "measurement"],
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
           "type": "documented",
           "vis": "chart",
           "ehr": "notes",
@@ -111,7 +157,12 @@
           "label": "African-American",
           "say": "I identify as African-American.",
           "topic": "Self-described ethnicity",
-          "kw": ["ethnicity", "ethnic", "racial", "race"],
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "soc",
@@ -130,8 +181,17 @@
           "kind": "report",
           "date": "",
           "release": "question",
-          "unlock": ["labs", "lab", "results", "lipid", "ldl", "hdl"],
-          "facts": ["lipids"],
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
           "rows": [],
           "reviewed": false,
           "text": "Organizer values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
@@ -169,7 +229,9 @@
           "t": "Explore medication concerns without judgment",
           "w": 35,
           "ty": "fact",
-          "f": ["concern"],
+          "f": [
+            "concern"
+          ],
           "tip": "Ask what concerns the patient about taking medication."
         },
         {
@@ -177,7 +239,9 @@
           "t": "Review the available lipid record and its limitations",
           "w": 25,
           "ty": "review",
-          "s": ["labs"],
+          "s": [
+            "labs"
+          ],
           "tip": "Review the reported values and acknowledge missing units and report date."
         },
         {
@@ -185,7 +249,10 @@
           "t": "Explore work and diagnosis context",
           "w": 20,
           "ty": "fact",
-          "f": ["work", "diagnosis"],
+          "f": [
+            "work",
+            "diagnosis"
+          ],
           "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
         },
         {
@@ -197,7 +264,15 @@
         }
       ],
       "hints": [],
-      "rubricApplicable": [1, 2, 3, 4, 5, 6, 7],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "reviewAcknowledged": false,
       "missing": [
         "Engineering-organized suggestions from the organizer CSV. No medication, allergy, measurement unit or report date has been supplied. Review every proposed patient-known statement before publication.",
@@ -267,7 +342,11 @@
           "label": "Works as a small aircraft mechanic",
           "say": "I work as a small aircraft mechanic.",
           "topic": "Work and background",
-          "kw": ["work", "job", "background"],
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "soc",
@@ -281,7 +360,11 @@
           "label": "Diagnosed with dyslipidemia",
           "say": "I've been diagnosed with dyslipidemia.",
           "topic": "Diagnosis and medical history",
-          "kw": ["diagnos", "history", "cholesterol"],
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "hx",
@@ -295,7 +378,14 @@
           "label": "Organizer values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
           "say": "",
           "topic": "Lipid panel results in chart",
-          "kw": ["lab", "result", "ldl", "hdl", "panel", "number"],
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
           "type": "documented",
           "vis": "chart",
           "ehr": "labs",
@@ -310,7 +400,11 @@
           "label": "Organizer values: BMI 29, waist circumference 43 inches. Date unspecified.",
           "say": "",
           "topic": "Body measurements in chart",
-          "kw": ["bmi", "waist", "measurement"],
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
           "type": "documented",
           "vis": "chart",
           "ehr": "notes",
@@ -325,7 +419,12 @@
           "label": "White American",
           "say": "I identify as White American.",
           "topic": "Self-described ethnicity",
-          "kw": ["ethnicity", "ethnic", "racial", "race"],
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
           "type": "reported",
           "vis": "ask",
           "ehr": "soc",
@@ -344,8 +443,17 @@
           "kind": "report",
           "date": "",
           "release": "question",
-          "unlock": ["labs", "lab", "results", "lipid", "ldl", "hdl"],
-          "facts": ["lipids"],
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
           "rows": [],
           "reviewed": false,
           "text": "Organizer values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
@@ -389,7 +497,9 @@
           "t": "Explore medication concerns without judgment",
           "w": 35,
           "ty": "fact",
-          "f": ["concern"],
+          "f": [
+            "concern"
+          ],
           "tip": "Ask what concerns the patient about taking medication."
         },
         {
@@ -397,7 +507,9 @@
           "t": "Review the available lipid record and its limitations",
           "w": 25,
           "ty": "review",
-          "s": ["labs"],
+          "s": [
+            "labs"
+          ],
           "tip": "Review the reported values and acknowledge missing units and report date."
         },
         {
@@ -405,7 +517,10 @@
           "t": "Explore work and diagnosis context",
           "w": 20,
           "ty": "fact",
-          "f": ["work", "diagnosis"],
+          "f": [
+            "work",
+            "diagnosis"
+          ],
           "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
         },
         {
@@ -417,7 +532,15 @@
         }
       ],
       "hints": [],
-      "rubricApplicable": [1, 2, 3, 4, 5, 6, 7],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
       "reviewAcknowledged": false,
       "missing": [
         "Engineering-organized suggestions from the organizer CSV. No medication, allergy, measurement unit or report date has been supplied. Review every proposed patient-known statement before publication.",
@@ -448,6 +571,1278 @@
       },
       "preparedDemo": true,
       "publicationBasis": "Bundled synthetic demo case prepared by the team; no faculty clinical approval recorded."
+    },
+    {
+      "id": "lipids-jordan-demo",
+      "name": "Jordan Ellis",
+      "age": 34,
+      "intro": "Hello, I'm Jordan.",
+      "personality": "Skeptical, independent, practical",
+      "style": "Direct, concise answers; ask for clarification when needed.",
+      "emotion": "",
+      "caseRubric": "",
+      "origin": "ai-synthetic",
+      "facts": [
+        {
+          "id": "concern",
+          "label": "Discomfort with taking medication",
+          "say": "I'm uncomfortable with taking medication.",
+          "topic": "Reason for visit and concerns about taking medicine",
+          "kw": [
+            "bring",
+            "today",
+            "concern",
+            "medicine",
+            "medication",
+            "pill",
+            "statin"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "meds",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "work",
+          "label": "Shift-based aircraft maintenance work",
+          "say": "I work in aircraft maintenance on changing shifts.",
+          "topic": "Work and background",
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "diagnosis",
+          "label": "Diagnosed with dyslipidemia",
+          "say": "I've been diagnosed with dyslipidemia.",
+          "topic": "Diagnosis and medical history",
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "hx",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "lipids",
+          "label": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "say": "",
+          "topic": "Lipid panel results in chart",
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "labs",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "labs"
+        },
+        {
+          "id": "anthropometry",
+          "label": "Reported values: BMI 29, waist circumference 43 inches. Date unspecified.",
+          "say": "",
+          "topic": "Body measurements in chart",
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "notes",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "notes"
+        },
+        {
+          "id": "ethnicity",
+          "label": "Black American",
+          "say": "I identify as Black American.",
+          "topic": "Self-described ethnicity",
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "education",
+          "label": "Vocational certificate",
+          "say": "My formal education is vocational certificate.",
+          "topic": "Education and learning preferences",
+          "kw": [
+            "education",
+            "school",
+            "college",
+            "degree"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        },
+        {
+          "id": "background",
+          "label": "My schedule changes each week. I would like a plan that can fit my working hours.",
+          "say": "My schedule changes each week. I would like a plan that can fit my working hours.",
+          "topic": "Everyday circumstances, access and financial or time constraints",
+          "kw": [
+            "schedule",
+            "time",
+            "cost",
+            "afford",
+            "income",
+            "support",
+            "practical",
+            "circumstances"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 1,
+          "deflect": "Could you explain why you are asking about my personal circumstances?",
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "lipid-report",
+          "title": "Supplied lipid record",
+          "src": "clinical-case",
+          "sec": "labs",
+          "kind": "report",
+          "date": "",
+          "release": "question",
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
+          "rows": [],
+          "reviewed": false,
+          "text": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
+        }
+      ],
+      "sources": [
+        {
+          "id": "organizer-csv",
+          "title": "Faculty-provided sample patient details",
+          "excerpt": "{\n  \"patient-uuid\": \"b5814549-fd2b-42a2-af78-9b681ad6f268\",\n  \"patient-name\": \"Omar Sinclair\",\n  \"age\": \"45\",\n  \"background\": \"Small aircraft mechanic\",\n  \"gender\": \"male\",\n  \"notes\": \"Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.\",\n  \"patient-img\": \"s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png\",\n  \"personality\": \"Skeptical, independent, practical\",\n  \"race/ethinicity\": \"African-American\",\n  \"summary\": \"Dyslipidemia\"\n}",
+          "reviewed": false
+        },
+        {
+          "id": "nhlbi",
+          "title": "NHLBI: Blood cholesterol treatment",
+          "url": "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+          "excerpt": "Selected teaching summary (paraphrase): Cholesterol treatment may include heart-healthy habits and medicines. Decisions should consider cholesterol levels, cardiovascular risk, other conditions, lifestyle, and the benefits and side effects of treatment. Patients and clinicians can work together on a suitable plan. Statins reduce cholesterol production in the liver and reduce heart attack and stroke risk in people with high LDL. Lifestyle advice includes limiting saturated fat and choosing whole grains, fruit and vegetables. This general teaching reference does not establish any particular patient's medication, understanding or treatment acceptance.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "aha",
+          "title": "AHA: Understanding blood pressure readings",
+          "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+          "excerpt": "Selected teaching summary (paraphrase): Blood pressure is recorded as systolic pressure during the heartbeat and diastolic pressure between beats, in mm Hg. Stage 2 is systolic at least 140 or diastolic at least 90. A health professional confirms a diagnosis. The AHA describes medication and lifestyle changes for stage 2 hypertension. Readings above 180 systolic and/or 120 diastolic require prompt attention; associated chest pain, breathlessness, neurologic symptoms or other listed emergency symptoms warrant emergency care. These general thresholds do not supply missing patient measurements, symptoms, dates or medications.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "clinical-case",
+          "title": "Synthetic clinical teaching record",
+          "excerpt": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "reviewed": false
+        },
+        {
+          "id": "team-context",
+          "title": "Authored patient background",
+          "excerpt": "{\"id\":\"lipids-jordan-demo\",\"name\":\"Jordan Ellis\",\"age\":34,\"gender\":\"female\",\"ethnicity\":\"Black American\",\"education\":\"Vocational certificate\",\"background\":\"Shift-based aircraft maintenance work\",\"work\":\"I work in aircraft maintenance on changing shifts.\",\"context\":\"My schedule changes each week. I would like a plan that can fit my working hours.\"}",
+          "reviewed": false
+        }
+      ],
+      "obj": [
+        {
+          "id": "medication-concerns",
+          "t": "Explore medication concerns without judgment",
+          "w": 35,
+          "ty": "fact",
+          "f": [
+            "concern"
+          ],
+          "tip": "Ask what concerns the patient about taking medication."
+        },
+        {
+          "id": "lipid-review",
+          "t": "Review the available lipid record and its limitations",
+          "w": 25,
+          "ty": "review",
+          "s": [
+            "labs"
+          ],
+          "tip": "Review the reported values and acknowledge missing units and report date."
+        },
+        {
+          "id": "context",
+          "t": "Explore work and diagnosis context",
+          "w": 20,
+          "ty": "fact",
+          "f": [
+            "work",
+            "diagnosis"
+          ],
+          "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
+        },
+        {
+          "id": "communication",
+          "t": "Use open questions and acknowledge concerns",
+          "w": 20,
+          "ty": "emp",
+          "tip": "Invite the patient's perspective and acknowledge medication concerns."
+        }
+      ],
+      "hints": [],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "reviewAcknowledged": false,
+      "missing": [
+        "Medication names, allergies, units for cholesterol measurements and measurement dates remain unspecified. Education does not establish health literacy. Age can legitimately affect clinical reasoning. These cases are synthetic adaptations, not original faculty-provided identities."
+      ],
+      "createdAt": "2026-10-10T19:33:38.182Z",
+      "gender": "female",
+      "ethnicity": "Black American",
+      "image": "",
+      "original": {
+        "patient-uuid": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "patient-name": "Omar Sinclair",
+        "age": "45",
+        "background": "Small aircraft mechanic",
+        "gender": "male",
+        "notes": "Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.",
+        "patient-img": "s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png",
+        "personality": "Skeptical, independent, practical",
+        "race/ethinicity": "African-American",
+        "summary": "Dyslipidemia"
+      },
+      "comparisonOnly": true,
+      "presentationKey": "dyslipidemia-diverse-backgrounds",
+      "provenance": {
+        "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "source": "corpus/faculty-patients.csv",
+        "preparation": "Team-authored synthetic adaptation of the supplied Omar Sinclair clinical facts. Demographics, education and everyday context are authored for an exploratory comparison; no faculty clinical approval recorded."
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled team-prepared synthetic teaching case; clinical review is still required before rehearsal.",
+      "education": "Vocational certificate",
+      "background": "Shift-based aircraft maintenance work"
+    },
+    {
+      "id": "lipids-daniel-demo",
+      "name": "Daniel Brooks",
+      "age": 45,
+      "intro": "Hello, I'm Daniel.",
+      "personality": "Skeptical, independent, practical",
+      "style": "Direct, concise answers; ask for clarification when needed.",
+      "emotion": "",
+      "caseRubric": "",
+      "origin": "ai-synthetic",
+      "facts": [
+        {
+          "id": "concern",
+          "label": "Discomfort with taking medication",
+          "say": "I'm uncomfortable with taking medication.",
+          "topic": "Reason for visit and concerns about taking medicine",
+          "kw": [
+            "bring",
+            "today",
+            "concern",
+            "medicine",
+            "medication",
+            "pill",
+            "statin"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "meds",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "work",
+          "label": "Office-based project coordination",
+          "say": "I coordinate projects in an office.",
+          "topic": "Work and background",
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "diagnosis",
+          "label": "Diagnosed with dyslipidemia",
+          "say": "I've been diagnosed with dyslipidemia.",
+          "topic": "Diagnosis and medical history",
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "hx",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "lipids",
+          "label": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "say": "",
+          "topic": "Lipid panel results in chart",
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "labs",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "labs"
+        },
+        {
+          "id": "anthropometry",
+          "label": "Reported values: BMI 29, waist circumference 43 inches. Date unspecified.",
+          "say": "",
+          "topic": "Body measurements in chart",
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "notes",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "notes"
+        },
+        {
+          "id": "ethnicity",
+          "label": "White American",
+          "say": "I identify as White American.",
+          "topic": "Self-described ethnicity",
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "education",
+          "label": "University degree",
+          "say": "My formal education is university degree.",
+          "topic": "Education and learning preferences",
+          "kw": [
+            "education",
+            "school",
+            "college",
+            "degree"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        },
+        {
+          "id": "background",
+          "label": "I have a regular work schedule. I want to understand the options before choosing a plan.",
+          "say": "I have a regular work schedule. I want to understand the options before choosing a plan.",
+          "topic": "Everyday circumstances, access and financial or time constraints",
+          "kw": [
+            "schedule",
+            "time",
+            "cost",
+            "afford",
+            "income",
+            "support",
+            "practical",
+            "circumstances"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 1,
+          "deflect": "Could you explain why you are asking about my personal circumstances?",
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "lipid-report",
+          "title": "Supplied lipid record",
+          "src": "clinical-case",
+          "sec": "labs",
+          "kind": "report",
+          "date": "",
+          "release": "question",
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
+          "rows": [],
+          "reviewed": false,
+          "text": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
+        }
+      ],
+      "sources": [
+        {
+          "id": "organizer-csv",
+          "title": "Faculty-provided sample patient details",
+          "excerpt": "{\n  \"patient-uuid\": \"b5814549-fd2b-42a2-af78-9b681ad6f268\",\n  \"patient-name\": \"Omar Sinclair\",\n  \"age\": \"45\",\n  \"background\": \"Small aircraft mechanic\",\n  \"gender\": \"male\",\n  \"notes\": \"Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.\",\n  \"patient-img\": \"s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png\",\n  \"personality\": \"Skeptical, independent, practical\",\n  \"race/ethinicity\": \"African-American\",\n  \"summary\": \"Dyslipidemia\"\n}",
+          "reviewed": false
+        },
+        {
+          "id": "nhlbi",
+          "title": "NHLBI: Blood cholesterol treatment",
+          "url": "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+          "excerpt": "Selected teaching summary (paraphrase): Cholesterol treatment may include heart-healthy habits and medicines. Decisions should consider cholesterol levels, cardiovascular risk, other conditions, lifestyle, and the benefits and side effects of treatment. Patients and clinicians can work together on a suitable plan. Statins reduce cholesterol production in the liver and reduce heart attack and stroke risk in people with high LDL. Lifestyle advice includes limiting saturated fat and choosing whole grains, fruit and vegetables. This general teaching reference does not establish any particular patient's medication, understanding or treatment acceptance.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "aha",
+          "title": "AHA: Understanding blood pressure readings",
+          "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+          "excerpt": "Selected teaching summary (paraphrase): Blood pressure is recorded as systolic pressure during the heartbeat and diastolic pressure between beats, in mm Hg. Stage 2 is systolic at least 140 or diastolic at least 90. A health professional confirms a diagnosis. The AHA describes medication and lifestyle changes for stage 2 hypertension. Readings above 180 systolic and/or 120 diastolic require prompt attention; associated chest pain, breathlessness, neurologic symptoms or other listed emergency symptoms warrant emergency care. These general thresholds do not supply missing patient measurements, symptoms, dates or medications.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "clinical-case",
+          "title": "Synthetic clinical teaching record",
+          "excerpt": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "reviewed": false
+        },
+        {
+          "id": "team-context",
+          "title": "Authored patient background",
+          "excerpt": "{\"id\":\"lipids-daniel-demo\",\"name\":\"Daniel Brooks\",\"age\":45,\"gender\":\"male\",\"ethnicity\":\"White American\",\"education\":\"University degree\",\"background\":\"Office-based project coordination\",\"work\":\"I coordinate projects in an office.\",\"context\":\"I have a regular work schedule. I want to understand the options before choosing a plan.\"}",
+          "reviewed": false
+        }
+      ],
+      "obj": [
+        {
+          "id": "medication-concerns",
+          "t": "Explore medication concerns without judgment",
+          "w": 35,
+          "ty": "fact",
+          "f": [
+            "concern"
+          ],
+          "tip": "Ask what concerns the patient about taking medication."
+        },
+        {
+          "id": "lipid-review",
+          "t": "Review the available lipid record and its limitations",
+          "w": 25,
+          "ty": "review",
+          "s": [
+            "labs"
+          ],
+          "tip": "Review the reported values and acknowledge missing units and report date."
+        },
+        {
+          "id": "context",
+          "t": "Explore work and diagnosis context",
+          "w": 20,
+          "ty": "fact",
+          "f": [
+            "work",
+            "diagnosis"
+          ],
+          "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
+        },
+        {
+          "id": "communication",
+          "t": "Use open questions and acknowledge concerns",
+          "w": 20,
+          "ty": "emp",
+          "tip": "Invite the patient's perspective and acknowledge medication concerns."
+        }
+      ],
+      "hints": [],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "reviewAcknowledged": false,
+      "missing": [
+        "Medication names, allergies, units for cholesterol measurements and measurement dates remain unspecified. Education does not establish health literacy. Age can legitimately affect clinical reasoning. These cases are synthetic adaptations, not original faculty-provided identities."
+      ],
+      "createdAt": "2026-10-10T19:33:38.182Z",
+      "gender": "male",
+      "ethnicity": "White American",
+      "image": "",
+      "original": {
+        "patient-uuid": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "patient-name": "Omar Sinclair",
+        "age": "45",
+        "background": "Small aircraft mechanic",
+        "gender": "male",
+        "notes": "Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.",
+        "patient-img": "s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png",
+        "personality": "Skeptical, independent, practical",
+        "race/ethinicity": "African-American",
+        "summary": "Dyslipidemia"
+      },
+      "comparisonOnly": true,
+      "presentationKey": "dyslipidemia-diverse-backgrounds",
+      "provenance": {
+        "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "source": "corpus/faculty-patients.csv",
+        "preparation": "Team-authored synthetic adaptation of the supplied Omar Sinclair clinical facts. Demographics, education and everyday context are authored for an exploratory comparison; no faculty clinical approval recorded."
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled team-prepared synthetic teaching case; clinical review is still required before rehearsal.",
+      "education": "University degree",
+      "background": "Office-based project coordination"
+    },
+    {
+      "id": "lipids-meera-demo",
+      "name": "Meera Shah",
+      "age": 58,
+      "intro": "Hello, I'm Meera.",
+      "personality": "Skeptical, independent, practical",
+      "style": "Direct, concise answers; ask for clarification when needed.",
+      "emotion": "",
+      "caseRubric": "",
+      "origin": "ai-synthetic",
+      "facts": [
+        {
+          "id": "concern",
+          "label": "Discomfort with taking medication",
+          "say": "I'm uncomfortable with taking medication.",
+          "topic": "Reason for visit and concerns about taking medicine",
+          "kw": [
+            "bring",
+            "today",
+            "concern",
+            "medicine",
+            "medication",
+            "pill",
+            "statin"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "meds",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "work",
+          "label": "Self-employed shop owner and family caregiver",
+          "say": "I run a small shop and help care for a relative.",
+          "topic": "Work and background",
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "diagnosis",
+          "label": "Diagnosed with dyslipidemia",
+          "say": "I've been diagnosed with dyslipidemia.",
+          "topic": "Diagnosis and medical history",
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "hx",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "lipids",
+          "label": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "say": "",
+          "topic": "Lipid panel results in chart",
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "labs",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "labs"
+        },
+        {
+          "id": "anthropometry",
+          "label": "Reported values: BMI 29, waist circumference 43 inches. Date unspecified.",
+          "say": "",
+          "topic": "Body measurements in chart",
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "notes",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "notes"
+        },
+        {
+          "id": "ethnicity",
+          "label": "South Asian American",
+          "say": "I identify as South Asian American.",
+          "topic": "Self-described ethnicity",
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "education",
+          "label": "Secondary school completion",
+          "say": "My formal education is secondary school completion.",
+          "topic": "Education and learning preferences",
+          "kw": [
+            "education",
+            "school",
+            "college",
+            "degree"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        },
+        {
+          "id": "background",
+          "label": "Work and caregiving take much of my time. I would like you to ask what is practical for me.",
+          "say": "Work and caregiving take much of my time. I would like you to ask what is practical for me.",
+          "topic": "Everyday circumstances, access and financial or time constraints",
+          "kw": [
+            "schedule",
+            "time",
+            "cost",
+            "afford",
+            "income",
+            "support",
+            "practical",
+            "circumstances"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 1,
+          "deflect": "Could you explain why you are asking about my personal circumstances?",
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "lipid-report",
+          "title": "Supplied lipid record",
+          "src": "clinical-case",
+          "sec": "labs",
+          "kind": "report",
+          "date": "",
+          "release": "question",
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
+          "rows": [],
+          "reviewed": false,
+          "text": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
+        }
+      ],
+      "sources": [
+        {
+          "id": "organizer-csv",
+          "title": "Faculty-provided sample patient details",
+          "excerpt": "{\n  \"patient-uuid\": \"b5814549-fd2b-42a2-af78-9b681ad6f268\",\n  \"patient-name\": \"Omar Sinclair\",\n  \"age\": \"45\",\n  \"background\": \"Small aircraft mechanic\",\n  \"gender\": \"male\",\n  \"notes\": \"Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.\",\n  \"patient-img\": \"s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png\",\n  \"personality\": \"Skeptical, independent, practical\",\n  \"race/ethinicity\": \"African-American\",\n  \"summary\": \"Dyslipidemia\"\n}",
+          "reviewed": false
+        },
+        {
+          "id": "nhlbi",
+          "title": "NHLBI: Blood cholesterol treatment",
+          "url": "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+          "excerpt": "Selected teaching summary (paraphrase): Cholesterol treatment may include heart-healthy habits and medicines. Decisions should consider cholesterol levels, cardiovascular risk, other conditions, lifestyle, and the benefits and side effects of treatment. Patients and clinicians can work together on a suitable plan. Statins reduce cholesterol production in the liver and reduce heart attack and stroke risk in people with high LDL. Lifestyle advice includes limiting saturated fat and choosing whole grains, fruit and vegetables. This general teaching reference does not establish any particular patient's medication, understanding or treatment acceptance.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "aha",
+          "title": "AHA: Understanding blood pressure readings",
+          "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+          "excerpt": "Selected teaching summary (paraphrase): Blood pressure is recorded as systolic pressure during the heartbeat and diastolic pressure between beats, in mm Hg. Stage 2 is systolic at least 140 or diastolic at least 90. A health professional confirms a diagnosis. The AHA describes medication and lifestyle changes for stage 2 hypertension. Readings above 180 systolic and/or 120 diastolic require prompt attention; associated chest pain, breathlessness, neurologic symptoms or other listed emergency symptoms warrant emergency care. These general thresholds do not supply missing patient measurements, symptoms, dates or medications.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "clinical-case",
+          "title": "Synthetic clinical teaching record",
+          "excerpt": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "reviewed": false
+        },
+        {
+          "id": "team-context",
+          "title": "Authored patient background",
+          "excerpt": "{\"id\":\"lipids-meera-demo\",\"name\":\"Meera Shah\",\"age\":58,\"gender\":\"female\",\"ethnicity\":\"South Asian American\",\"education\":\"Secondary school completion\",\"background\":\"Self-employed shop owner and family caregiver\",\"work\":\"I run a small shop and help care for a relative.\",\"context\":\"Work and caregiving take much of my time. I would like you to ask what is practical for me.\"}",
+          "reviewed": false
+        }
+      ],
+      "obj": [
+        {
+          "id": "medication-concerns",
+          "t": "Explore medication concerns without judgment",
+          "w": 35,
+          "ty": "fact",
+          "f": [
+            "concern"
+          ],
+          "tip": "Ask what concerns the patient about taking medication."
+        },
+        {
+          "id": "lipid-review",
+          "t": "Review the available lipid record and its limitations",
+          "w": 25,
+          "ty": "review",
+          "s": [
+            "labs"
+          ],
+          "tip": "Review the reported values and acknowledge missing units and report date."
+        },
+        {
+          "id": "context",
+          "t": "Explore work and diagnosis context",
+          "w": 20,
+          "ty": "fact",
+          "f": [
+            "work",
+            "diagnosis"
+          ],
+          "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
+        },
+        {
+          "id": "communication",
+          "t": "Use open questions and acknowledge concerns",
+          "w": 20,
+          "ty": "emp",
+          "tip": "Invite the patient's perspective and acknowledge medication concerns."
+        }
+      ],
+      "hints": [],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "reviewAcknowledged": false,
+      "missing": [
+        "Medication names, allergies, units for cholesterol measurements and measurement dates remain unspecified. Education does not establish health literacy. Age can legitimately affect clinical reasoning. These cases are synthetic adaptations, not original faculty-provided identities."
+      ],
+      "createdAt": "2026-10-10T19:33:38.182Z",
+      "gender": "female",
+      "ethnicity": "South Asian American",
+      "image": "",
+      "original": {
+        "patient-uuid": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "patient-name": "Omar Sinclair",
+        "age": "45",
+        "background": "Small aircraft mechanic",
+        "gender": "male",
+        "notes": "Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.",
+        "patient-img": "s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png",
+        "personality": "Skeptical, independent, practical",
+        "race/ethinicity": "African-American",
+        "summary": "Dyslipidemia"
+      },
+      "comparisonOnly": true,
+      "presentationKey": "dyslipidemia-diverse-backgrounds",
+      "provenance": {
+        "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "source": "corpus/faculty-patients.csv",
+        "preparation": "Team-authored synthetic adaptation of the supplied Omar Sinclair clinical facts. Demographics, education and everyday context are authored for an exploratory comparison; no faculty clinical approval recorded."
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled team-prepared synthetic teaching case; clinical review is still required before rehearsal.",
+      "education": "Secondary school completion",
+      "background": "Self-employed shop owner and family caregiver"
+    },
+    {
+      "id": "lipids-roberto-demo",
+      "name": "Roberto Vega",
+      "age": 67,
+      "intro": "Hello, I'm Roberto.",
+      "personality": "Skeptical, independent, practical",
+      "style": "Direct, concise answers; ask for clarification when needed.",
+      "emotion": "",
+      "caseRubric": "",
+      "origin": "ai-synthetic",
+      "facts": [
+        {
+          "id": "concern",
+          "label": "Discomfort with taking medication",
+          "say": "I'm uncomfortable with taking medication.",
+          "topic": "Reason for visit and concerns about taking medicine",
+          "kw": [
+            "bring",
+            "today",
+            "concern",
+            "medicine",
+            "medication",
+            "pill",
+            "statin"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "meds",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "work",
+          "label": "Retired public transit worker on a fixed income",
+          "say": "I am retired. I used to work in public transit.",
+          "topic": "Work and background",
+          "kw": [
+            "work",
+            "job",
+            "background"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "diagnosis",
+          "label": "Diagnosed with dyslipidemia",
+          "say": "I've been diagnosed with dyslipidemia.",
+          "topic": "Diagnosis and medical history",
+          "kw": [
+            "diagnos",
+            "history",
+            "cholesterol"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "hx",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived"
+        },
+        {
+          "id": "lipids",
+          "label": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "say": "",
+          "topic": "Lipid panel results in chart",
+          "kw": [
+            "lab",
+            "result",
+            "ldl",
+            "hdl",
+            "panel",
+            "number"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "labs",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "labs"
+        },
+        {
+          "id": "anthropometry",
+          "label": "Reported values: BMI 29, waist circumference 43 inches. Date unspecified.",
+          "say": "",
+          "topic": "Body measurements in chart",
+          "kw": [
+            "bmi",
+            "waist",
+            "measurement"
+          ],
+          "type": "documented",
+          "vis": "chart",
+          "ehr": "notes",
+          "gate": 0,
+          "src": "organizer-csv",
+          "reviewed": false,
+          "origin": "organizer-derived",
+          "sec": "notes"
+        },
+        {
+          "id": "ethnicity",
+          "label": "Latino American",
+          "say": "I identify as Latino American.",
+          "topic": "Self-described ethnicity",
+          "kw": [
+            "ethnicity",
+            "ethnic",
+            "racial",
+            "race"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "reviewed": false,
+          "origin": "team-authored"
+        },
+        {
+          "id": "education",
+          "label": "Community college associate degree",
+          "say": "My formal education is community college associate degree.",
+          "topic": "Education and learning preferences",
+          "kw": [
+            "education",
+            "school",
+            "college",
+            "degree"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 0,
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        },
+        {
+          "id": "background",
+          "label": "I am on a fixed retirement income. Please discuss costs with me before we decide on a plan.",
+          "say": "I am on a fixed retirement income. Please discuss costs with me before we decide on a plan.",
+          "topic": "Everyday circumstances, access and financial or time constraints",
+          "kw": [
+            "schedule",
+            "time",
+            "cost",
+            "afford",
+            "income",
+            "support",
+            "practical",
+            "circumstances"
+          ],
+          "type": "reported",
+          "vis": "ask",
+          "ehr": "soc",
+          "gate": 1,
+          "deflect": "Could you explain why you are asking about my personal circumstances?",
+          "src": "team-context",
+          "origin": "team-authored",
+          "reviewed": false
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "lipid-report",
+          "title": "Supplied lipid record",
+          "src": "clinical-case",
+          "sec": "labs",
+          "kind": "report",
+          "date": "",
+          "release": "question",
+          "unlock": [
+            "labs",
+            "lab",
+            "results",
+            "lipid",
+            "ldl",
+            "hdl"
+          ],
+          "facts": [
+            "lipids"
+          ],
+          "rows": [],
+          "reviewed": false,
+          "text": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified."
+        }
+      ],
+      "sources": [
+        {
+          "id": "organizer-csv",
+          "title": "Faculty-provided sample patient details",
+          "excerpt": "{\n  \"patient-uuid\": \"b5814549-fd2b-42a2-af78-9b681ad6f268\",\n  \"patient-name\": \"Omar Sinclair\",\n  \"age\": \"45\",\n  \"background\": \"Small aircraft mechanic\",\n  \"gender\": \"male\",\n  \"notes\": \"Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.\",\n  \"patient-img\": \"s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png\",\n  \"personality\": \"Skeptical, independent, practical\",\n  \"race/ethinicity\": \"African-American\",\n  \"summary\": \"Dyslipidemia\"\n}",
+          "reviewed": false
+        },
+        {
+          "id": "nhlbi",
+          "title": "NHLBI: Blood cholesterol treatment",
+          "url": "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+          "excerpt": "Selected teaching summary (paraphrase): Cholesterol treatment may include heart-healthy habits and medicines. Decisions should consider cholesterol levels, cardiovascular risk, other conditions, lifestyle, and the benefits and side effects of treatment. Patients and clinicians can work together on a suitable plan. Statins reduce cholesterol production in the liver and reduce heart attack and stroke risk in people with high LDL. Lifestyle advice includes limiting saturated fat and choosing whole grains, fruit and vegetables. This general teaching reference does not establish any particular patient's medication, understanding or treatment acceptance.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "aha",
+          "title": "AHA: Understanding blood pressure readings",
+          "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+          "excerpt": "Selected teaching summary (paraphrase): Blood pressure is recorded as systolic pressure during the heartbeat and diastolic pressure between beats, in mm Hg. Stage 2 is systolic at least 140 or diastolic at least 90. A health professional confirms a diagnosis. The AHA describes medication and lifestyle changes for stage 2 hypertension. Readings above 180 systolic and/or 120 diastolic require prompt attention; associated chest pain, breathlessness, neurologic symptoms or other listed emergency symptoms warrant emergency care. These general thresholds do not supply missing patient measurements, symptoms, dates or medications.",
+          "retrievedOn": "2026-10-10",
+          "kind": "selected teaching paraphrase",
+          "reviewed": false
+        },
+        {
+          "id": "clinical-case",
+          "title": "Synthetic clinical teaching record",
+          "excerpt": "Reported values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.",
+          "reviewed": false
+        },
+        {
+          "id": "team-context",
+          "title": "Authored patient background",
+          "excerpt": "{\"id\":\"lipids-roberto-demo\",\"name\":\"Roberto Vega\",\"age\":67,\"gender\":\"male\",\"ethnicity\":\"Latino American\",\"education\":\"Community college associate degree\",\"background\":\"Retired public transit worker on a fixed income\",\"work\":\"I am retired. I used to work in public transit.\",\"context\":\"I am on a fixed retirement income. Please discuss costs with me before we decide on a plan.\"}",
+          "reviewed": false
+        }
+      ],
+      "obj": [
+        {
+          "id": "medication-concerns",
+          "t": "Explore medication concerns without judgment",
+          "w": 35,
+          "ty": "fact",
+          "f": [
+            "concern"
+          ],
+          "tip": "Ask what concerns the patient about taking medication."
+        },
+        {
+          "id": "lipid-review",
+          "t": "Review the available lipid record and its limitations",
+          "w": 25,
+          "ty": "review",
+          "s": [
+            "labs"
+          ],
+          "tip": "Review the reported values and acknowledge missing units and report date."
+        },
+        {
+          "id": "context",
+          "t": "Explore work and diagnosis context",
+          "w": 20,
+          "ty": "fact",
+          "f": [
+            "work",
+            "diagnosis"
+          ],
+          "tip": "Ask about the patient's history and everyday context without assuming lifestyle details."
+        },
+        {
+          "id": "communication",
+          "t": "Use open questions and acknowledge concerns",
+          "w": 20,
+          "ty": "emp",
+          "tip": "Invite the patient's perspective and acknowledge medication concerns."
+        }
+      ],
+      "hints": [],
+      "rubricApplicable": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "reviewAcknowledged": false,
+      "missing": [
+        "Medication names, allergies, units for cholesterol measurements and measurement dates remain unspecified. Education does not establish health literacy. Age can legitimately affect clinical reasoning. These cases are synthetic adaptations, not original faculty-provided identities."
+      ],
+      "createdAt": "2026-10-10T19:33:38.182Z",
+      "gender": "male",
+      "ethnicity": "Latino American",
+      "image": "",
+      "original": {
+        "patient-uuid": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "patient-name": "Omar Sinclair",
+        "age": "45",
+        "background": "Small aircraft mechanic",
+        "gender": "male",
+        "notes": "Diagnosed with dyslipidemia (Total Chol 260, LDL 195, HDL 30), Omar expresses discomfort with taking medications. He has a BMI of 29 and WC of 43 inches. He needs support understanding cholesterol labs (LDL vs. HDL), the purpose of statins, and realistic dietary approaches for lipid control and cardiovascular risk reduction.",
+        "patient-img": "s3://ru-shp-vhs-bucket/vhs-patients/images/b5814549-fd2b-42a2-af78-9b681ad6f268.png",
+        "personality": "Skeptical, independent, practical",
+        "race/ethinicity": "African-American",
+        "summary": "Dyslipidemia"
+      },
+      "comparisonOnly": true,
+      "presentationKey": "dyslipidemia-diverse-backgrounds",
+      "provenance": {
+        "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
+        "source": "corpus/faculty-patients.csv",
+        "preparation": "Team-authored synthetic adaptation of the supplied Omar Sinclair clinical facts. Demographics, education and everyday context are authored for an exploratory comparison; no faculty clinical approval recorded."
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled team-prepared synthetic teaching case; clinical review is still required before rehearsal.",
+      "education": "Community college associate degree",
+      "background": "Retired public transit worker on a fixed income"
     }
   ]
 }
