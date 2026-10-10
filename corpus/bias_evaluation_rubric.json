@@ -1,0 +1,85 @@
+{
+  "id": "osce-cognitive-interpersonal-bias",
+  "version": "1.0.0",
+  "title": "OSCE Clinical Reasoning & Bias Evaluation Rubric",
+  "subtitle": "Standardized Patient Simulation Framework | Assessing Cognitive, Diagnostic, and Interpersonal Biases",
+  "source": {
+    "file": "OSCE Cognitive & Interpersonal Bias Evaluation Rubric.pdf",
+    "provenance": "User-provided assessment criteria",
+    "pageCount": 1,
+    "sha256": "df2c269a8ee5d215ae04f564a58e7e91c981916e9e22b86dd22e2e248249c83d"
+  },
+  "evaluatorInstructions": "This rubric is designed to assess medical students during complex standardized patient encounters (e.g., Denise Vance case: acute chest pain with comorbid GAD and triage framing risks). Score students across the five core cognitive error categories using the 1–4 scale below.",
+  "matrixTitle": "1. Structured Competency Matrix",
+  "scale": {
+    "1": "Unsatisfactory",
+    "2": "Developing",
+    "3": "Proficient",
+    "4": "Exemplary"
+  },
+  "categories": [
+    {
+      "id": "anchoring",
+      "name": "Premature Closure & Anchoring",
+      "target": "Locks onto initial diagnosis early; ignores evolving clinical data or physical exam findings.",
+      "descriptors": {
+        "1": "Fixates on initial impression; fails to adjust reasoning.",
+        "2": "Considers alternates only when explicitly prompted.",
+        "3": "Actively updates differential as new data emerge.",
+        "4": "Performs diagnostic time-outs; systematically revises differential."
+      }
+    },
+    {
+      "id": "confirmation",
+      "name": "Confirmation & Search Bias",
+      "target": "Asks leading questions supporting the leading hypothesis; skips disconfirming evidence.",
+      "descriptors": {
+        "1": "Asks leading questions; ignores contradictory symptoms.",
+        "2": "Asks mostly confirming questions passively.",
+        "3": "Asks balanced positive and negative predictive questions.",
+        "4": "Probes for key negatives and red flags ruling out alternatives."
+      }
+    },
+    {
+      "id": "demographic",
+      "name": "Implicit Demographic Bias",
+      "target": "Assumptions based on race, gender, age, socioeconomic status, or mental health history.",
+      "descriptors": {
+        "1": "Uses dismissive language; attributes symptoms solely to lifestyle.",
+        "2": "Acknowledges social determinants superficially.",
+        "3": "Maintains objective clinical standards; non-judgmental.",
+        "4": "Actively counteracts bias; addresses social determinants equitably."
+      }
+    },
+    {
+      "id": "framing",
+      "name": "Framing & Availability",
+      "target": "Influenced by sign-out framing, recent patient encounters, or emotional recall.",
+      "descriptors": {
+        "1": "Accepts handoff label uncritically without baseline inquiry.",
+        "2": "Mentions framing but struggles to decouple from case.",
+        "3": "Distinguishes current presentation from previous cases.",
+        "4": "Identifies framing risks; evaluates from first principles."
+      }
+    },
+    {
+      "id": "attribution",
+      "name": "Diagnostic Attribution",
+      "target": "Attributes complex somatic complaints entirely to psychiatric history or chronic illness.",
+      "descriptors": {
+        "1": "Dismisses new symptoms as psychological without workup.",
+        "2": "Investigates minimally before attributing to baseline.",
+        "3": "Thoroughly evaluates acute complaints independently.",
+        "4": "Rigorously separates acute pathology from baseline history."
+      }
+    }
+  ],
+  "sourceFooter": "Institutional Medical Education & OSCE Program | Page 1 of 1",
+  "applicationPolicy": {
+    "notObservable": "Not observable is an application extension, not a rating in the supplied PDF. Use null with an explanation when the case or transcript cannot support a category; do not fabricate a 1–4 rating.",
+    "totals": "The source provides no aggregate score, bias percentage, pass/fail cutoff or demographic causality test. Do not add one.",
+    "audience": "Faculty only; separate from the seven-domain student assessment.",
+    "indicators": "Ratings 1 or 2 are flagged for faculty review by the application. This is not a source-defined bias diagnosis or pass/fail cutoff.",
+    "groupUse": "Apply the five-category matrix separately to each completed trial. Cross-trial observations are additional evidence for faculty review, not proof of bias."
+  }
+}

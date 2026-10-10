@@ -10,7 +10,7 @@ Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. If
 4. Try a greeting, medication concern, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
 5. Finish the first trial, then use **Continue to next patient**. Standard feedback is released only after both trials finish.
 6. Refresh/restart midway and select the same alias to test recovery. Starting twice resumes the same attempt and encounter.
-7. Switch to Faculty → **Student results** for the trial assessments, evidence and **Awaiting analysis** bias status. Faculty inspection cannot change a student encounter.
+7. Switch to Faculty → **Student results** for the trial assessments and evidence. Select **Run bias assessment** on the completed group or an individual encounter to use the supplied five-category OSCE criteria. Bias assessment stays separate from student feedback. Faculty inspection cannot change a student encounter.
 8. Switch to another student to check ownership. Use **Select open assessments** for the large **Individual patient** / **Patient group** choices. Ordinary individual practice provides immediate feedback. **My assignments** returns to faculty-assigned work.
 9. Separately demonstrate Faculty **Patient Studio → New patient → upload/extract → acknowledge/publish → Start visit**. Independent patient authoring remains available.
 
@@ -38,11 +38,11 @@ Both use a generic portrait and a common `presentationKey` for voice selection. 
 
 ## Remaining ownership
 
-| Owner                 | Remaining work                                                                                                                                    |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Faculty/case reviewer | Rehearse the ready cases and verify recorded assessments against the organizer rubric; review any custom clinical edits.                                  |
-| Bias teammate         | Implement detection and connect the [faculty-only integration contract](BIAS-INTEGRATION.md). No detector or sample findings are fabricated here. |
-| Speech/UI teammate    | Rehearse physical microphone, audio, common voice and generic portrait in Chrome/Edge.                                                            |
-| Demo teammate         | Record the assigned group, faculty results and independent new-patient creation; avoid claiming differences prove bias.                           |
+| Owner                 | Remaining work                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Faculty/case reviewer | Rehearse the ready cases and verify recorded assessments against the organizer rubric; review any custom clinical edits.                                     |
+| Bias teammate         | Calibrate the supplied OSCE assessment, expand contrasting examples and repeatability tests, and coordinate the [faculty-only adapter](BIAS-INTEGRATION.md). |
+| Speech/UI teammate    | Rehearse physical microphone, audio, common voice and generic portrait in Chrome/Edge.                                                                       |
+| Demo teammate         | Record the assigned group, faculty results and independent new-patient creation; avoid claiming differences prove bias.                                      |
 
 `npm test` covers the HTTP and DOM workflows with local inference. `node scripts/demo-smoke.js` uses real Bedrock and configured S3 in an isolated ignored data directory/cloud prefix, using the bundled prepared demo releases. It prints provider/storage results and writes ignored `output/group-smoke.json`. This does not publish cases in your active application store or replace faculty review.

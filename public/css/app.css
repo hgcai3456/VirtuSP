@@ -1550,10 +1550,60 @@ main {
 .bubble .chip {
   font-size: 11px;
 }
-.ehr-panel .tabs {
+.ehr-panel {
+  align-self: stretch;
+}
+.ai-patient-dialog {
+  max-width: 900px;
+}
+.patient-dialog.ai-patient-dialog .form-section {
+  padding: 14px;
+}
+.ai-brief textarea {
+  min-height: 110px;
+}
+.ai-case-preview {
+  padding: 8px 4px;
+}
+.ai-case-summary {
+  white-space: pre-line;
+  line-height: 1.6;
+}
+.ai-case-counts {
+  color: var(--ac);
+  font-weight: 600;
+  padding: 10px 0;
+}
+.ai-review-section {
+  border-top: 1px solid var(--bd);
+  padding: 12px 0;
+}
+.ai-review-section summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.ai-review-section li {
+  padding: 5px 0;
+}
+.ai-origin {
+  display: block;
+  color: var(--mu);
+  font-size: 12px;
+}
+.ehr-navigation {
+  position: sticky;
+  top: calc(var(--app-header-height, 85px) + env(safe-area-inset-top, 0px));
+  z-index: 4;
+  margin: -16px -16px 16px;
+  padding: 16px;
+  background: var(--pn);
+  border-bottom: 1px solid var(--bd);
+  border-radius: 14px 14px 0 0;
+}
+.ehr-navigation .tabs {
   gap: 4px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 .ehr-panel .tabs .btn.on {
   background: var(--ac);
@@ -2189,6 +2239,37 @@ summary:focus-visible {
 }
 .patient-dialog .editor > .patient-category h2 {
   margin: 10px 0;
+}
+.bias-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0 18px;
+}
+.bias-rubric {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.94rem;
+}
+.bias-rubric th,
+.bias-rubric td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line, #d6e2e3);
+  vertical-align: top;
+}
+.bias-rubric th:first-child {
+  width: 23%;
+}
+.bias-rubric td:nth-child(2) {
+  width: 19%;
+}
+.bias-rubric p {
+  margin: 0 0 8px;
+}
+.bias-citation {
+  margin: 6px 0;
+}
+.bias-citation q {
+  font-size: 0.9em;
 }
 @media (max-width: 680px) {
   .simulation-choices {

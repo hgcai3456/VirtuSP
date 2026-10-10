@@ -6,6 +6,8 @@ const test = require("node:test"),
   path = require("node:path");
 const { createApp } = require("../lib/http");
 const { cookieClient } = require("./http-client");
+const cloud = require("../lib/cloud");
+const bias = require("../lib/bias");
 test("Ready faculty assignment, assigned-first student entry, open choices and role clearing through the DOM", async () => {
   process.env.AI_ENABLED = "false";
   delete process.env.S3_BUCKET;
@@ -26,6 +28,11 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     }),
     w = dom.window,
     d = w.document;
+  const cloudOriginal = {
+    enabled: cloud.enabled,
+    bias: cloud.bias,
+    json: cloud.json,
+  };
   w.structuredClone = structuredClone;
   w.fetch = (url, opts) => client(new URL(url, base), opts);
   w.HTMLElement.prototype.scrollTo = () => {};
@@ -151,7 +158,10 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
       d.querySelector("#app").textContent.includes("Trial saved"),
     );
     assert.equal(d.querySelector(".score-num"), null);
-    assert.match(d.querySelector('[data-action="next-test"]').textContent, /Continue to next patient/);
+    assert.match(
+      d.querySelector('[data-action="next-test"]').textContent,
+      /Continue to next patient/,
+    );
     click("next-test");
     await wait(() => !!d.getElementById("question"));
     click("nav", '[data-tab="student-home"]');
@@ -168,7 +178,12 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     assert.ok(d.querySelector('[data-action="start-available"]'));
     click("start-available");
     await wait(() => !!d.getElementById("question"));
-    assert.match(d.querySelector("#app").textContent, /Trial 1 of 3/);
+    assert.match(d.querySelector("#app").textContent, /Trial 1 of 2/);
+    assert.equal(
+      d.querySelector('[src="/video/omar.mp4"]'),
+      null,
+      "Comparison names must not select different packaged clips",
+    );
     click("nav", '[data-tab="student-home"]');
     await wait(() => !!d.querySelector(".student-assignments"));
     assert.ok(
@@ -208,6 +223,39 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
       /Unassigned demo encounters/,
     );
     const record = Object.values(app.store.state.encounters)[0];
+    assert.ok(
+      d.querySelector('[data-action="analyze-bias"][data-type="attempt"]'),
+    );
+    click("analyze-bias", '[data-type="attempt"]');
+    await wait(() =>
+      d.querySelector("#app").textContent.includes("Analysis unavailable"),
+    );
+    assert.equal(
+      d.querySelector(".bias-rubric"),
+      null,
+      "Disabled AI cannot fabricate ratings",
+    );
+    cloud.enabled = () => true;
+    cloud.bias = async (input) => ({
+      evaluations: input.encounters.flatMap((e) =>
+        bias.rubric.categories.map((c) => ({
+          encounterId: e.id,
+          categoryId: c.id,
+          score: null,
+          reason: "No student questions were recorded to assess this category.",
+          evidence: [],
+          coaching: "",
+        })),
+      ),
+      comparisons: [],
+      limitations: ["Synthetic DOM fixture, not clinical validation."],
+    });
+    cloud.json = async () => ({ supported: true });
+    click("analyze-bias", '[data-type="attempt"]');
+    await wait(() => d.querySelectorAll(".bias-rubric tbody tr").length === 10);
+    assert.match(d.querySelector(".bias-rubric").textContent, /Not observable/);
+    assert.ok(d.querySelector('a[href="/api/bias/rubric/file"]'));
+    Object.assign(cloud, cloudOriginal);
     const submitted = await client(`/api/bias/encounter/${record.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -252,6 +300,7 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     assert.equal(d.querySelector(".cited-event"), null);
     assert.deepEqual(errors, []);
   } finally {
+    Object.assign(cloud, cloudOriginal);
     w.close();
     await app.store.flush();
     await new Promise((r) => app.server.close(r));

@@ -1,5 +1,16 @@
 "use strict";
 const $ = (s) => document.querySelector(s);
+const appHeader = $("body > header");
+function updateHeaderHeight() {
+  document.documentElement.style.setProperty(
+    "--app-header-height",
+    `${Math.ceil(appHeader.getBoundingClientRect().height)}px`,
+  );
+}
+updateHeaderHeight();
+if (typeof ResizeObserver !== "undefined")
+  new ResizeObserver(updateHeaderHeight).observe(appHeader);
+else window.addEventListener("resize", updateHeaderHeight);
 const esc = (s) =>
   String(s ?? "").replace(
     /[&<>"']/g,
@@ -87,6 +98,8 @@ let list = [],
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const wordingTried = new Set();
 const SILENCE_MS = 3000;
+let draftRecognition = null,
+  draftDictating = false;
 const liveSupported = () =>
   typeof window !== "undefined" &&
   !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -122,7 +135,13 @@ function value(path) {
 function control(
   label,
   path,
-  { type = "text", options = null, list = false, rows = false } = {},
+  {
+    type = "text",
+    options = null,
+    list = false,
+    rows = false,
+    readOnly = false,
+  } = {},
 ) {
   let v = value(path);
   if (list) v = (v || []).join(", ");
@@ -131,7 +150,7 @@ function control(
       .map((r) => [r.name, r.value, r.unit, r.ref].join(" | "))
       .join("\n");
   const id = "field-" + path.replace(/\./g, "-");
-  const attr = `id="${id}" data-path="${esc(path)}" ${list ? 'data-list="true"' : ""} ${rows ? 'data-rows="true"' : ""}`;
+  const attr = `id="${id}" data-path="${esc(path)}" ${readOnly ? "readonly" : ""} ${list ? 'data-list="true"' : ""} ${rows ? 'data-rows="true"' : ""}`;
   let input;
   if (options)
     input = `<select ${attr}>${options
@@ -176,6 +195,7 @@ function playMedia(el) {
   }
 }
 function packagedVisitVideo(enc) {
+  if (enc?.commonPresentation) return "";
   if (enc?.videoUrl) return enc.videoUrl;
   const id = String(enc?.profileId || "").toLowerCase();
   const name = String(enc?.name || "").toLowerCase();
@@ -257,7 +277,7 @@ async function pick(id) {
   dirty = false;
 }
 async function save() {
-  if (!profile || patientDialog?.mode === "new") return;
+  if (!profile || (patientDialog && patientDialog.mode !== "edit")) return;
   const r = await api("/api/profiles/" + profile.id, "PUT", { profile });
   issues = r.issues;
   dirty = false;
@@ -283,7 +303,7 @@ function studio() {
             ? -1
             : 0),
   );
-  return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("New patient", "new", "", "pri")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
+  return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
  ${studioGroups()}
  <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
  </div>`;
@@ -304,7 +324,7 @@ function editor() {
   const facts = profile.facts
     .map(
       (f, i) =>
-        `<div class="clinical-row" data-fact-index="${i}"><div class="clinical-main">${control("Finding", `facts.${i}.label`)}${control(
+        `<div class="clinical-row" data-fact-index="${i}"><div class="clinical-main">${control("Finding", `facts.${i}.label`, { readOnly: f.lab && !!f.generationId })}${control(
           "Available through",
           `facts.${i}.vis`,
           {
@@ -313,7 +333,7 @@ function editor() {
               ["chart", "Chart only"],
             ],
           },
-        )}${button("Remove", "remove-fact", `data-index="${i}"`)}</div>${f.vis === "ask" ? `<div class="patient-phrasing">${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}</div>` : ""}</div>`,
+        )}${button("Remove", "remove-fact", `data-index="${i}"`)}</div>${f.lab && f.generationId ? `<div class="fields">${control("Test", `facts.${i}.test`)}${control("Value", `facts.${i}.value`)}${control("Units", `facts.${i}.unit`)}</div>` : ""}${f.vis === "ask" ? `<div class="patient-phrasing">${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}</div>` : ""}</div>`,
     )
     .join("");
   const sources = profile.sources
@@ -389,6 +409,7 @@ function editor() {
   <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
 function openPatientDialog(mode, selected = profile) {
+  stopDraftDictation();
   patientDialog = {
     mode,
     previous: { profile, versions, issues, dirty },
@@ -399,7 +420,7 @@ function openPatientDialog(mode, selected = profile) {
     openSections: {},
   };
   profile =
-    mode === "new"
+    mode !== "edit"
       ? {
           id: crypto.randomUUID(),
           name: "",
@@ -420,7 +441,7 @@ function openPatientDialog(mode, selected = profile) {
           createdAt: new Date().toISOString(),
         }
       : structuredClone(selected);
-  versions = mode === "new" ? [] : versions;
+  versions = mode !== "edit" ? [] : versions;
   issues = [];
   dirty = false;
   if (mode === "edit") {
@@ -441,6 +462,7 @@ function openPatientDialog(mode, selected = profile) {
   }
 }
 function closePatientDialog(restore = true) {
+  stopDraftDictation();
   const returnTab = patientDialog?.returnTab;
   if (restore) ({ profile, versions, issues, dirty } = patientDialog.previous);
   patientDialog = null;
@@ -484,14 +506,8 @@ function syncDialogAttachments() {
       profile.artifacts = profile.artifacts.filter((a) => a !== report);
   }
 }
-function patientForm() {
-  if (!patientDialog) return "";
-  const d = patientDialog,
-    isNew = d.mode === "new";
-  return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
-    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
-    <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
-    <section class="form-section" id="patient-upload-area"><h2>Case documents</h2>
+function patientDocuments(d) {
+  return `<section class="form-section" id="patient-upload-area"><h2>${d.mode === "ai" ? "Optional documents" : "Case documents"}</h2>
       <div class="upload-zone" id="patient-drop-zone"><button type="button" class="upload-browse" data-action="browse-patient" aria-describedby="patient-upload-hint" ${busy ? "disabled" : ""}><span class="upload-icon" aria-hidden="true">↑</span><strong>${busy ? "Uploading files…" : "Drop files here"}</strong><span class="upload-prompt">or click to browse</span><span id="patient-upload-hint" class="upload-hint">PDF, TXT, PNG or JPG · Multiple files · 5 MB each</span></button><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" hidden ${busy ? "disabled" : ""}></div>
       ${d.files
         .map(
@@ -521,7 +537,171 @@ function patientForm() {
                 : ""
             }${button("Remove", "remove-upload", `data-index="${i}"`)}</div>`,
         )
-        .join("")}
+        .join("")}</section>`;
+}
+function draftSpeechButton() {
+  const el = $('[data-action="dictate-patient"]');
+  if (!el) return;
+  el.textContent = draftDictating ? "Stop dictation" : "Dictate brief";
+  el.setAttribute("aria-pressed", String(draftDictating));
+}
+function stopDraftDictation() {
+  const rec = draftRecognition;
+  draftRecognition = null;
+  draftDictating = false;
+  if (rec) {
+    rec.onresult = rec.onerror = rec.onend = null;
+    try {
+      rec.abort();
+    } catch {
+      /* Recognition may already have ended. */
+    }
+  }
+  draftSpeechButton();
+}
+function dictatePatient() {
+  if (draftDictating) {
+    stopDraftDictation();
+    return;
+  }
+  const Recognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition || !patientDialog) return;
+  stopAudio();
+  const d = patientDialog;
+  const before = d.description.trim();
+  const rec = new Recognition();
+  draftRecognition = rec;
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = "en-US";
+  rec.onresult = (event) => {
+    if (patientDialog !== d || draftRecognition !== rec) return;
+    const spoken = Array.from(event.results)
+      .map((r) => r[0].transcript)
+      .join(" ");
+    d.description = [before, spoken].filter(Boolean).join(" ");
+    const box = $("#patient-description");
+    if (box) box.value = d.description;
+    dirty = true;
+  };
+  rec.onerror = (event) => {
+    if (draftRecognition !== rec) return;
+    stopDraftDictation();
+    d.notice =
+      event.error === "not-allowed"
+        ? "Microphone permission was denied. Type your brief instead."
+        : "Dictation stopped. Your text is preserved; you can type or retry.";
+    render();
+  };
+  rec.onend = () => {
+    if (draftRecognition !== rec) return;
+    draftRecognition = null;
+    draftDictating = false;
+    draftSpeechButton();
+  };
+  try {
+    rec.start();
+    draftDictating = true;
+    draftSpeechButton();
+  } catch {
+    stopDraftDictation();
+    d.notice = "Dictation could not start. Type your brief instead.";
+    render();
+  }
+}
+function aiCaseReview() {
+  const groupFacts = (title, sections) => {
+    const facts = profile.facts.filter((f) => sections.includes(f.ehr));
+    return facts.length
+      ? `<details class="ai-review-section"><summary>${title} · ${facts.length} findings</summary><ul>${facts.map((f) => `<li><span class="ai-origin">${f.origin === "supplied" ? "From supplied material" : "AI-authored"}${f.vis === "chart" ? " · Chart only" : ""}${f.gate ? " · Guarded" : ""}</span>${esc(f.label)}</li>`).join("")}</ul></details>`
+      : "";
+  };
+  return `<section class="ai-case-preview"><span class="chip">AI-generated synthetic teaching case</span><h2>${esc(profile.name)}${profile.age == null ? "" : ", " + profile.age}</h2><p>${esc([profile.gender, profile.ethnicity].filter(Boolean).join(" · "))}</p><p class="ai-case-summary">${esc(profile.summary)}</p><p><b>Character:</b> ${esc(profile.personality)} ${esc(profile.style)} ${esc(profile.emotion)}</p><p><b>Opening:</b> ${esc(profile.intro)}</p><div class="ai-case-counts">${profile.facts.length} findings · ${profile.artifacts.length} reports · ${profile.obj.length} objectives</div>
+  ${groupFacts("History and patient perspective", ["hx", "soc"])}${groupFacts("Medications and clinical findings", ["meds", "labs", "img", "notes"])}
+  <details class="ai-review-section"><summary>Reports and learning objectives</summary>${profile.artifacts.map((a) => `<h3>${esc(a.title)}</h3>${artifactBody(a)}${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">View supplied original</a>` : ""}`).join("")}<h3>Learning objectives</h3><ul>${profile.obj.map((o) => `<li>${esc(o.t)}</li>`).join("")}</ul></details>
+  <details class="ai-review-section"><summary>Sources and intentionally unspecified details</summary><ul>${profile.sources.map((s) => `<li>${esc(s.title)}</li>`).join("")}</ul>${profile.missing.map((m) => `<p>${esc(m)}</p>`).join("")}</details>
+  ${button("Edit patient details", "edit-ai-details")}
+  <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></section>`;
+}
+function refreshGeneratedReports() {
+  if (profile.provenance?.kind !== "ai-synthetic") return;
+  for (const f of profile.facts) {
+    if (f.lab && f.generationId && f.value) {
+      f.label = `${f.test}: ${f.value} ${f.unit || ""}${f.ref ? " · Context: " + f.ref : ""}${f.date ? " · Date: " + f.date : ""}`;
+      const field = document.getElementById(
+        "field-facts-" + profile.facts.indexOf(f) + "-label",
+      );
+      if (field) field.value = f.label;
+    }
+  }
+  for (const a of profile.artifacts.filter(
+    (a) => a.origin === "ai-synthetic",
+  )) {
+    const facts = profile.facts.filter((f) => a.facts.includes(f.id));
+    a.text = facts
+      .filter((f) => !f.lab)
+      .map((f) => f.label)
+      .join("\n");
+    a.rows = facts
+      .filter((f) => f.lab)
+      .map((f) => ({ name: f.test, value: f.value, unit: f.unit, ref: f.ref }));
+  }
+}
+function aiPatientForm() {
+  const d = patientDialog;
+  return `<dialog id="patient-dialog" class="patient-dialog ai-patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form"><div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">AI Generate a new Patient</h1></div>${button("Cancel", "close-patient")}</div><div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
+  ${!d.generated ? `<section class="form-section ai-brief"><h2>What kind of patient would you like?</h2><label for="patient-description">A short brief is enough</label><textarea id="patient-description" rows="4" maxlength="8000" placeholder="For example: an adult with high cholesterol who is worried about starting medication.">${esc(d.description)}</textarea><div class="row">${button(draftDictating ? "Stop dictation" : "Dictate brief", "dictate-patient", `aria-pressed="${draftDictating}" ${liveSupported() ? "" : "disabled"}`)}${!liveSupported() ? '<span class="muted">Dictation is available in supported Chrome/Edge browsers.</span>' : ""}</div><p class="muted">AI builds the history, character, clinical findings, chart reports and learning objectives. Added details are fictional.</p></section>${patientDocuments(d)}` : d.editGenerated ? editor() + button("Back to summary", "edit-ai-details") : aiCaseReview()}
+  </fieldset></div><div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${d.generated ? `${button("Change brief", "change-ai-brief")}${button("Regenerate", "regenerate-ai")}${button("Save draft", "save-patient")}${button("Create & publish patient", "submit-patient", "", "pri")}` : `${d.hasGenerated ? button("Back to generated case", "back-ai-review") : ""}${button("Random patient", "random-ai")}${button(busy ? "Generating…" : "Generate patient", "generate-ai", "", "pri")}`}</div></div></form></dialog>${d.validationError ? `<dialog id="publication-error" class="submission-error" role="alertdialog" aria-labelledby="publication-error-title" aria-describedby="publication-error-message"><h2 id="publication-error-title">Before publishing</h2><p id="publication-error-message">${esc(d.validationError.text)}</p>${button("Back to form", "dismiss-publication-error", "", "pri")}</dialog>` : ""}`;
+}
+async function generatePatient(random = false) {
+  stopDraftDictation();
+  const d = patientDialog;
+  busy = true;
+  d.notice =
+    "Generating a complete synthetic case and checking consistency. This can take a couple of minutes…";
+  render();
+  try {
+    const r = await api("/api/generate-synthetic", "POST", {
+      description: random ? "" : d.description,
+      files: random
+        ? []
+        : d.files.map(({ id, role, section }) => ({ id, role, section })),
+      random,
+    });
+    profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
+    profile.reviewAcknowledged = false;
+    d.generated = true;
+    d.hasGenerated = true;
+    d.editGenerated = false;
+    d.lastRandom = random;
+    if (random) {
+      d.description = "";
+      d.files = [];
+    }
+    d.notice =
+      "Case ready. Review the findings and publish, or save a draft." +
+      (r.unreadFiles?.length
+        ? ` Not read by AI: ${r.unreadFiles.join(", ")}. Originals remain attached.`
+        : "");
+    dirty = true;
+  } catch (error) {
+    d.notice = error.message;
+  } finally {
+    busy = false;
+    render();
+  }
+}
+function patientForm() {
+  if (!patientDialog) return "";
+  if (patientDialog.mode === "ai") return aiPatientForm();
+  const d = patientDialog,
+    isNew = d.mode === "new";
+  return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
+    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
+    <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
+    ${patientDocuments(d)}
+    <section class="form-section">
       <label for="patient-description">Additional patient details (optional)</label><textarea id="patient-description" rows="2" placeholder="Describe the case or add missing details.">${esc(d.description)}</textarea>
       ${button(busy ? "Extracting…" : "Extract & fill form", "parse-patient", "", "pri")}<p class="muted">Text PDFs supported; scans need transcription. Extraction replaces the fields below.</p>
     </section>
@@ -565,7 +745,7 @@ async function submitPatient(publish) {
   render();
   try {
     const id = profile.id;
-    if (d.mode === "new")
+    if (d.mode !== "edit")
       await api("/api/profiles", "POST", { profile, publish });
     else {
       await api("/api/profiles/" + id, "PUT", { profile });
@@ -677,17 +857,8 @@ function encounter() {
     ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  const stage = [
-    live ? "video-call camera-on" : waiting ? "ringing" : "",
-    paused ? "paused" : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const pauseAttrs = live
-    ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"'
-    : "";
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed video call" : "Video call"}</div>${emergency}${incoming}<div class="av-frame${stage ? " " + stage : ""}" id="avf"${pauseAttrs}><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas id="patient-call" class="patient-call" width="640" height="480" aria-hidden="true"></canvas><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><video id="patient-video" class="patient-video" playsinline></video>${live ? `<div class="self-view" id="self-view"><video id="student-camera" class="self-camera" muted autoplay playsinline></video><span class="self-label" id="self-label">You</span></div>` : ""}<span class="av-live">Camera on</span><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${esc(readyStatus())}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${live && !studentStream ? button("Turn your camera on", "student-camera") : ""}</div></div><form id="question-form"><label for="question">${waiting ? "Answer the video call to talk" : "Ask the patient"}</label><div class="row"><input id="question" maxlength="2000" placeholder="${waiting ? "The camera turns on when you answer" : "Type a question or use the microphone"}" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : first}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
- <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div>${conversationFiles()}<div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}${docLightbox()}</section></div>`;
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+ <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
   return ["ecg", "ct", "image"].includes(a.kind);
@@ -962,7 +1133,7 @@ function assessment() {
   ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
   <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
   ${biasEvidenceView()}${body}
-  ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis) : ""}
+  ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis, "encounter", enc.id, enc.status === "complete") : ""}
   <div class="row rep-actions">${enc.attemptId ? button("Assigned tests", "nav", 'data-tab="tests"', "pri") : button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
   <p class="muted small">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}${a.revised ? " · revised once after automated review" : ""}${a.failure ? " · fallback: " + esc(a.failure) : ""}</p></div>`;
 }
@@ -1183,9 +1354,32 @@ function testCatalog() {
       .join("") || "<p>No assessments assigned yet.</p>"
   }</div>`;
 }
-function biasPanel(result) {
+function biasPanel(result, type, id, ready) {
   const r = result || { status: "pending", findings: [], limitations: [] };
-  return `<section class="bias-panel"><h3>Possible bias indicators · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}${r.detectorVersion ? ` · ${esc(r.detectorVersion)}` : ""}</p>${r.findings.map((f) => `<p>${esc(f.text)}</p><div class="row">${f.evidence.map((ref) => button("View cited event", "bias-evidence", `data-id="${esc(ref.encounterId)}" data-event="${esc(ref.eventId)}"`)).join("")}</div>`).join("")}${r.status === "complete" && !r.findings.length ? "<p>No indicators reported by this detector.</p>" : ""}${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from rubric ratings. Encounter differences alone do not establish bias.</p></section>`;
+  const scored = r.rubricAssessment;
+  const citations = (refs) =>
+    refs
+      .map(
+        (ref) =>
+          `<div class="bias-citation">${ref.quote ? `<q>${esc(ref.quote)}</q> ` : ""}${button("View cited event", "bias-evidence", `data-id="${esc(ref.encounterId)}" data-event="${esc(ref.eventId)}"`)}</div>`,
+      )
+      .join("");
+  const tables = scored
+    ? scored.encounters
+        .map(
+          (e) =>
+            `<h4>${esc(e.name)} · version ${esc(e.version)}</h4><div class="bias-table-wrap"><table class="bias-rubric"><thead><tr><th>Category</th><th>Performance</th><th>Evidence and coaching</th></tr></thead><tbody>${scored.evaluations
+              .filter((v) => v.encounterId === e.id)
+              .map(
+                (v) =>
+                  `<tr><th scope="row">${esc(scored.rubric.categories.find((c) => c.id === v.categoryId)?.name || v.categoryId)}</th><td>${v.score === null ? "Not observable" : `${v.score} · ${esc(scored.rubric.scale[v.score])}`}</td><td><p>${esc(v.reason)}</p>${citations(v.evidence)}${v.coaching ? `<p class="muted">Next time: ${esc(v.coaching)}</p>` : ""}</td></tr>`,
+              )
+              .join("")}</tbody></table></div>`,
+        )
+        .join("")
+    : "";
+  const findings = scored ? scored.comparisons : r.findings;
+  return `<section class="bias-panel"><h3>Bias assessment · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}</p>${ready ? button(r.status === "complete" ? "Recheck bias assessment" : "Run bias assessment", "analyze-bias", `data-type="${esc(type)}" data-id="${esc(id)}"`, "pri") : '<p class="muted">Available after this encounter or all group trials finish.</p>'} <a href="/api/bias/rubric/file" target="_blank" rel="noopener">View source rubric</a><p class="muted">Five separate performance ratings: 1 Unsatisfactory to 4 Exemplary. Higher is stronger performance. No combined bias score.</p>${tables}${findings.length ? `<h4>Possible bias indicators for faculty review</h4>${findings.map((f) => `<p>${esc(f.text)}</p>${citations(f.evidence)}`).join("")}` : r.status === "complete" ? "<p>No additional indicators reported; this does not establish absence of bias.</p>" : ""}<details><summary>Limits of this analysis</summary>${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from the student's seven-domain assessment. Encounter differences alone do not establish bias.</p></details></section>`;
 }
 function biasEvidenceView() {
   if (demoSession?.role !== "faculty" || !selectedEvidenceId) return "";
@@ -1195,7 +1389,7 @@ function biasEvidenceView() {
   return `<section class="bias-panel cited-event"><h2>Cited encounter event</h2><p>${esc(event.type)} · ${esc(new Date(event.at).toLocaleString())}</p><p>${esc(turn?.text || event.text || "Recorded encounter action")}</p><p class="muted">${esc(event.id)}</p></section>`;
 }
 function resultsPage() {
-  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis)}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis)}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
+  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis, "attempt", a.id, a.status === "complete")}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis, "encounter", e.id, e.status === "complete")}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
 }
 function render() {
   if (!demoSession) {
@@ -1523,6 +1717,7 @@ function attachTalkVideo() {
   playMedia(v);
 }
 async function warmTalkVideo() {
+  if (enc?.commonPresentation) return;
   if (packagedVisitVideo(enc)) {
     attachTalkVideo();
 
@@ -2191,6 +2386,7 @@ async function upload(file) {
 }
 async function addPatientFiles(files) {
   if (!patientDialog || busy || !files.length) return;
+  stopDraftDictation();
   busy = true;
   patientDialog.notice = "Uploading and extracting document text…";
   render();
@@ -2209,7 +2405,9 @@ async function addPatientFiles(files) {
         section: "notes",
       });
     patientDialog.notice =
-      "Choose each document’s purpose, then Extract & fill form.";
+      patientDialog.mode === "ai"
+        ? "Files attached. Choose their purpose, then Generate patient. AI reads selectable PDF/TXT text; image originals are preserved."
+        : "Choose each document’s purpose, then Extract & fill form.";
   } catch (error) {
     patientDialog.notice = error.message;
   } finally {
@@ -2285,6 +2483,7 @@ document.addEventListener("input", async (e) => {
   }
   if (t.id === "new-student-alias") newStudentAlias = t.value;
   if (t.id === "patient-description") {
+    stopDraftDictation();
     patientDialog.description = t.value;
     dirty = true;
     return;
@@ -2324,6 +2523,7 @@ document.addEventListener("input", async (e) => {
     if (t.dataset.path === "rubricApplicable") v = v.map(Number);
     if (keys.at(-1) === "lab") v = v === "true";
     obj[keys.at(-1)] = v;
+    refreshGeneratedReports();
     if (keys.at(-1) === "vis" && keys[0] === "facts") {
       if (v === "chart") obj.sec ||= obj.ehr || "hx";
       render();
@@ -2356,7 +2556,11 @@ document.addEventListener("input", async (e) => {
 document.addEventListener("submit", (e) => {
   if (e.target.id === "patient-form") {
     e.preventDefault();
-    if (!busy) submitPatient(true);
+    if (!busy) {
+      if (patientDialog.mode === "ai" && !patientDialog.generated)
+        generatePatient();
+      else submitPatient(true);
+    }
   }
   if (e.target.id === "question-form") {
     e.preventDefault();
@@ -2417,6 +2621,7 @@ document.addEventListener("click", async (e) => {
         "next-test",
         "add-student",
         "bias-evidence",
+        "analyze-bias",
       ].includes(a)
     ) {
       busy = true;
@@ -2436,6 +2641,7 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "switch-role") {
       stopAudio();
+      stopDraftDictation();
       await api("/api/session", "DELETE");
       demoSession = null;
       enc = null;
@@ -2522,6 +2728,19 @@ document.addEventListener("click", async (e) => {
       section = "ov";
       tab = "enc";
     }
+    if (a === "analyze-bias") {
+      const result = await api(
+        `/api/bias/${t.dataset.type}/${t.dataset.id}/analyze`,
+        "POST",
+        {},
+      );
+      await refresh();
+      if (enc) enc = (await api(`/api/encounters/${enc.id}`)).encounter;
+      message =
+        result.biasAnalysis.status === "complete"
+          ? "Faculty bias assessment ready."
+          : "Bias assessment unavailable. See the analysis limits and retry.";
+    }
     if (a === "bias-evidence") {
       enc = (await api(`/api/encounters/${t.dataset.id}`)).encounter;
       selectedEvidenceId = t.dataset.event;
@@ -2563,6 +2782,31 @@ document.addEventListener("click", async (e) => {
       if (dirty) await save();
       tab = "studio";
       openPatientDialog("new");
+    }
+    if (a === "new-ai") {
+      if (dirty) await save();
+      stopAudio();
+      tab = "studio";
+      openPatientDialog("ai");
+    }
+    if (a === "dictate-patient") {
+      dictatePatient();
+      return;
+    }
+    if (["generate-ai", "random-ai", "regenerate-ai"].includes(a)) {
+      await generatePatient(
+        a === "random-ai" ||
+          (a === "regenerate-ai" && patientDialog.lastRandom),
+      );
+      return;
+    }
+    if (a === "edit-ai-details") {
+      patientDialog.editGenerated = !patientDialog.editGenerated;
+    }
+    if (a === "change-ai-brief" || a === "back-ai-review") {
+      stopDraftDictation();
+      patientDialog.generated = a === "back-ai-review";
+      patientDialog.notice = "";
     }
     if (a === "close-patient") {
       closePatientDialog();
