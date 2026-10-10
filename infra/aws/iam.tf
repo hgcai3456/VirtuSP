@@ -50,6 +50,28 @@ resource "aws_iam_role" "task" {
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks.json
 }
 
+resource "aws_iam_role_policy" "task_bedrock" {
+  name = "${var.name}-bedrock"
+  role = aws_iam_role.task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream"
+        ]
+        Resource = [
+          "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:inference-profile/${var.bedrock_model_id}",
+          "arn:aws:bedrock:*::foundation-model/*"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "task_exec" {
   name = "${var.name}-exec"
   role = aws_iam_role.task.id

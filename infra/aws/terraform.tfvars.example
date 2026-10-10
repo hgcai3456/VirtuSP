@@ -6,6 +6,9 @@ image_tag    = "latest"
 # from CloudFront. Microphone access requires that HTTPS address.
 # certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
 
+# Patient and encounter requests use this Bedrock profile through the task role.
+# bedrock_model_id = "us.anthropic.claude-sonnet-4-6"
+
 db_instance_class = "db.t4g.micro"
 deletion_protection = false
 

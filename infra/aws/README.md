@@ -62,6 +62,10 @@ Application Auto Scaling tracks both average CPU (70%) and average memory (75%).
 
 RDS storage autoscaling is already on: the database starts at 20 GiB and can grow to 100 GiB. The same bounds are set in `infra/rds`.
 
+## Bedrock
+
+The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID`. Patient replies and encounter turns call that model with the task role. There is no model API key to store. The role may invoke the configured inference profile and the foundation models that profile routes to. A reply is sent only when it keeps the server-approved patient line.
+
 ## HTTPS
 
 With no `certificate_arn`, the public site is a CloudFront address (`https://….cloudfront.net`) that uses Amazon's trusted certificate. Port 80 on the load balancer redirects there. CloudFront reaches the app with a private header, so opening the load balancer name directly does not skip TLS. The HTTPS page is a secure context, and the response allows microphone access with `Permissions-Policy: microphone=(self)`.

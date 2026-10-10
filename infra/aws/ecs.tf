@@ -63,6 +63,9 @@ resource "aws_ecs_task_definition" "app" {
         { name = "VIRTUSP_DB", value = "/app/data/virtusp.sqlite" },
         { name = "VIRTUSP_SQLITE_JOURNAL", value = "DELETE" },
         { name = "VIRTUSP_SQLITE_EXCLUSIVE", value = "0" },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "AI_ENABLED", value = "true" },
+        { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
         { name = "PGHOST", value = aws_db_instance.this.address },
         { name = "PGPORT", value = tostring(aws_db_instance.this.port) },
         { name = "PGDATABASE", value = var.db_name }

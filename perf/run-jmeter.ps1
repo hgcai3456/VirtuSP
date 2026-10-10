@@ -8,7 +8,9 @@
 param(
   [int]$MaxUsers = 100000,
   [string]$TargetHost = "127.0.0.1",
-  [int]$Port = 3099
+  [int]$Port = 3099,
+  [switch]$Ci,
+  [string]$JUnitPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -50,6 +52,55 @@ function Test-StageFits {
   if ($Threads -le 5 -and $AvailableMB -ge 250) { return $true }
   # 2 MB per thread, 200 MB for the JMeter process, 150 MB left for the OS.
   return ($AvailableMB - (200 + (2 * $Threads))) -ge 150
+}
+
+function Escape-Xml([string]$Value) {
+  if ($null -eq $Value) { return "" }
+  return (($Value -replace '&', '&amp;') -replace '<', '&lt;') -replace '>', '&gt;' -replace '"', '&quot;'
+}
+
+function Write-PerfJUnit {
+  param($Path, $Stages, $Visit, $Failure)
+  $cases = @()
+  foreach ($stage in @($Stages)) {
+    if (-not $stage) { continue }
+    $name = "student-session-$($stage.threads)"
+    $detail = Escape-Xml "samples=$($stage.samples) errorPct=$($stage.errorPct) rps=$($stage.rps) p95Ms=$($stage.p95Ms)"
+    $body = "<system-out>$detail</system-out>"
+    if ($stage.status -eq "failed") {
+      $message = Escape-Xml ([string]$stage.reason)
+      $body = "<failure message=`"$message`">$message</failure>"
+    } elseif ($stage.status -eq "skipped") {
+      $message = Escape-Xml ([string]$stage.reason)
+      $body = "<skipped message=`"$message`" />"
+    }
+    $cases += "  <testcase classname=`"perf.jmeter`" name=`"$name`">$body</testcase>"
+  }
+  if ($Visit) {
+    $name = "visit-$($Visit.threads)"
+    $detail = Escape-Xml "samples=$($Visit.samples) errorPct=$($Visit.errorPct) rps=$($Visit.rps) p95Ms=$($Visit.p95Ms)"
+    $body = "<system-out>$detail</system-out>"
+    if ($Visit.status -eq "failed") {
+      $message = Escape-Xml "visit errorPct=$($Visit.errorPct)"
+      $body = "<failure message=`"$message`">$message</failure>"
+    } elseif ($Visit.status -eq "skipped") {
+      $body = "<skipped message=`"visit skipped`" />"
+    }
+    $cases += "  <testcase classname=`"perf.jmeter`" name=`"$name`">$body</testcase>"
+  } elseif ($Failure) {
+    $message = Escape-Xml $Failure
+    $cases += "  <testcase classname=`"perf.jmeter`" name=`"runner`"><failure message=`"$message`">$message</failure></testcase>"
+  }
+  if ($cases.Count -eq 0) {
+    $message = Escape-Xml $(if ($Failure) { $Failure } else { "No performance stages ran." })
+    $cases += "  <testcase classname=`"perf.jmeter`" name=`"runner`"><failure message=`"$message`">$message</failure></testcase>"
+  }
+  $failures = @($cases | Where-Object { $_ -match "<failure " }).Count
+  $skipped = @($cases | Where-Object { $_ -match "<skipped " }).Count
+  $xml = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<testsuite name=`"jmeter`" tests=`"$($cases.Count)`" failures=`"$failures`" skipped=`"$skipped`">`r`n$($cases -join "`r`n")`r`n</testsuite>`r`n"
+  $parent = Split-Path $Path
+  if ($parent) { New-Item -ItemType Directory -Force -Path $parent | Out-Null }
+  Set-Content -Path $Path -Value $xml -Encoding utf8
 }
 
 function Get-SkipReason {
@@ -354,6 +405,26 @@ $latestPath = Join-Path $repo "output\perf\latest-summary.json"
 $report | ConvertTo-Json -Depth 8 | Set-Content -Path $summaryPath -Encoding utf8
 New-Item -ItemType Directory -Force -Path (Split-Path $latestPath) | Out-Null
 Copy-Item $summaryPath $latestPath -Force
+if ($Ci) {
+  $ciSummary = Join-Path $repo "reports\perf\summary.json"
+  New-Item -ItemType Directory -Force -Path (Split-Path $ciSummary) | Out-Null
+  Copy-Item $summaryPath $ciSummary -Force
+  if (-not $JUnitPath) { $JUnitPath = Join-Path $repo "reports\junit\perf.xml" }
+}
+if ($JUnitPath) {
+  Write-PerfJUnit -Path $JUnitPath -Stages $stages -Visit $visit -Failure $stopReason
+}
 Write-Output "SUMMARY $summaryPath"
 $report | ConvertTo-Json -Depth 6
-if ($highestAttempted -lt 1 -and (-not $visit -or $visit.status -ne "passed")) { exit 1 }
+$exitCode = 0
+if ($highestAttempted -lt 1 -and (-not $visit -or $visit.status -ne "passed")) { $exitCode = 1 }
+if ($Ci) {
+  $readOk = @($stages | Where-Object { $_.plan -eq "student-session" -and $_.status -eq "passed" }).Count -gt 0
+  $visitOk = $visit -and $visit.status -eq "passed"
+  $anyFailed = @($stages | Where-Object { $_.status -eq "failed" }).Count -gt 0 -or ($visit -and $visit.status -eq "failed")
+  if (-not $readOk -or -not $visitOk -or $anyFailed) {
+    Write-Output "CI performance gate failed. A read stage and the local visit must pass, and no executed stage may fail."
+    $exitCode = 1
+  }
+}
+if ($exitCode -ne 0) { exit $exitCode }

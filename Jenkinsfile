@@ -14,6 +14,12 @@
 // Live regression then opens the public load balancer in headless Chrome.
 // Set VIRTUSP_URL on the job to target a different address. The agent needs
 // outbound HTTP to that host.
+//
+// Performance runs the JMeter plans in perf/jmeter against the loopback server.
+// The agent needs Java and PowerShell. The stage fails unless a read-only
+// session and the local visit both pass. Larger thread counts, up to 100000,
+// run only when the agent can allocate them. The plans stay on 127.0.0.1 and
+// do not call Bedrock.
 
 @NonCPS
 def isMainBranch() {
@@ -95,6 +101,18 @@ pipeline {
             }
         }
 
+        stage('Performance tests') {
+            options {
+                timeout(time: 30, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    // Local engine only. The runner refuses any host other than loopback.
+                    runCmd('npm run perf:ci')
+                }
+            }
+        }
+
         stage('Regression tests') {
             options {
                 timeout(time: 45, unit: 'MINUTES')
@@ -161,7 +179,7 @@ pipeline {
     post {
         always {
             junit testResults: 'reports/junit/*.xml', allowEmptyResults: true
-            archiveArtifacts artifacts: 'reports/junit/*.xml,reports/coverage/lcov.info,tests/e2e/reports/**,data/prompts-tested.csv,data/e2e-server.log', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'reports/junit/*.xml,reports/coverage/lcov.info,reports/perf/**,tests/e2e/reports/**,data/prompts-tested.csv,data/e2e-server.log', allowEmptyArchive: true
         }
     }
 }

@@ -4,7 +4,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
-const defaultUrl = process.env.VIRTUSP_URL || 'http://virtusp-798756703.us-west-2.elb.amazonaws.com';
+const defaultUrl = process.env.VIRTUSP_URL || 'https://d18g7r2mfy8mll.cloudfront.net';
 
 function arg(name, fallback) {
   const index = process.argv.indexOf(name);

@@ -155,6 +155,12 @@ variable "autoscaling_cpu_target" {
   }
 }
 
+variable "bedrock_model_id" {
+  type        = string
+  description = "Bedrock inference profile the task calls for patient replies. The task role is used; there is no model API key."
+  default     = "us.anthropic.claude-sonnet-4-6"
+}
+
 variable "autoscaling_memory_target" {
   type        = number
   description = "Target average memory utilization for the ECS service, as a percent."

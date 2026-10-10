@@ -18,6 +18,7 @@
     "test:regression": "node agents/regression.js",
     "test:live": "node agents/live-regression.js",
     "perf": "powershell -NoProfile -ExecutionPolicy Bypass -File perf/run-jmeter.ps1",
+    "perf:ci": "node perf/ci.js",
     "prepare": "node scripts/install-git-hooks.js",
     "orchestrate": "node agents/orchestrator.js --tests",
     "ingest": "node agents/ingest.js",

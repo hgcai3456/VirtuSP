@@ -95,6 +95,9 @@ resource "aws_cloudfront_distribution" "app" {
 
   viewer_certificate {
     cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1.2_2021"
+    # The default *.cloudfront.net certificate only accepts this policy name.
+    # Browsers still negotiate TLS 1.2 or 1.3. Raising the floor needs an ACM
+    # certificate on a domain you control.
+    minimum_protocol_version = "TLSv1"
   }
 }
