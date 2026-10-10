@@ -68,7 +68,9 @@ resource "aws_ecs_task_definition" "app" {
         { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
         { name = "PGHOST", value = aws_db_instance.this.address },
         { name = "PGPORT", value = tostring(aws_db_instance.this.port) },
-        { name = "PGDATABASE", value = var.db_name }
+        { name = "PGDATABASE", value = var.db_name },
+        { name = "PROFILE_ARCHIVE", value = "true" },
+        { name = "PROFILE_S3_BUCKET", value = aws_s3_bucket.reports.id }
       ]
       secrets = [
         { name = "PGUSER", valueFrom = "${local.db_secret_arn}:username::" },
@@ -169,6 +171,11 @@ resource "aws_ecs_service" "app" {
     rollback = true
   }
 
+  # The two public subnets are in different Availability Zones. Fargate
+  # spreads these tasks across both, so the minimum of four containers is
+  # two per zone. Availability Zone rebalancing stays off: AWS requires
+  # maximumPercent above 100, and a rollout must not open the shared EFS
+  # database from two task revisions at once.
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]
