@@ -386,7 +386,7 @@ function patientForm() {
     <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
     <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
     <section class="form-section"><h2>Case documents</h2>
-      <label class="upload-zone">Choose PDF, TXT or image files <span>Multiple files · 5 MB each</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
+      <label class="upload-zone" id="patient-drop-zone">Drag files here or browse<span>PDF, TXT, PNG or JPG · Multiple files · 5 MB each</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" ${busy ? "disabled" : ""}></label>
       ${d.files
         .map(
           (f, i) =>
@@ -920,6 +920,58 @@ async function upload(file) {
     })
   ).file;
 }
+async function addPatientFiles(files) {
+  if (!patientDialog || busy || !files.length) return;
+  busy = true;
+  patientDialog.notice = "Uploading and extracting document text…";
+  render();
+  try {
+    // Validate the batch before uploading; browse and drop use the same path.
+    for (const file of files) {
+      if (!/\.(pdf|txt|png|jpe?g)$/i.test(file.name))
+        throw new Error("Choose PDF, TXT, PNG or JPG files.");
+      if (file.size > 5 * 1024 * 1024)
+        throw new Error(`${file.name}: upload files up to 5 MB.`);
+    }
+    for (const file of files)
+      patientDialog.files.push({
+        ...(await upload(file)),
+        role: "case",
+        section: "notes",
+      });
+    patientDialog.notice =
+      "Choose each document’s purpose, then Extract & fill form.";
+  } catch (error) {
+    patientDialog.notice = error.message;
+  } finally {
+    // A partially uploaded batch remains attached if a later file fails.
+    syncDialogAttachments();
+    profile.reviewAcknowledged = false;
+    dirty = true;
+    busy = false;
+    render();
+  }
+}
+for (const type of ["dragenter", "dragover", "dragleave", "drop"])
+  document.addEventListener(type, (e) => {
+    if (!patientDialog || !e.target.closest("#patient-dialog")) return;
+    // Prevent file drops elsewhere in the form from navigating away.
+    if (type === "dragover" || type === "drop") e.preventDefault();
+    const zone = $("#patient-drop-zone");
+    if (!zone) return;
+    const inside = zone.contains(e.target);
+    if (type === "dragenter" || type === "dragover") {
+      zone.classList.toggle("drag-active", inside && !busy);
+      if (e.dataTransfer)
+        e.dataTransfer.dropEffect = inside && !busy ? "copy" : "none";
+    }
+    if (type === "dragleave" && !zone.contains(e.relatedTarget))
+      zone.classList.remove("drag-active");
+    if (type === "drop") {
+      zone.classList.remove("drag-active");
+      if (inside) addPatientFiles(Array.from(e.dataTransfer?.files || []));
+    }
+  });
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "patient-description") {
@@ -1006,23 +1058,7 @@ document.addEventListener("change", async (e) => {
       render();
     }
     if (e.target.id === "patient-upload") {
-      const files = Array.from(e.target.files || []);
-      busy = true;
-      patientDialog.notice = "Uploading and extracting document text…";
-      render();
-      for (const file of files)
-        patientDialog.files.push({
-          ...(await upload(file)),
-          role: "case",
-          section: "notes",
-        });
-      syncDialogAttachments();
-      patientDialog.notice =
-        "Choose each document’s purpose, then Extract & fill form. Your original files are preserved.";
-      profile.reviewAcknowledged = false;
-      dirty = true;
-      busy = false;
-      render();
+      await addPatientFiles(Array.from(e.target.files || []));
     }
     if (e.target.id === "csv-import") {
       const r = await api("/api/import", "POST", {

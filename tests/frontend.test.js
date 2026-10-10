@@ -108,7 +108,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     ]);
     const input = doc.getElementById("patient-upload");
     Object.defineProperty(input, "files", {
-      value: ["Case.pdf", "History.pdf", "Context.pdf"].map((name) => ({
+      value: ["Case.pdf"].map((name) => ({
         name,
         type: "application/pdf",
         arrayBuffer: async () => pdf,
@@ -117,8 +117,50 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     input.dispatchEvent(new window.Event("change", { bubbles: true }));
     await wait(
       () =>
+        doc.querySelectorAll(".uploaded-document").length === 1 &&
+        !doc.querySelector('[data-action="parse-patient"]').disabled,
+    );
+    const drag = (type, files = []) => {
+      const event = new window.Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "dataTransfer", {
+        value: { files, dropEffect: "none" },
+      });
+      doc.getElementById("patient-drop-zone").dispatchEvent(event);
+      return event;
+    };
+    drag("dragenter");
+    assert.ok(
+      doc.getElementById("patient-drop-zone").classList.contains("drag-active"),
+    );
+    const over = drag("dragover");
+    assert.equal(over.defaultPrevented, true);
+    assert.equal(over.dataTransfer.dropEffect, "copy");
+    drag("dragleave");
+    assert.ok(
+      !doc
+        .getElementById("patient-drop-zone")
+        .classList.contains("drag-active"),
+    );
+    const dropped = drag(
+      "drop",
+      ["History.pdf", "Context.pdf"].map((name) => ({
+        name,
+        type: "application/pdf",
+        arrayBuffer: async () => pdf,
+      })),
+    );
+    assert.equal(dropped.defaultPrevented, true);
+    // An overlapping drop must not queue duplicate uploads.
+    drag("drop", [{ name: "Duplicate.pdf", arrayBuffer: async () => pdf }]);
+    await wait(
+      () =>
         doc.querySelectorAll(".uploaded-document").length === 3 &&
         !doc.querySelector('[data-action="parse-patient"]').disabled,
+    );
+    assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
+    drag("drop", [{ name: "Unsupported.exe", arrayBuffer: async () => pdf }]);
+    await wait(() =>
+      doc.querySelector(".form-notice")?.textContent.includes("Choose PDF"),
     );
     assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
     click("file-purpose", '[data-index="2"][data-role="clinical"]');

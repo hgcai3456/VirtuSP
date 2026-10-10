@@ -7,6 +7,7 @@
     "start": "node server.js",
     "test": "node --test --test-timeout=30000 tests/*.test.js",
     "preflight": "node scripts/preflight.js",
+    "corpus:fetch": "node scripts/fetch-corpus.js",
     "evaluate": "node scripts/evaluate.js",
     "evaluate:local": "node scripts/evaluate.js --local",
     "setup:aws": "node scripts/storage.js configure",

@@ -908,6 +908,13 @@ main {
 .upload-zone input {
   width: 100%;
 }
+.upload-zone.drag-active,
+.upload-zone:focus-within {
+  border-color: var(--ac);
+  background: var(--bg);
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
 .uploaded-document {
   border: 1px solid var(--bd);
   border-radius: 10px;
