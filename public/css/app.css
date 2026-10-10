@@ -817,7 +817,7 @@ main {
 }
 .patient-dialog {
   padding: 0;
-  width: min(860px, calc(100vw - 32px));
+  width: min(800px, calc(100vw - 32px));
   max-height: calc(100dvh - 40px);
   border: 1px solid var(--bd);
   border-radius: 18px;
@@ -835,7 +835,7 @@ main {
 }
 .patient-dialog-head,
 .patient-dialog-footer {
-  padding: 20px 28px;
+  padding: 12px 18px;
   flex-shrink: 0;
   background: var(--pn);
 }
@@ -847,14 +847,14 @@ main {
   border-bottom: 1px solid var(--bd);
 }
 .patient-dialog-head h1 {
-  font-size: 28px;
+  font-size: 24px;
 }
 .patient-dialog-head p {
   margin: 4px 0 0;
 }
 .patient-form-body {
   overflow-y: auto;
-  padding: 24px 28px;
+  padding: 14px 18px;
   background: var(--soft);
 }
 .patient-form-body fieldset {
@@ -867,18 +867,18 @@ main {
   background: var(--pn);
   border: 1px solid var(--bd);
   border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
+  padding: 14px;
+  margin-bottom: 12px;
 }
 .form-section h2 {
-  font-size: 23px;
+  font-size: 18px;
 }
 .form-section label:not(.checkfield label) {
   display: block;
 }
 .form-section textarea {
   width: 100%;
-  margin: 8px 0 14px;
+  margin: 6px 0 8px;
 }
 .form-section .editor {
   border: 0;
@@ -894,16 +894,16 @@ main {
 .upload-zone {
   border: 2px dashed var(--bd);
   background: var(--soft);
-  padding: 20px;
+  padding: 12px;
   border-radius: 12px;
   font-weight: 600;
-  margin: 20px 0;
+  margin: 8px 0;
 }
 .upload-zone span {
   display: block;
   font-weight: 400;
   color: var(--mu);
-  margin: 4px 0 12px;
+  margin: 4px 0 8px;
 }
 .upload-zone input {
   width: 100%;
@@ -911,8 +911,8 @@ main {
 .uploaded-document {
   border: 1px solid var(--bd);
   border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 10px;
+  margin-bottom: 6px;
 }
 .uploaded-document select {
   width: 100%;
@@ -934,6 +934,107 @@ main {
 .patient-dialog-footer .form-notice {
   margin: 0 0 12px;
   color: var(--wr);
+}
+.patient-dialog .editor-group {
+  border-top: 1px solid var(--bd);
+  padding: 8px 0;
+}
+.patient-dialog .editor-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.patient-dialog .editor-group > summary::before {
+  content: "+";
+  width: 12px;
+}
+.patient-dialog .editor-group[open] > summary::before {
+  content: "-";
+}
+.patient-dialog .editor-group[open] > summary {
+  margin-bottom: 8px;
+}
+.patient-dialog .card-edit {
+  padding: 8px;
+  margin: 6px 0;
+}
+.patient-dialog .card-edit > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.patient-dialog .advanced {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.patient-dialog .profile-preview {
+  margin: 8px 0;
+  font-size: 13px;
+}
+.patient-dialog .profile-preview p {
+  margin: 4px 0;
+}
+.patient-dialog .profile-preview .chip {
+  margin-left: 6px;
+  font-size: 11px;
+}
+.patient-dialog .review-box {
+  margin-top: 8px;
+  padding: 10px;
+}
+.patient-dialog .muted {
+  font-size: 12px;
+}
+.patient-dialog .uploaded-document p {
+  margin: 2px 0 6px;
+}
+.file-purpose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+.file-purpose .btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.file-purpose .btn.on {
+  border-color: var(--ac);
+  background: var(--ac);
+  color: var(--pn);
+}
+.submission-error {
+  width: min(420px, calc(100vw - 32px));
+  border: 2px solid #b42318;
+  border-radius: 12px;
+  padding: 20px;
+  background: var(--pn);
+  color: #b42318;
+  box-shadow: 0 12px 48px #0005;
+}
+.submission-error::backdrop {
+  background: #10202580;
+}
+.submission-error p {
+  margin: 10px 0 16px;
+}
+.submission-error h2 {
+  font-size: 20px;
+}
+.invalid-field {
+  border-color: #b42318;
+}
+:root[data-theme="dark"] .submission-error {
+  color: #ffb4ab;
+  border-color: #ffb4ab;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .submission-error {
+    color: #ffb4ab;
+    border-color: #ffb4ab;
+  }
 }
 .patient-dialog .checkfield {
   display: flex;

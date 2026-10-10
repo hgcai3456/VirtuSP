@@ -87,8 +87,15 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("new");
     click("submit-patient");
     await wait(() =>
-      doc.querySelector(".form-notice").textContent.includes("name"),
+      doc
+        .getElementById("publication-error-message")
+        ?.textContent.includes("name"),
     );
+    assert.equal(
+      doc.getElementById("publication-error").getAttribute("role"),
+      "alertdialog",
+    );
+    click("dismiss-publication-error");
     assert.equal(
       (await (await fetch(base + "/api/profiles")).json()).profiles.length,
       10,
@@ -114,6 +121,19 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         !doc.querySelector('[data-action="parse-patient"]').disabled,
     );
     assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
+    click("file-purpose", '[data-index="2"][data-role="clinical"]');
+    assert.equal(
+      doc.querySelector('select[data-upload-index="2"]').closest("details")
+        .open,
+      false,
+    );
+    assert.equal(
+      doc
+        .querySelector('[data-index="2"][data-role="clinical"]')
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    click("file-purpose", '[data-index="2"][data-role="case"]');
     const cloud = require("../lib/cloud"),
       oldDraft = cloud.draft;
     process.env.AI_ENABLED = "true";
@@ -159,6 +179,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     }
     assert.equal(doc.getElementById("field-age").value, "42");
     assert.equal(
+      doc.querySelectorAll("#patient-dialog details[open]").length,
+      0,
+      "Sections start closed after extraction",
+    );
+    assert.equal(
       (await (await fetch(base + "/api/profiles")).json()).profiles.length,
       10,
       "Extraction is only a preview",
@@ -171,6 +196,23 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       !doc
         .querySelector(".patient-dialog")
         .textContent.includes("Publication checks"),
+    );
+    click("submit-patient");
+    await wait(() =>
+      doc
+        .getElementById("publication-error-message")
+        ?.textContent.includes("faculty review"),
+    );
+    assert.ok(
+      !doc
+        .getElementById("publication-error-message")
+        .textContent.includes("generated-"),
+    );
+    click("dismiss-publication-error");
+    assert.equal(
+      doc.getElementById("field-name").value,
+      "Test New Patient",
+      "Validation preserves form contents",
     );
     fill("field-reviewAcknowledged", true);
     fill("field-age", 43);

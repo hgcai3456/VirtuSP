@@ -21,7 +21,7 @@ Checkpoint date: 2026-10-10. Read [HANDOFF.md](HANDOFF.md) for teammate tasks an
 | Short demo and four-minute pitch video                                    | Script included; recording pending                                                                      |
 | Public hosting, managed agents/retrieval, fine-tuning                     | Deferred by plan                                                                                        |
 
-Engineering checks: 18 regression tests pass; local evaluation passes 85/85 with zero structural violations. Latest cloud dialogue: Sonnet 78/85, Nova 83/85. Coding-agent prose inspection found no delivered hidden leaks or unsupported clinical facts in these two runs. This small, repeatedly used suite is not proof of clinical reliability.
+Engineering checks: 19 regression tests pass; local evaluation passes 85/85 with zero structural violations. Latest cloud dialogue: Sonnet 78/85, Nova 83/85. Coding-agent prose inspection found no delivered hidden leaks or unsupported clinical facts in these two runs. This small, repeatedly used suite is not proof of clinical reliability.
 
 Sonnet is the pinned technical prototype default for more natural dialogue and working corrected rubric schemas. Nova is faster and literal; both latest assessment outputs failed applicability validation. Neither model has faculty or final recording approval. Evidence IDs and model review cannot guarantee chronology, fairness or assessment accuracy.
 

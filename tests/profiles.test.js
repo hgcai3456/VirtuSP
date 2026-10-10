@@ -78,10 +78,41 @@ test("Ready profile publishes only with explicit review and mapped objectives", 
   const p = ready();
   assert.equal(validate(p).filter((i) => i.severity === "error").length, 0);
   p.facts[0].reviewed = false;
+  assert.equal(
+    validate(p).filter((i) => i.severity === "error").length,
+    0,
+    "The whole-profile acknowledgment covers record review",
+  );
+  p.reviewAcknowledged = false;
   assert.ok(validate(p).some((i) => i.message.includes("review")));
-  p.facts[0].reviewed = true;
+  p.reviewAcknowledged = true;
   p.obj[0].f = ["missing"];
   assert.ok(validate(p).some((i) => i.message.includes("fact IDs")));
+});
+test("Report dates can stay unspecified; explicit document dates are extracted without guessing", () => {
+  const { documentDate, approveRecords } = require("../lib/profiles");
+  const p = ready();
+  p.artifacts = [
+    {
+      id: "note",
+      title: "Prior note",
+      src: "faculty",
+      date: "",
+      sec: "notes",
+      release: "section",
+      unlock: [],
+      facts: ["concern"],
+      reviewed: false,
+    },
+  ];
+  assert.equal(validate(p).filter((i) => i.severity === "error").length, 0);
+  approveRecords(p);
+  assert.equal(p.artifacts[0].reviewed, true);
+  assert.equal(p.artifacts[0].date, "");
+  assert.equal(documentDate("Note date: 2026-10-10"), "2026-10-10");
+  assert.equal(documentDate("No date supplied."), "");
+  assert.equal(documentDate("Date: 2026-02-30"), "");
+  assert.equal(documentDate("Date: 2026-10-10 Date: 2026-10-11"), "");
 });
 test("Measurement data requires units, context, date; weights and gates validated", () => {
   const p = ready();

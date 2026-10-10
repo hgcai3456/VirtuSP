@@ -10,5 +10,5 @@ No measurements, diagnoses or treatment decisions are supplied in this note.
 Unspecified information must remain unknown.
 
 Upload purpose: Clinical report (student chart).
-Faculty should review the extracted findings, enter the report date, link its
+Faculty should review the extracted findings, check any supplied date, link its
 facts, and choose when the note becomes available during the encounter.

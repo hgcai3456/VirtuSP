@@ -62,7 +62,10 @@ async function api(url, method = "GET", body) {
   const data = await r.json();
   if (!r.ok) {
     if (data.issues) issues = data.issues;
-    throw new Error(data.error || "Request failed");
+    throw Object.assign(new Error(data.error || "Request failed"), {
+      status: r.status,
+      issues: data.issues,
+    });
   }
   return data;
 }
@@ -164,78 +167,122 @@ function studio() {
  </div>`;
 }
 function editor() {
-  return `<div class="editor">
- ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer teaching suggestions", "prepare") : ""}
- <p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Saved draft"} · Published versions and active encounters remain fixed.</p>
- ${profile.missing?.length ? `<details><summary>Imported omissions and review notes (${profile.missing.length})</summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul><p class="muted">An omission may remain unspecified. Do not convert it to a negative finding.</p></details>` : ""}
- <div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Authored emotional state", "emotion")}</div>
- <h3>Clinical facts</h3><p class="muted">These are the authoritative records. Editing them changes the next published encounter directly. Neutral topic descriptions help question matching without exposing hidden values.</p>
- ${profile.facts
-   .map(
-     (f, i) =>
-       `<details class="card-edit" ${profile.facts.length < 4 ? "open" : ""}><summary>${esc(f.label || "New fact")} <span class="chip">${esc(f.origin || "faculty")} · ${f.reviewed ? "reviewed" : "review required"}</span></summary><div class="fields">${control("Stable fact ID", `facts.${i}.id`)}${control("Clinical finding / chart text", `facts.${i}.label`)}${control("Neutral question topic", `facts.${i}.topic`)}${control(
-         "Visibility",
-         `facts.${i}.vis`,
-         {
-           options: [
-             ["ask", "Patient knows"],
-             ["chart", "Chart only"],
-           ],
-         },
-       )}${control("Chart category", `facts.${i}.ehr`, { options: sections.slice(1) })}${control("Section that releases chart fact", `facts.${i}.sec`, { options: [["", "Not a chart fact"], ...sections.slice(1)] })}${control("Provenance status", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}${control("Source ID or report reference", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}${control("Trust gate (0–3)", `facts.${i}.gate`, { type: "number" })}${control("Approved deflection", `facts.${i}.deflect`)}${control("Match key for handoff", `facts.${i}.k`)}${control("Measurement units", `facts.${i}.unit`)}${control("Reference / interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}${control("Medication identifier (if applicable)", `facts.${i}.drug`)}${control("Allergy medication identifier", `facts.${i}.allergyDrug`)}${control(
-         "Measurement",
-         `facts.${i}.lab`,
-         {
-           options: [
-             ["false", "No"],
-             ["true", "Yes"],
-           ],
-         },
-       )}</div>${control("Patient response / approved fallback", `facts.${i}.say`, { type: "textarea" })}${button("Remove fact", "remove-fact", `data-index="${i}"`)}</details>`,
-   )
-   .join("")}
- ${button("Add fact", "add-fact")}
- <h3>Teaching sources</h3><p class="muted">References support review and coaching. Their contents are treated as evidence, not instructions.</p>
- ${profile.sources.map((s, i) => `<details class="card-edit"><summary>${esc(s.title)} · ${s.reviewed ? "reviewed" : "review required"}</summary><div class="fields">${control("Source ID", `sources.${i}.id`)}${control("Title", `sources.${i}.title`)}${control("Reference URL", `sources.${i}.url`)}</div>${control("Relevant source excerpt", `sources.${i}.excerpt`, { type: "textarea" })}${s.fileId ? `<a href="/api/files/${esc(s.fileId)}" target="_blank" rel="noopener">Open uploaded source</a>` : ""}${safeLink(s.url) ? ` <a href="${safeLink(s.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove source", "remove-source", `data-index="${i}"`)}</details>`).join("")}
- <div class="row">${button("Add source", "add-source")}${button("Add reference links", "references")}</div>
- <h3>Clinical artifacts</h3>${profile.artifacts
-   .map(
-     (a, i) =>
-       `<details class="card-edit"><summary>${esc(a.title)} · ${a.reviewed ? "reviewed" : "review required"}</summary><div class="fields">${control("Artifact ID", `artifacts.${i}.id`)}${control("Title", `artifacts.${i}.title`)}${control("Source / report ID", `artifacts.${i}.src`)}${control("Date", `artifacts.${i}.date`, { type: "date" })}${control("Category", `artifacts.${i}.sec`, { options: sections.slice(1) })}${control("Format", `artifacts.${i}.kind`, { options: ["lab", "note", "ecg", "ct", "image", "report"] })}${control(
-         "Release when",
-         `artifacts.${i}.release`,
-         {
-           options: [
-             ["both", "Section opened OR matching question"],
-             ["section", "Section opened"],
-             ["question", "Matching question only"],
-           ],
-         },
-       )}${control("Question release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked fact IDs", `artifacts.${i}.facts`, { list: true })}</div>${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">Open attachment</a>` : ""}${button("Remove artifact", "remove-artifact", `data-index="${i}"`)}</details>`,
-   )
-   .join("")}
- <div class="row">${button("Add structured report", "add-artifact")}</div>
- <h3>Learning objectives</h3>${profile.obj
-   .map(
-     (o, i) =>
-       `<details class="card-edit"><summary>${esc(o.t)} · ${o.w} weight</summary><div class="fields">${control("Objective ID", `obj.${i}.id`)}${control("Objective", `obj.${i}.t`)}${control("Weight", `obj.${i}.w`, { type: "number" })}${control(
-         "Evidence type",
-         `obj.${i}.ty`,
-         {
-           options: [
-             ["fact", "Findings elicited"],
-             ["review", "Records reviewed"],
-             ["mm", "Discrepancy reconciled"],
-             ["emp", "Communication"],
-             ["ho", "SBAR handoff"],
-           ],
-         },
-       )}${control("Fact IDs", `obj.${i}.f`, { list: true })}${control("Review sections", `obj.${i}.s`, { list: true })}${control("Next attempt coaching", `obj.${i}.tip`)}</div>${button("Remove objective", "remove-objective", `data-index="${i}"`)}</details>`,
-   )
-   .join("")}${button("Add objective", "add-objective")}
- <details class="card-edit"><summary>Intentional discrepancy (optional)</summary>${profile.mm ? `<div class="fields">${control("Patient statement fact ID", "mm.a")}${control("Chart record fact ID", "mm.b")}${control("Follow-up fact ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Define discrepancy", "add-mm")}</details>
- <details class="card-edit"><summary>Assessment scope (optional)</summary><p class="muted">All seven rubric domains apply by default. Use N/A only when the scenario cannot support observation.</p>${control("Applicable domain numbers (1-7, comma separated)", "rubricApplicable", { list: true })}</details>
- <div class="review-box">${control("I acknowledge the faculty review and publication policy: this is synthetic educational material; I have checked the profile, sources, clinical records, disclosure rules and learning objectives for accuracy and consistency, and approve this version for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
+  const group = (key, title, count, content) =>
+    `<details class="editor-group" data-detail="${key}"><summary>${title}<span class="chip">${count}</span></summary>${content}</details>`;
+  const facts = profile.facts
+    .map(
+      (
+        f,
+        i,
+      ) => `<details class="card-edit" data-detail="fact-${esc(f.id)}"><summary>${esc(f.label || "New finding")}</summary>
+    ${control("Finding", `facts.${i}.label`)}${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}
+    <details class="advanced"><summary>Disclosure and clinical settings</summary><div class="fields">
+    ${control("Patient knowledge", `facts.${i}.vis`, {
+      options: [
+        ["ask", "Patient knows"],
+        ["chart", "Chart only"],
+      ],
+    })}
+    ${control("Question topic", `facts.${i}.topic`)}${control("Chart section", `facts.${i}.ehr`, { options: sections.slice(1) })}
+    ${control("Release section", `facts.${i}.sec`, { options: [["", "Not a chart finding"], ...sections.slice(1)] })}
+    ${control("Provenance", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}
+    ${control("Source", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}
+    ${control("Trust gate (0-3)", `facts.${i}.gate`, { type: "number" })}${control("Guarded reply", `facts.${i}.deflect`)}
+    ${control("Units", `facts.${i}.unit`)}${control("Interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}
+    ${control("Measurement", `facts.${i}.lab`, {
+      options: [
+        ["false", "No"],
+        ["true", "Yes"],
+      ],
+    })}
+    ${control("Medication identifier", `facts.${i}.drug`)}${control("Allergy identifier", `facts.${i}.allergyDrug`)}${control("Handoff key", `facts.${i}.k`)}${control("Fact ID", `facts.${i}.id`)}
+    </div></details>${button("Remove", "remove-fact", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const sources = profile.sources
+    .map(
+      (
+        source,
+        i,
+      ) => `<details class="card-edit" data-detail="source-${esc(source.id)}"><summary>${esc(source.title || "New source")}</summary>
+    ${control("Title", `sources.${i}.title`)}${control("Excerpt", `sources.${i}.excerpt`, { type: "textarea" })}
+    <details class="advanced"><summary>Reference settings</summary>${control("Reference URL", `sources.${i}.url`)}${control("Source ID", `sources.${i}.id`)}</details>
+    ${source.fileId ? `<a href="/api/files/${esc(source.fileId)}" target="_blank" rel="noopener">View original</a>` : ""}
+    ${safeLink(source.url) ? `<a href="${safeLink(source.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove", "remove-source", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const artifacts = profile.artifacts
+    .map(
+      (
+        a,
+        i,
+      ) => `<details class="card-edit" data-detail="artifact-${esc(a.id)}"><summary>${esc(a.title || "New report")}<span class="muted">${esc(a.date || "Date unspecified")}</span></summary>
+    <div class="fields">${control("Title", `artifacts.${i}.title`)}${control("Date (optional)", `artifacts.${i}.date`, { type: "date" })}</div>
+    <details class="advanced"><summary>Report and release settings</summary><div class="fields">
+    ${control("Chart section", `artifacts.${i}.sec`, { options: sections.slice(1) })}${control("Format", `artifacts.${i}.kind`, { options: ["lab", "note", "ecg", "ct", "image", "report"] })}
+    ${control("Release when", `artifacts.${i}.release`, {
+      options: [
+        ["section", "Chart section opens"],
+        ["question", "Matching question"],
+        ["both", "Section or question"],
+      ],
+    })}
+    ${control("Release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked findings", `artifacts.${i}.facts`, { list: true })}
+    ${control("Source", `artifacts.${i}.src`)}${control("Report ID", `artifacts.${i}.id`)}</div>
+    ${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}</details>
+    ${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">View report</a>` : ""}${button("Remove", "remove-artifact", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  const objectives = profile.obj
+    .map(
+      (
+        o,
+        i,
+      ) => `<details class="card-edit" data-detail="objective-${esc(o.id)}"><summary>${esc(o.t || "New objective")}</summary>
+    ${control("Objective", `obj.${i}.t`)}${control("Coaching", `obj.${i}.tip`)}
+    <details class="advanced"><summary>Assessment settings</summary><div class="fields">
+    ${control("Weight", `obj.${i}.w`, { type: "number" })}${control(
+      "Evidence",
+      `obj.${i}.ty`,
+      {
+        options: [
+          ["fact", "Findings elicited"],
+          ["review", "Records reviewed"],
+          ["mm", "Discrepancy reconciled"],
+          ["emp", "Communication"],
+          ["ho", "SBAR handoff"],
+        ],
+      },
+    )}
+    ${control("Finding IDs", `obj.${i}.f`, { list: true })}${control("Chart sections", `obj.${i}.s`, { list: true })}${control("Objective ID", `obj.${i}.id`)}</div></details>${button("Remove", "remove-objective", `data-index="${i}"`)}</details>`,
+    )
+    .join("");
+  return `<div class="editor"><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
+    ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
+    <div class="fields identity-fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}</div>
+    ${
+      profile.facts.length
+        ? `<div class="profile-preview">${profile.facts
+            .slice(0, 4)
+            .map(
+              (f) =>
+                `<p><b>${esc(f.label)}</b> ${esc(f.vis === "ask" ? f.say : f.label)}<span class="chip">${f.vis === "ask" ? "Patient knows" : "Chart"}</span></p>`,
+            )
+            .join(
+              "",
+            )}${profile.facts.length > 4 ? `<p class="muted">+${profile.facts.length - 4} more findings below</p>` : ""}</div>`
+        : ""
+    }
+    ${group("facts", "History & findings", profile.facts.length, facts + button("Add finding", "add-fact"))}
+    ${group("artifacts", "Clinical reports", profile.artifacts.length, artifacts + button("Add report", "add-artifact"))}
+    ${group("objectives", "Learning objectives", profile.obj.length, objectives + button("Add objective", "add-objective"))}
+    ${group("sources", "Documents & references", profile.sources.length, sources + button("Add source", "add-source") + button("Add teaching references", "references"))}
+    <details class="editor-group" data-detail="character"><summary>Patient character</summary><div class="fields">${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div></details>
+    <details class="editor-group" data-detail="advanced"><summary>Advanced scenario settings</summary>
+    ${profile.mm ? `<div class="fields">${control("Patient statement ID", "mm.a")}${control("Chart finding ID", "mm.b")}${control("Follow-up ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}
+    ${control("Applicable rubric domains (1-7)", "rubricApplicable", { list: true })}</details>
+    ${profile.missing?.length ? `<details class="editor-group" data-detail="missing"><summary>Unspecified information <span class="chip">${profile.missing.length}</span></summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
+    <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
 function openPatientDialog(mode, selected = profile) {
   patientDialog = {
@@ -244,6 +291,8 @@ function openPatientDialog(mode, selected = profile) {
     files: [],
     description: "",
     notice: "",
+    validationError: null,
+    openSections: {},
   };
   profile =
     mode === "new"
@@ -316,7 +365,7 @@ function syncDialogAttachments() {
           fileId: file.id,
           kind: "report",
           sec: file.section,
-          date: "",
+          date: file.date || "",
           release: "section",
           unlock: [],
           facts: profile.facts
@@ -334,42 +383,46 @@ function patientForm() {
   const d = patientDialog,
     isNew = d.mode === "new";
   return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
-    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1><p class="muted">Upload a case, review the details, and create a reusable encounter.</p></div>${button("Cancel", "close-patient")}</div>
+    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
     <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
-    <section class="form-section"><h2>1. Case documents</h2><p class="muted">Start with a synthetic case brief containing identity, history and objectives. Optionally add a clinical report. Choose each file’s purpose before extracting details.</p>
-      <label class="upload-zone">Choose PDF, TXT or image files <span>Multiple files · 5 MB each · optional</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
+    <section class="form-section"><h2>Case documents</h2>
+      <label class="upload-zone">Choose PDF, TXT or image files <span>Multiple files · 5 MB each</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
       ${d.files
         .map(
           (f, i) =>
-            `<div class="uploaded-document"><div><b>${esc(f.name)}</b><p class="muted">${f.excerpt?.trim() ? "Text extracted" : "No selectable text; enter details manually. OCR is planned."} · <a href="/api/files/${esc(f.id)}" target="_blank" rel="noopener">View original</a></p></div><label>Document purpose<select data-upload-index="${i}" data-upload-key="role">${[
-              ["case", "Faculty case brief (patient details)"],
-              ["clinical", "Clinical report (student chart)"],
-              ["reference", "Teaching reference (guideline or paper)"],
+            `<div class="uploaded-document"><div><b>${esc(f.name)}</b><p class="muted">${f.excerpt?.trim() ? "Text extracted" : "No selectable text; enter details manually. OCR is planned."} · <a href="/api/files/${esc(f.id)}" target="_blank" rel="noopener">View original</a></p></div><div class="file-purpose" role="group" aria-label="Purpose of ${esc(f.name)}">${[
+              ["case", "Case brief"],
+              ["clinical", "Chart report"],
+              ["reference", "Reference"],
             ]
-              .map(
-                ([v, label]) =>
-                  `<option value="${v}" ${f.role === v ? "selected" : ""}>${label}</option>`,
+              .map(([v, label]) =>
+                button(
+                  label,
+                  "file-purpose",
+                  `data-index="${i}" data-role="${v}" aria-pressed="${f.role === v}"`,
+                  f.role === v ? "on" : "",
+                ),
               )
-              .join("")}</select></label>${
+              .join("")}</div>${
               f.role === "clinical"
-                ? `<label>Chart section<select data-upload-index="${i}" data-upload-key="section">${sections
+                ? `<details data-detail="upload-${esc(f.id)}"><summary>Chart settings</summary><label>Chart section<select data-upload-index="${i}" data-upload-key="section">${sections
                     .slice(1)
                     .map(
                       ([v, label]) =>
                         `<option value="${v}" ${f.section === v ? "selected" : ""}>${label}</option>`,
                     )
-                    .join("")}</select></label>`
+                    .join("")}</select></label></details>`
                 : ""
             }${button("Remove", "remove-upload", `data-index="${i}"`)}</div>`,
         )
         .join("")}
-      <label for="patient-description">Patient description or additional details</label><textarea id="patient-description" rows="4" placeholder="Name, age, concerns, patient-known history, personality and teaching objectives. Leave unspecified medical details unknown.">${esc(d.description)}</textarea>
-      ${button(busy ? "Extracting…" : "Extract & fill form", "parse-patient", "", "pri")}<p class="muted">Extraction rebuilds the fields below from these documents and your description. Selectable PDF text is supported; scans and handwritten notes need manual transcription for now. References never establish patient-specific facts.</p>
+      <label for="patient-description">Additional patient details (optional)</label><textarea id="patient-description" rows="2" placeholder="Describe the case or add missing details.">${esc(d.description)}</textarea>
+      ${button(busy ? "Extracting…" : "Extract & fill form", "parse-patient", "", "pri")}<p class="muted">Text PDFs supported; scans need transcription. Extraction replaces the fields below.</p>
     </section>
-    <section class="form-section"><h2>2. Review patient details</h2><p class="muted">Correct extracted details and add anything missing. Patient-known facts drive dialogue; chart-only findings and reports follow their release rules. Learning objectives guide feedback.</p>${editor()}</section>
+    <section class="form-section"><h2>Patient details</h2>${editor()}</section>
     </fieldset></div>
-    <div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${button("Save draft", "save-patient")}${button(isNew ? "Create & publish patient" : "Publish version", "submit-patient", "", "pri")}</div><p class="muted">Drafts can be incomplete. Publication requires complete, faculty-approved information.</p></div>
-  </form></dialog>`;
+    <div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${button("Save draft", "save-patient")}${button(isNew ? "Create & publish patient" : "Publish version", "submit-patient", "", "pri")}</div></div>
+  </form></dialog>${d.validationError ? `<dialog id="publication-error" class="submission-error" role="alertdialog" aria-labelledby="publication-error-title" aria-describedby="publication-error-message"><h2 id="publication-error-title">Before publishing</h2><p id="publication-error-message">${esc(d.validationError.text)}</p>${button("Back to form", "dismiss-publication-error", "", "pri")}</dialog>` : ""}`;
 }
 async function parsePatient() {
   const d = patientDialog;
@@ -385,7 +438,10 @@ async function parsePatient() {
     // Previewing must never create a library entry or change an existing identity.
     profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
     dirty = true;
-    d.notice = r.warning;
+    d.notice =
+      r.provider === "bedrock-draft"
+        ? "Details filled. Review and publish."
+        : r.warning;
   } catch (e) {
     d.notice = e.message;
   } finally {
@@ -416,13 +472,59 @@ async function submitPatient(publish) {
       ? `${profile.name} published. Start a visit from the patient card.`
       : `${profile.name || "Untitled patient"} saved as a draft.`;
   } catch (e) {
-    if (patientDialog) patientDialog.notice = e.message;
-    else message = e.message;
+    if (patientDialog) {
+      patientDialog.notice = "";
+      patientDialog.validationError = publicationError(e);
+    } else message = e.message;
   } finally {
     busy = false;
     render();
     if (!patientDialog)
       $('[data-action="pick"][data-id="' + profile.id + '"]')?.focus();
+  }
+}
+function publicationError(error) {
+  const text =
+    error.issues?.find((i) => i.severity === "error")?.message || error.message;
+  if (
+    /faculty review|review this fact|verify artifact|review of the complete/i.test(
+      text,
+    )
+  )
+    return {
+      text: "Confirm faculty review to publish this patient.",
+      field: "field-reviewAcknowledged",
+    };
+  if (/name and an age/.test(text))
+    return {
+      text: "Enter a patient name and an age from 0 to 120.",
+      field: "field-name",
+    };
+  for (const key of ["facts", "artifacts", "sources", "obj"]) {
+    const index = profile[key].findIndex((r) => text.startsWith(r.id + ":"));
+    if (index < 0) continue;
+    const record = profile[key][index];
+    const label = record.label || record.title || record.t || "this item";
+    return {
+      text: `${label}: ${text.slice(record.id.length + 1).trim()}`,
+      field: `field-${key}-${index}-${key === "facts" ? "label" : key === "obj" ? "t" : "title"}`,
+    };
+  }
+  return { text, field: null };
+}
+function dismissPublicationError() {
+  const field = patientDialog.validationError?.field;
+  patientDialog.validationError = null;
+  render();
+  const target = field && document.getElementById(field);
+  if (target) {
+    let ancestor = target.parentElement;
+    while (ancestor && ancestor.id !== "patient-dialog") {
+      if (ancestor.tagName === "DETAILS") ancestor.open = true;
+      ancestor = ancestor.parentElement;
+    }
+    target.focus();
+    target.scrollIntoView?.({ block: "nearest" });
   }
 }
 function encounter() {
@@ -446,7 +548,7 @@ function chart() {
     ),
     arts = enc.artifacts.filter((a) => section === "ov" || a.sec === section);
   return `<p class="chip">${enc.disclosed.length} findings released · ${enc.artifacts.filter((a) => a.released).length} reports released · ${enc.artifacts.filter((a) => a.reviewed).length} reviewed</p>
- ${arts.map((a) => `<article class="art ${a.released ? "released" : "locked"}"><h3>${esc(a.title)}</h3>${a.released ? `<p class="chip">${esc(a.src)} · ${esc(a.date)} · synthetic</p>${a.rows?.length ? `<table class="lab-table"><thead><tr><th>Test</th><th>Result</th><th>Reference</th></tr></thead><tbody>${a.rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit)}</td><td>${esc(r.ref)}</td></tr>`).join("")}</tbody></table>` : ""}${a.text ? `<p>${esc(a.text)}</p>` : ""}${a.img ? `<img class="art-img" src="${esc(a.img)}" alt="${esc(a.title)}">` : ""}${a.fileUrl ? `<a href="${esc(a.fileUrl)}" target="_blank" rel="noopener">Open attached report</a>` : ""}<div>${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</div>` : '<p class="muted">Not released yet. Follow the authored questions or chart workflow.</p>'}</article>`).join("")}
+ ${arts.map((a) => `<article class="art ${a.released ? "released" : "locked"}"><h3>${esc(a.title)}</h3>${a.released ? `<p class="chip">${esc(a.src)} · ${esc(a.date || "Date unspecified")} · synthetic</p>${a.rows?.length ? `<table class="lab-table"><thead><tr><th>Test</th><th>Result</th><th>Reference</th></tr></thead><tbody>${a.rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit)}</td><td>${esc(r.ref)}</td></tr>`).join("")}</tbody></table>` : ""}${a.text ? `<p>${esc(a.text)}</p>` : ""}${a.img ? `<img class="art-img" src="${esc(a.img)}" alt="${esc(a.title)}">` : ""}${a.fileUrl ? `<a href="${esc(a.fileUrl)}" target="_blank" rel="noopener">Open attached report</a>` : ""}<div>${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</div>` : '<p class="muted">Not released yet. Follow the authored questions or chart workflow.</p>'}</article>`).join("")}
  ${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b><span class="st ${esc(f.type)}">${esc(f.type)}</span><p class="chip">${esc(f.src)} · ${esc(f.provenance.eventId.split("-E").at(-1))} · ${esc(f.provenance.via)}</p></article>`).join("")}
  ${!facts.length && !arts.length ? '<div class="empty">No information has been released in this section.</div>' : ""}
  ${section !== "ov" && facts.length && !enc.reviewedSections.includes(section) ? button("Record review of these findings", "review-section", `data-section="${section}"`) : ""}`;
@@ -491,6 +593,11 @@ function past() {
 function render() {
   const focusId = document.activeElement?.id;
   const dialogScroll = $(".patient-form-body")?.scrollTop || 0;
+  if (patientDialog && $("#patient-dialog")?.dataset.profileId === profile.id)
+    for (const detail of document.querySelectorAll(
+      "#patient-dialog details[data-detail]",
+    ))
+      patientDialog.openSections[detail.dataset.detail] = detail.open;
   const navs = [
     ["studio", "Patient Studio"],
     ["enc", "Encounter"],
@@ -514,6 +621,9 @@ function render() {
     patientForm();
   if (patientDialog) {
     const dialog = $("#patient-dialog");
+    dialog.dataset.profileId = profile.id;
+    for (const detail of dialog.querySelectorAll("details[data-detail]"))
+      detail.open = patientDialog.openSections[detail.dataset.detail] === true;
     if (dialog.showModal) dialog.showModal();
     else dialog.setAttribute("open", "");
     $(".patient-form-body").scrollTop = dialogScroll;
@@ -528,6 +638,23 @@ function render() {
         $('[data-action="new"]')?.focus();
       }
     });
+    if (patientDialog.validationError) {
+      const errorDialog = $("#publication-error");
+      if (errorDialog.showModal) errorDialog.showModal();
+      else errorDialog.setAttribute("open", "");
+      errorDialog.addEventListener("cancel", (e) => {
+        e.preventDefault();
+        dismissPublicationError();
+      });
+      const field =
+        patientDialog.validationError.field &&
+        document.getElementById(patientDialog.validationError.field);
+      if (field) {
+        field.setAttribute("aria-invalid", "true");
+        field.classList.add("invalid-field");
+      }
+      $('[data-action="dismiss-publication-error"]')?.focus();
+    }
   }
   if ($("#question")) {
     $("#question").value = formMemory.question;
@@ -944,6 +1071,16 @@ document.addEventListener("click", async (e) => {
       render();
       $('[data-action="new"]')?.focus();
       return;
+    }
+    if (a === "dismiss-publication-error") {
+      dismissPublicationError();
+      return;
+    }
+    if (a === "file-purpose") {
+      patientDialog.files[Number(t.dataset.index)].role = t.dataset.role;
+      syncDialogAttachments();
+      profile.reviewAcknowledged = false;
+      dirty = true;
     }
     if (a === "parse-patient") {
       await parsePatient();

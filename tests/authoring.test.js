@@ -80,8 +80,8 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     assert.deepEqual(draft.profile.artifacts[0].facts, ["generated-0"]);
     assert.equal(
       draft.profile.artifacts[0].date,
-      "",
-      "No current date invented",
+      "2026-10-10",
+      "Explicit note date is extracted from the original document",
     );
     assert.equal(
       draft.profile.sources.find((s) => s.fileId === reference.id).role,
@@ -131,6 +131,49 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     assert.equal(
       (await request("/api/profiles", { profile: draft.profile })).status,
       409,
+    );
+    const ready = structuredClone(draft.profile);
+    ready.id = require("node:crypto").randomUUID();
+    ready.age = 42;
+    ready.facts.push({
+      id: "concern",
+      label: "Concern",
+      say: "I want to discuss feeling tired.",
+      topic: "Reason for visit",
+      kw: ["what brings"],
+      vis: "ask",
+      ehr: "hx",
+      gate: 0,
+      src: "upload-" + caseBrief.id,
+      reviewed: false,
+    });
+    ready.obj = [
+      {
+        id: "o",
+        t: "Explore concern",
+        ty: "fact",
+        w: 100,
+        f: ["concern"],
+        tip: "Ask openly.",
+      },
+    ];
+    ready.artifacts[0].date = "";
+    ready.reviewAcknowledged = true;
+    const published = await request("/api/profiles", {
+      profile: ready,
+      publish: true,
+    });
+    assert.equal(published.status, 201, JSON.stringify(published));
+    const stored = (await request("/api/profiles/" + ready.id)).profile;
+    assert.ok(
+      [...stored.facts, ...stored.sources, ...stored.artifacts].every(
+        (r) => r.reviewed,
+      ),
+    );
+    assert.equal(
+      stored.artifacts[0].date,
+      "",
+      "Publication does not invent missing dates",
     );
   } finally {
     cloud.draft = oldDraft;
