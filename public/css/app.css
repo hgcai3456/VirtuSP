@@ -1427,10 +1427,23 @@ main {
 .bubble .chip {
   font-size: 11px;
 }
-.ehr-panel .tabs {
+.ehr-panel {
+  align-self: stretch;
+}
+.ehr-navigation {
+  position: sticky;
+  top: calc(var(--app-header-height, 85px) + env(safe-area-inset-top, 0px));
+  z-index: 4;
+  margin: -16px -16px 16px;
+  padding: 16px;
+  background: var(--pn);
+  border-bottom: 1px solid var(--bd);
+  border-radius: 14px 14px 0 0;
+}
+.ehr-navigation .tabs {
   gap: 4px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 .ehr-panel .tabs .btn.on {
   background: var(--ac);
