@@ -407,10 +407,18 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("review-section", '[data-section="labs"]');
     await wait(() => !doc.querySelector('[data-action="review-section"]'));
     click("complete");
-    await wait(() => !!doc.querySelector(".rubric-grid"));
-    assert.equal(doc.querySelectorAll(".rubric-grid .obj-card").length, 7);
+    // Feedback opens on a short summary; the rubric is one of its views.
+    await wait(() => !!doc.querySelector(".rep-tabs"));
     assert.ok(doc.querySelector(".warn").textContent.includes("provisional"));
     assert.ok(doc.querySelector(".score-num").textContent.includes("/28"));
+    assert.ok(doc.querySelector(".plan"));
+    assert.equal(doc.querySelectorAll(".domain-row").length, 0);
+    click("rep-view", '[data-view="rubric"]');
+    await wait(() => doc.querySelectorAll(".domain-row").length === 7);
+    click("rep-view", '[data-view="findings"]');
+    await wait(() => !!doc.querySelector(".meter"));
+    click("rep-view", '[data-view="interview"]');
+    await wait(() => !!doc.querySelector(".annotated .turn"));
     assert.deepEqual(errors, []);
   } finally {
     window.close();

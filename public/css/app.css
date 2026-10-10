@@ -1283,6 +1283,166 @@ main {
 .art .btn {
   margin-top: 10px;
 }
+ul.plain,
+ol.plain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul.plain li,
+ol.plain li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bd);
+}
+ul.plain li:last-child,
+ol.plain li:last-child {
+  border-bottom: 0;
+}
+.plan ol {
+  margin: 0;
+  padding-left: 20px;
+}
+.plan li {
+  padding: 4px 0;
+}
+.obs b {
+  display: inline-block;
+  min-width: 92px;
+  font-size: 13px;
+}
+.obs.strength b {
+  color: var(--ac);
+}
+.obs.improve b {
+  color: var(--wr);
+}
+.meter {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bd);
+  overflow: hidden;
+  margin: 6px 0 8px;
+}
+.meter i {
+  display: block;
+  height: 100%;
+  background: var(--ac);
+}
+tr.current td {
+  font-weight: 600;
+}
+.annotated .turn {
+  padding: 10px 0;
+  border-top: 1px solid var(--bd);
+  scroll-margin-top: 80px;
+}
+.annotated .turn:first-child {
+  border-top: 0;
+}
+.annotated .turn:target {
+  outline: 2px solid var(--ac);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+.turn-notes {
+  margin: 4px 0 0 12px;
+  font-size: 13px;
+}
+.turn-link {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.reword {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--ac);
+}
+.reword b {
+  display: inline-block;
+  min-width: 78px;
+  font-size: 13px;
+}
+.rep-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--bd);
+}
+.rep-tabs .btn.on {
+  background: var(--ac);
+  color: #fff;
+  border-color: var(--ac);
+}
+.rep-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd);
+}
+.small {
+  font-size: 12px;
+}
+.domain-row {
+  border-bottom: 1px solid var(--bd);
+}
+.domain-row:last-child {
+  border-bottom: 0;
+}
+.domain-row summary {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.domain-row summary::-webkit-details-marker {
+  display: none;
+}
+.domain-row .rating {
+  font-size: 20px;
+  margin: 0;
+}
+.domain-row .why {
+  display: block;
+  margin-top: 2px;
+}
+.domain-detail {
+  padding: 0 0 12px 88px;
+}
+.annotated .turn.flash {
+  outline: 2px solid var(--ac);
+  outline-offset: 6px;
+  border-radius: 8px;
+}
+.plan ul,
+.fb-grid ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.fb-grid li {
+  padding: 3px 0;
+}
+.rating small {
+  font:
+    600 13px system-ui,
+    sans-serif;
+  color: var(--mu);
+  margin-left: 6px;
+}
+.level {
+  font-size: 13px;
+}
+.chip.status-met {
+  border-color: var(--ac);
+  color: var(--ac);
+}
+.chip.status-not_met {
+  border-color: var(--wr);
+  color: var(--wr);
+}
 .rubric-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));

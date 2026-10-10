@@ -1,0 +1,106 @@
+{
+  "id": "pediatric-hearing-treatment",
+  "title": "Pediatric Hearing Treatment Clinical Simulation",
+  "session": "Session #1",
+  "course": "SPLP 6510 Aural Rehabilitation and Habilitation",
+  "program": "Speech-Language Pathology Program, Department of Rehabilitation and Movement Sciences",
+  "source": "Rubric for Pediatric Treatment (organizer file, evaluation rubrics folder)",
+  "appliesTo": { "maxAge": 17 },
+  "pointsNote": "The faculty rubric assigns points to the four sections only. Within a section the points are divided equally between its numbered items, and a numbered item's sub-items share that item's points equally. This division is an implementation choice, not faculty wording.",
+  "sections": [
+    {
+      "id": "intro",
+      "title": "Introduce yourself to the client",
+      "points": 10,
+      "criteria": [
+        {
+          "id": "intro-professional",
+          "text": "Behave in a professional manner",
+          "share": 0.5
+        },
+        {
+          "id": "intro-empathetic-language",
+          "text": "Use professional and empathetic language throughout the session",
+          "share": 0.5
+        }
+      ]
+    },
+    {
+      "id": "needs",
+      "title": "Engage in a Needs Assessment with the client",
+      "points": 30,
+      "criteria": [
+        {
+          "id": "needs-age-at-diagnosis",
+          "text": "Review with the client: age at diagnosis of deafness",
+          "share": 0.125
+        },
+        {
+          "id": "needs-device-use",
+          "text": "Review with the client: device use",
+          "share": 0.125
+        },
+        {
+          "id": "needs-auditory-complaints",
+          "text": "Ask about any other auditory complaints (tinnitus, hyperacusis, etc)",
+          "share": 0.25
+        },
+        {
+          "id": "needs-educational",
+          "text": "Ask about educational needs",
+          "share": 0.25
+        },
+        {
+          "id": "needs-communication-challenge",
+          "text": "Ask about the most important communication challenge/need today",
+          "share": 0.25
+        }
+      ]
+    },
+    {
+      "id": "audiogram",
+      "title": "Review the client's audiogram with them",
+      "points": 30,
+      "criteria": [
+        {
+          "id": "audiogram-severity",
+          "text": "Explain the severity of the client's hearing loss in a sensitive manner",
+          "share": 0.5
+        },
+        {
+          "id": "audiogram-speech-banana",
+          "text": "Using the Speech Banana, explain what the client can hear with and without their hearing technology",
+          "share": 0.5
+        }
+      ]
+    },
+    {
+      "id": "expectations",
+      "title": "Discuss realistic expectations for aural rehabilitation",
+      "points": 30,
+      "criteria": [
+        {
+          "id": "expectations-audiologist-vs-slp",
+          "text": "Explain the difference between an audiologist and an SLP",
+          "share": 0.25
+        },
+        {
+          "id": "expectations-aural-rehab",
+          "text": "Explain what aural rehab is and how it can help",
+          "share": 0.25
+        },
+        {
+          "id": "expectations-empathy",
+          "text": "Express empathy for the challenge(s) faced by the client",
+          "share": 0.25
+        },
+        {
+          "id": "expectations-answer-questions",
+          "text": "Answer any questions the client has",
+          "share": 0.25,
+          "allowNotObservable": true
+        }
+      ]
+    }
+  ]
+}

@@ -22,6 +22,32 @@ New/Edit patient now opens a modal form with one unified upload area (multiple f
 
 All 19 regressions pass, including three-file upload/extraction/publication and reopening all attachments. The two-file cap and older profile source/artifact count caps are removed; per-file, extracted-text and profile-size limits remain. Upload-ready authored synthetic examples are in `corpus/examples/`; organizer patient data remains `corpus/faculty-patients.csv`. A live synthetic PDF correctly extracted Alex Rivera, age 42, concern and two-week symptom duration through Bedrock without creating a library entry; unspecified allergies remained unknown. DOM tests cover correction, acknowledgment invalidation, publication and immediate encounter reuse. Browser layout remains pending because no connected browser surface is available.
 
+## Student feedback work (2026-10-10, Rahil)
+
+This checkpoint changes the feedback (Assessment) side only. Dialogue, authoring, voice and storage are untouched.
+
+**Feedback page.** It opens on a Summary (rubric total, learning-objective completion, three focus points for the next attempt, what went well, what to work on, a table comparing attempts on the same patient) with three further views: Objectives & findings, Interview, and Rubric. "Try this patient again" starts a new attempt on the same published version. `tests/frontend.test.js` now opens the views instead of expecting the rubric grid on the first screen.
+
+**Deterministic coaching (`lib/feedback.js`).** `assessment.coaching` is built from the encounter record with no model call, so it is present in local mode:
+
+- Findings elicited, with evidence. Findings not reached are named only by their neutral `topic` (never label, wording or ID), so a finished attempt does not reveal answers for the next one. A topic the patient withheld is marked as asked-but-withheld. **Case authors: keep `topic` free of hidden values; it now also appears here.**
+- Interview structure and sequence: opening question type, share of open questions, when perspective was first acknowledged, whether a guarded topic was shared after rapport, when the chart was opened. These use the turn classifier's tags and are shown as observations, not ratings.
+- Up to five next-attempt actions, led by unfinished learning objectives by weight.
+- An annotated transcript: each question with its tags, what it gained, the objective it counted toward and the rubric items citing it. Evidence entries link to the turn.
+- `/api/encounters` entries carry objective completion, findings reached and rubric total; the encounter view carries `createdAt` and `completedAt`.
+
+**Model-assisted additions (need `AI_ENABLED`).**
+
+- "Try wording it this way": up to three recorded questions are sent to `cloud.rephrase`; a suggestion is kept only if it answers a listed question and adds no number. Labelled as suggestions, not ratings.
+- Rubric reliability: the feedback validator now accepts natural statements of a missing action ("No summary was observed"), not only three literal phrases; a model concern that merely restates the faculty-review rule is dropped before the grounding review; and a draft rejected by validation or review gets **one revision** with the reason supplied, which must pass the same checks (`assessment.revised`). The first draft's prompt is unchanged. In local testing the whole rubric was otherwise discarded for one flawed sentence in two of three runs.
+
+**Faculty rubrics as data.**
+
+- `corpus/encounter_evaluation_rubric.json` is the organizer file, unmodified, and is now the source for domain names, level descriptors, rating scale, instructions and review domains. Each domain result carries the faculty label and wording for the level reached and the next level. **This changes the rubric text sent to the model, so earlier assessment benchmark figures no longer describe the current prompt.**
+- `corpus/rubrics/*.json` holds case-specific points checklists scored by `lib/caseRubric.js` in addition to the general rubric. The first is the SPLP 6510 Pediatric Hearing Treatment rubric (10/30/30/30). A profile's `caseRubric` field chooses a rubric or `none`; left empty, it applies to patients aged 17 or under, which will not suit a pediatric case without a hearing concern. The faculty file gives points per section only; the equal split within a section is ours and **needs faculty confirmation**. Checklist scoring is one model call with evidence validation and no second review call.
+
+**Verification and limits.** 38 regression tests pass, including new `tests/feedback.test.js` and `tests/rubric.test.js`. The model-assisted parts were exercised live only through a Claude API key on a local development branch, not through Bedrock: `cloud.rephrase`, `cloud.checklist` and the revision pass, including their two new strict schemas in `lib/schemas.js`, **have not been run on Bedrock and should be checked with `npm run preflight` and a completed encounter before the demo.** The rubric model still receives the full case, so its free-text gaps can mention a detail the student never elicited.
+
 ## Verified and unresolved findings
 
 - Organizer-linked corpus checkpoint: `npm run corpus:fetch` downloads pinned Hugging Face sources locally with original bytes, source manifests and hashes. Eight richer synthetic profiles and 271 conversation TXT files are installed under ignored `corpus/downloads/`. See [CORPUS.md](CORPUS.md) for Omar/Yvette upload documents, attribution and the challenge's three upload types. Alex Rivera is a coding-agent example, not an organizer case. Downloads do not overwrite existing profiles or train a model.

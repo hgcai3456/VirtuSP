@@ -46,6 +46,7 @@ let list = [],
   speechGeneration = 0,
   listening = false,
   micRestartTimer = null,
+  repView = "summary",
   expandedDocId = "",
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const formMemory = {
@@ -281,7 +282,7 @@ function editor() {
     <details class="editor-group" data-detail="character"><summary>Patient character</summary><div class="fields">${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div></details>
     <details class="editor-group" data-detail="advanced"><summary>Advanced scenario settings</summary>
     ${profile.mm ? `<div class="fields">${control("Patient statement ID", "mm.a")}${control("Chart finding ID", "mm.b")}${control("Follow-up ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}
-    ${control("Applicable rubric domains (1-7)", "rubricApplicable", { list: true })}</details>
+    ${control("Applicable rubric domains (1-7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by patient age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}</details>
     ${profile.missing?.length ? `<details class="editor-group" data-detail="missing"><summary>Unspecified information <span class="chip">${profile.missing.length}</span></summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></details>` : ""}
     <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
@@ -585,27 +586,313 @@ function team() {
       "",
     )}</select><h3>Document findings or reconcile a discrepancy</h3><textarea data-memory="note" id="note" rows="4">${esc(formMemory.note)}</textarea>${button("Save clinical note", "note")}<h3>SBAR handoff</h3><textarea data-memory="handoff" id="handoff" rows="7" placeholder="S: Situation\nB: Background\nA: Assessment and uncertainty\nR: Recommendation / next steps">${esc(formMemory.handoff)}</textarea>${button("Submit handoff", "handoff", "", "pri")}<h3>Care plan</h3><input id="careplan" data-memory="careplan" value="${esc(formMemory.careplan)}" placeholder="Record an educational next step">${button("Add plan item", "plan")}</div><div class="pn"><h2>Saved clinical claims</h2>${enc.notes.map((n) => `<article class="fx"><p>${esc(n.text)}</p><span class="chip">${esc(n.role)} · ${esc(n.at)}${n.addressesMismatch ? " · addresses authored discrepancy" : ""}</span></article>`).join("")}${enc.handoff ? `<h3>Submitted SBAR</h3><pre>${esc(enc.handoff.text)}</pre>` : ""}${enc.plan.map((p) => `<p>${esc(p.text)} <span class="chip">${esc(p.role)}</span></p>`).join("")}<p class="muted">Student notes remain student claims. They do not rewrite approved patient facts.</p></div></div>`;
 }
+function attempts() {
+  // Completed attempts on this patient, oldest first, from the encounter log.
+  return history
+    .filter((e) => e.profileId === enc.profileId && e.status === "complete")
+    .sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
+}
+function duration() {
+  if (!enc.completedAt || !enc.createdAt) return "";
+  const minutes = Math.max(
+    1,
+    Math.round((new Date(enc.completedAt) - new Date(enc.createdAt)) / 60000),
+  );
+  return ` · ${minutes} min`;
+}
+function sinceLast() {
+  // Change from the previous completed attempt on this patient, if any.
+  const all = attempts();
+  const index = all.findIndex((e) => e.id === enc.id);
+  const now = all[index],
+    before = all[index - 1];
+  if (
+    !before ||
+    now?.objectivePercent == null ||
+    before.objectivePercent == null
+  )
+    return "";
+  const change = (value, unit) =>
+    value === 0
+      ? "no change"
+      : (value > 0 ? "+" : "−") + Math.abs(value) + unit;
+  const parts = [
+    "objectives " +
+      change(now.objectivePercent - before.objectivePercent, " points"),
+    "findings " + change(now.findingsElicited - before.findingsElicited, ""),
+  ];
+  if (!now.provisional && !before.provisional)
+    parts.push("rubric " + change(now.total - before.total, ""));
+  return `<p><b>Since your last attempt:</b> ${parts.join(" · ")}</p>`;
+}
+function progress() {
+  const all = attempts();
+  const index = all.findIndex((e) => e.id === enc.id);
+  if (index < 0 || all.length < 2) return "";
+  const score = (e) =>
+    e.total == null
+      ? "–"
+      : e.provisional
+        ? "provisional"
+        : `${e.total}/${e.denominator}`;
+  return `<section class="obj-card"><h2>Your attempts with this patient</h2><div class="sc"><table><tr><th>Attempt</th><th>Date</th><th>Questions</th><th>Findings</th><th>Objectives</th><th>Rubric</th></tr>${all.map((e, i) => `<tr class="${e.id === enc.id ? "current" : ""}"><td>${i + 1}${e.id === enc.id ? " (this one)" : ""}</td><td>${esc(new Date(e.completedAt).toLocaleString())}</td><td>${e.turns}</td><td>${e.findingsTotal == null ? "–" : `${e.findingsElicited}/${e.findingsTotal}`}</td><td>${e.objectivePercent == null ? "–" : e.objectivePercent + "%"}</td><td>${score(e)}</td></tr>`).join("")}</table></div></section>`;
+}
+function findingsView(a, c) {
+  const f = c.findings;
+  const tag = (o) =>
+    o ? ` <span class="chip">Objective: ${esc(o)}</span>` : "";
+  const elicited = f.elicited.length
+    ? f.elicited
+        .map(
+          (x) =>
+            `<li>${esc(x.label)} <span class="muted">· ${x.source === "chart" ? "from the chart" : x.turn ? "question " + x.turn : "from the patient"}</span>${tag(x.objective)}${evidence(x.evidence)}</li>`,
+        )
+        .join("")
+    : '<li class="muted">No findings were elicited.</li>';
+  const missed = f.missed.length
+    ? f.missed
+        .map(
+          (x) =>
+            `<li>${esc(x.topic)} <span class="muted">· ${x.source === "chart" ? "in the chart" + (x.section ? " (" + esc(x.section) + ")" : "") : x.heldBack ? "asked, but the patient held it back" : "not asked"}</span>${tag(x.objective)}${x.evidence.length ? evidence(x.evidence) : ""}</li>`,
+        )
+        .join("")
+    : '<li class="ok">Every authored finding was reached.</li>';
+  const reports = f.reports.length
+    ? `<h3>Reports</h3><ul class="plain">${f.reports.map((r) => `<li>${esc(r.title)} <span class="muted">· ${esc(r.section)} · ${esc(r.status)}</span></li>`).join("")}</ul>`
+    : "";
+  return `<h2>Learning objectives${c.objectivePercent == null ? "" : ` · ${c.objectivePercent}% complete`}</h2>${a.objectives.map((o) => `<article class="obj-card"><h3>${esc(o.title)} · ${o.earned}/${o.weight}</h3><div class="meter" role="img" aria-label="${Math.round(o.credit * 100)}% complete"><i style="width:${Math.round(o.credit * 100)}%"></i></div>${o.credit < 1 && o.next ? `<p>Next attempt: ${esc(o.next)}</p>` : ""}${evidence(o.evidence)}</article>`).join("")}
+  <h2>Findings · ${f.elicited.length} of ${f.total} reached</h2><p class="muted">Findings you did not reach are named by topic only, so the next attempt is still yours to work out.</p>
+  <div class="fb-grid"><section class="obj-card"><h3>Elicited</h3><ul class="plain">${elicited}</ul></section><section class="obj-card"><h3>Not reached</h3><ul class="plain">${missed}</ul>${reports}</section></div>`;
+}
+function flowView(a, c) {
+  const marks = { strength: "Went well", improve: "To improve", note: "Note" };
+  const observations = c.flow.observations
+    .map(
+      (o) =>
+        `<li class="obs ${o.kind}"><b>${marks[o.kind]}</b> ${esc(o.text)}${o.evidence.length ? evidence(o.evidence) : ""}</li>`,
+    )
+    .join("");
+  return `${rewritesView(c)}<h2>How the interview went</h2><p class="muted">${esc(c.notice)}</p><section class="obj-card"><ul class="plain">${observations}</ul></section>${transcriptView(a, c)}`;
+}
+function caseRubricView(r) {
+  if (!r) return "";
+  const marks = {
+    met: "Met",
+    partly: "Partly met",
+    not_met: "Not met",
+    not_observable: "Not observable",
+    not_scored: "Not scored",
+  };
+  const scored = r.total != null;
+  return `<h2>Case rubric · ${esc(r.title)}${scored ? ` · ${r.total} / ${r.max}` : ""}</h2><p class="muted">${esc([r.course, r.session].filter(Boolean).join(" · "))}</p><p>${esc(r.notice)}${scored && r.max !== r.fullPoints ? ` Scored out of ${r.max} because part of the ${r.fullPoints}-point rubric could not be observed.` : ""}</p>${r.failure ? `<p class="warn">Model scoring was unavailable for this checklist (${esc(r.failure)}). The criteria are listed for faculty scoring.</p>` : ""}${r.sections.map((sec) => `<section class="obj-card"><h3>${esc(sec.title)} · ${scored ? `${sec.earned} / ${sec.available}` : `${sec.points} points`}</h3><ul class="plain">${sec.criteria.map((cr) => `<li><span class="chip status-${cr.status}">${marks[cr.status]}</span> ${esc(cr.text)} <span class="muted">· ${cr.earned == null ? cr.points : cr.earned + " / " + cr.points} pts</span>${cr.reason ? `<div class="muted">${esc(cr.reason)}</div>` : ""}${cr.evidence.length ? evidence(cr.evidence) : ""}</li>`).join("")}</ul></section>`).join("")}<p class="muted">${esc(r.pointsNote)}${r.model ? " Scored by " + esc(r.model) + "." : ""}</p>`;
+}
+function rubricView(a) {
+  // One line per domain; the detail opens on demand.
+  const domain = (d) =>
+    `<details class="domain-row"><summary><span class="rating">${d.score === null ? "N/A" : d.score + " / 4"}</span><span><b>${d.domain}. ${esc(d.name)}</b>${d.label ? ` · ${esc(d.label)}` : ""}<span class="muted why">${esc(d.reason)}</span></span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+  const fields = a.rubric?.evidenceFields || {
+    strengths: "Strengths demonstrated",
+    gaps: "Missed opportunities",
+    concerns: "Safety or accuracy concerns",
+  };
+  const intro = a.rubric
+    ? `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p><p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
+    : "";
+  return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2>${intro}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section>
+  <h2>Evidence from the encounter</h2>${["strengths", "gaps", "concerns"].map((k) => `<h3>${esc(fields[k])}</h3>${a[k].length ? a[k].map((n) => `<p>${esc(n.text)}</p>${evidence(n.evidence)}`).join("") : '<p class="muted">None identified by this assessment.</p>'}`).join("")}
+  ${caseRubricView(a.caseRubric)}`;
+}
+function summaryView(a, c) {
+  // The three most useful things, then a short balance of what worked and what did not.
+  const steps = c?.nextSteps || [];
+  const good = [
+      ...a.strengths.map((s) => s.text),
+      ...(c?.flow.observations || [])
+        .filter((o) => o.kind === "strength")
+        .map((o) => o.text),
+    ].slice(0, 3),
+    work = [
+      ...a.gaps.map((s) => s.text),
+      ...(c?.flow.observations || [])
+        .filter((o) => o.kind === "improve")
+        .map((o) => o.text),
+    ].slice(0, 3);
+  const list = (items, empty) =>
+    items.length
+      ? `<ul>${items.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>`
+      : `<p class="muted">${empty}</p>`;
+  return `<section class="obj-card plan"><h2>Focus for your next attempt</h2>${
+    steps.length
+      ? `<ol>${steps
+          .slice(0, 3)
+          .map((s) => `<li>${esc(s.text)}</li>`)
+          .join("")}</ol>`
+      : '<p class="ok">All learning objectives were met. Try again with fewer questions, or a different patient.</p>'
+  }</section>
+  <div class="fb-grid"><section class="obj-card"><h3>What went well</h3>${list(good, "Nothing recorded yet.")}</section><section class="obj-card"><h3>What to work on</h3>${list(work, "Nothing flagged.")}</section></div>
+  ${progress()}`;
+}
+// Names the domains that actually triggered review. The rubric sets this rule
+// for clinical reasoning and for professionalism/safety only.
+function reviewNotice(a) {
+  if (!a.reviewRequired) return "";
+  const rule = a.rubric?.reviewDomains || [6, 7];
+  const hit = a.domains.filter((d) => rule.includes(d.domain) && d.score === 1);
+  const names = hit.map((d) => `${d.domain}. ${d.name}`);
+  const listed =
+    names.length > 1
+      ? names.slice(0, -1).join(", ") + " and " + names.at(-1)
+      : names[0];
+  return `<p class="warn"><b>Faculty review required.</b> ${esc(listed)} ${hit.length > 1 ? "were" : "was"} rated 1. The rubric asks for review whenever clinical reasoning or professionalism and safety is rated 1, even if the total is high. A 1 in other domains does not trigger it.</p>`;
+}
 function assessment() {
   if (!enc) return '<div class="pn"><h1>No active encounter</h1></div>';
   if (!enc.assessment)
     return `<div class="pn"><h1>Encounter feedback</h1><p>Finish the encounter to assess the complete evidence.</p>${button("Finish & get feedback", "complete", "", "pri")}</div>`;
-  const a = enc.assessment;
-  return `<div class="pn"><div class="panel-kicker">Encounter feedback</div><h1>Patient Encounter Performance Rubric</h1><div class="score-hero"><div class="score-num">${a.total}/${a.denominator}</div><div><p>${esc(a.notice)}</p><span class="chip">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}</span></div></div>${a.provider === "local-provisional" ? '<div class="warn">Cloud assessment is unavailable. Ratings below are provisional placeholders for faculty review, not a measured performance grade.</div>' : ""}${a.failure ? `<p class="muted">Provider fallback: ${esc(a.failure)}</p>` : ""}${a.reviewRequired ? '<p class="warn">Faculty review required: domain 6 or 7 has a rating of 1.</p>' : ""}<div class="rubric-grid">${a.domains.map((d) => `<article class="obj-card"><span class="rating">${d.score === null ? "N/A" : d.score + " / 4"}</span><h2>${d.domain}. ${esc(d.name)}</h2><p>${esc(d.reason)}</p><p class="muted">Next attempt: ${esc(d.next)}</p>${evidence(d.evidence)}</article>`).join("")}</div>${["strengths", "gaps", "concerns"].map((k) => `<h2>${{ strengths: "Strengths demonstrated", gaps: "Missed opportunities", concerns: "Safety or accuracy concerns" }[k]}</h2>${a[k].length ? a[k].map((n) => `<p>${esc(n.text)}</p>${evidence(n.evidence)}`).join("") : '<p class="muted">None identified by this assessment.</p>'}`).join("")}<h2>Faculty objective completion</h2>${a.objectives.map((o) => `<article class="obj-card"><h3>${esc(o.title)} · ${o.earned}/${o.weight}</h3>${evidence(o.evidence)}${o.credit < 1 ? `<p>Next attempt: ${esc(o.next)}</p>` : ""}</article>`).join("")}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download encounter and assessment</a></div>`;
+  const a = enc.assessment,
+    c = a.coaching,
+    provisional = a.provider === "local-provisional";
+  const views = [
+    ["summary", "Summary"],
+    ...(c ? [["findings", "Objectives & findings"]] : []),
+    ...(c ? [["interview", "Interview"]] : []),
+    ["rubric", a.caseRubric ? "Rubrics" : "Rubric"],
+  ];
+  if (!views.some(([k]) => k === repView)) repView = "summary";
+  const body =
+    repView === "findings"
+      ? findingsView(a, c)
+      : repView === "interview"
+        ? flowView(a, c)
+        : repView === "rubric"
+          ? rubricView(a)
+          : summaryView(a, c);
+  const caseScore =
+    a.caseRubric?.total != null
+      ? `<div><div class="score-num">${a.caseRubric.total}/${a.caseRubric.max}</div><div class="muted">case rubric</div></div>`
+      : "";
+  return `<div class="pn"><div class="panel-kicker">Encounter feedback</div><h1>${esc(enc.name)} · feedback on this attempt</h1>
+  <div class="score-hero"><div><div class="score-num">${a.total}/${a.denominator}</div><div class="muted">rubric${provisional ? " (provisional)" : ""}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
+  ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
+  <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
+  ${body}
+  <div class="row rep-actions">${button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
+  <p class="muted small">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}${a.revised ? " · revised once after automated review" : ""}${a.failure ? " · fallback: " + esc(a.failure) : ""}</p></div>`;
+}
+function turnIndex() {
+  // Event ID → the question number it belongs to (0 before the first question).
+  let n = 0;
+  const map = new Map();
+  for (const e of enc.events) {
+    if (e.type === "student") n++;
+    map.set(e.id, n);
+  }
+  return map;
 }
 function evidence(ids) {
+  const turns = turnIndex();
+  const kinds = {
+    student: "You asked",
+    patient: "The patient replied",
+    disclose: "Finding shared",
+    gate: "The patient held a topic back",
+    open: "Chart opened",
+    review: "Chart reviewed",
+    release: "Report released",
+    reconcile: "Clinical note recorded",
+    handoff: "Handoff submitted",
+    start: "Encounter started",
+    complete: "Encounter completed",
+  };
   return `<details class="evidence"><summary>Evidence (${ids.length})</summary>${
     ids.length
       ? ids
           .map((id) => {
             const e = enc.events.find((e) => e.id === id);
-            return `<p><b>${esc(id.split("-E").at(-1))} · ${esc(e?.type)}</b> ${esc(e?.text || JSON.stringify(e))}</p>`;
+            if (!e) return `<p>${esc(id)}</p>`;
+            const n = turns.get(id);
+            const detail =
+              e.type === "communication"
+                ? [
+                    e.openQuestion && "open question",
+                    e.empathy && "acknowledged the patient's perspective",
+                    e.judgmental && "judgmental wording",
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || "no tag"
+                : e.type === "gate"
+                  ? ""
+                  : e.text || "";
+            return `<p><b>${n ? "Question " + n : "Start"} · ${esc(kinds[e.type] || (e.type === "communication" ? "Automated question tag" : e.type))}</b> ${esc(detail)}${n ? ` <a class="turn-link" href="#turn-${n}">Show in transcript</a>` : ""}</p>`;
           })
           .join("")
       : "<p>No observed evidence cited.</p>"
   }</details>`;
 }
+function rewritesView(c) {
+  if (!c.rewrites?.length)
+    return c.rewriteFailure
+      ? `<p class="muted">Wording suggestions were unavailable for this attempt.</p>`
+      : "";
+  return `<section class="obj-card"><h2>Try wording it this way</h2><p class="muted">Model suggestions for questions you actually asked${c.rewriteModel ? " · " + esc(c.rewriteModel) : ""}. They change wording only and are not part of any rating.</p><ul class="plain">${c.rewrites.map((r) => `<li><div class="muted">Question ${r.turn} · ${esc(r.issue)}</div><div class="reword"><div><b>You asked</b> ${esc(r.question)}</div><div><b>Instead</b> ${esc(r.rewrite)}</div></div><div class="muted">${esc(r.why)} <a class="turn-link" href="#turn-${r.turn}">Show in transcript</a></div></li>`).join("")}</ul></section>`;
+}
+function transcriptView(a, c) {
+  const turns = turnIndex();
+  // Which rubric domains and feedback items cite each question.
+  const cited = new Map();
+  const cite = (ids, label) => {
+    for (const id of ids || []) {
+      const n = turns.get(id);
+      if (!n) continue;
+      if (!cited.has(n)) cited.set(n, new Set());
+      cited.get(n).add(label);
+    }
+  };
+  for (const d of a.domains)
+    cite(
+      d.evidence,
+      `${d.domain}. ${d.name}${d.score === null ? "" : " · " + d.score + "/4"}`,
+    );
+  for (const s of a.strengths) cite(s.evidence, "Strength");
+  for (const g of a.gaps) cite(g.evidence, "Missed opportunity");
+  for (const x of a.concerns) cite(x.evidence, "Concern");
+  const steps = new Map(
+    (c?.flow.steps || [])
+      .filter((s) => s.kind === "question")
+      .map((s) => [s.eventId, s]),
+  );
+  let n = 0;
+  const rows = enc.transcript
+    .map((t) => {
+      if (t.role !== "student")
+        return `<div class="bubble patient"><b>${esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p></div>`;
+      n++;
+      const s = steps.get(t.id);
+      const tags = s
+        ? [
+            s.open && "open question",
+            s.empathy && "acknowledged perspective",
+            s.judgmental && "judgmental wording",
+          ].filter(Boolean)
+        : [];
+      const result = !s
+        ? ""
+        : s.gained.length
+          ? `<span class="ok">New: ${s.gained.map(esc).join("; ")}</span>`
+          : s.heldBack
+            ? "The patient held this back"
+            : "No new finding";
+      const credit = s?.credited.length
+        ? ` · counts toward: ${s.credited.map(esc).join("; ")}`
+        : "";
+      const refs = [...(cited.get(n) || [])];
+      return `<div class="turn" id="turn-${n}"><div class="bubble student"><b>Question ${n}</b><p>${esc(t.text)}</p></div><div class="turn-notes">${tags.map((x) => `<span class="chip">${x}</span>`).join(" ")} <span class="muted">${result}${credit}</span>${refs.length ? `<div class="muted">Cited in: ${refs.map(esc).join(" · ")}</div>` : ""}</div></div>`;
+    })
+    .join("");
+  return `<h2>Annotated transcript</h2><p class="muted">Every question with what it achieved and where the feedback above refers to it. Question tags come from automated classification.</p><section class="obj-card annotated">${rows}</section>`;
+}
 function past() {
-  return `<div class="pn"><h1>Encounter history</h1><p class="muted">Each attempt retains its patient version, transcript and assessment.</p><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(new Date(e.createdAt).toLocaleString())} · ${e.turns} questions · ${e.status}</p>${button(e.status === "complete" ? "View feedback" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+  return `<div class="pn"><h1>Encounter history</h1><p class="muted">Each attempt retains its patient version, transcript and assessment.</p><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(new Date(e.createdAt).toLocaleString())} · ${e.turns} questions · ${e.status}${e.status === "complete" && e.objectivePercent != null ? ` · objectives ${e.objectivePercent}% · findings ${e.findingsElicited}/${e.findingsTotal} · rubric ${e.provisional ? "provisional" : e.total + "/" + e.denominator}` : ""}</p>${button(e.status === "complete" ? "View feedback" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
 }
 function render() {
   const focusId = document.activeElement?.id;
@@ -1102,6 +1389,7 @@ document.addEventListener("click", async (e) => {
   const a = t.dataset.action;
   try {
     message = "";
+    if (a === "rep-view") repView = t.dataset.view;
     if (a === "nav") {
       if (tab === "studio" && dirty) await save();
       stopAudio();
@@ -1161,6 +1449,21 @@ document.addEventListener("click", async (e) => {
       message =
         "Organizer facts organized into reviewable suggestions. Missing details remain unspecified.";
     }
+    if (a === "retry") {
+      stopAudio();
+      const r = await api("/api/encounters", "POST", {
+        profileId: enc.profileId,
+        version: enc.version,
+      });
+      enc = r.encounter;
+      localStorage.setItem("virtusp-active-v2", enc.id);
+      section = "ov";
+      tab = "enc";
+      await refresh();
+      render();
+      speak(enc.transcript.at(-1));
+      return;
+    }
     if (a === "launch") {
       if (dirty) await save();
       stopAudio();
@@ -1183,6 +1486,7 @@ document.addEventListener("click", async (e) => {
       enc = (await api("/api/encounters/" + t.dataset.id)).encounter;
       localStorage.setItem("virtusp-active-v2", enc.id);
       tab = enc.status === "complete" ? "rep" : "enc";
+      repView = "summary";
     }
     if (a === "section") {
       if (enc.status === "active")
@@ -1210,6 +1514,7 @@ document.addEventListener("click", async (e) => {
         "Completing the encounter and preparing evidence-linked feedback…";
       render();
       await mutate("complete", {});
+      repView = "summary";
       await refresh();
       busy = false;
       tab = "rep";
@@ -1305,6 +1610,17 @@ function toggleTheme() {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("virtusp-theme", theme);
 }
+document.addEventListener("click", (e) => {
+  const link = e.target.closest(".turn-link");
+  if (!link || !enc?.assessment) return;
+  e.preventDefault();
+  repView = "interview";
+  render();
+  const turn = document.querySelector(link.getAttribute("href"));
+  if (!turn) return;
+  turn.classList.add("flash");
+  turn.scrollIntoView?.({ block: "center" });
+});
 window.addEventListener("beforeunload", (e) => {
   stopAudio();
   if (dirty) {
