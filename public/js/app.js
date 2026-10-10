@@ -1022,16 +1022,16 @@ function rubricOverview(a) {
     .filter((l) => l.label);
   // The chart with the total and the scoring guide under it; this card sits
   // beside the domain list.
-  const chart = `<div class="rubric-radar">${radar(a.domains.map((d) => ({ domain: d.domain, name: d.name, mean: d.score })))}<p class="muted small">Numbers match the domain list.</p><div class="rubric-total"><span class="rating">${a.total} / ${a.denominator}</span><span class="muted">${a.rubric && a.denominator !== a.rubric.maxTotal ? `of a possible ${a.rubric.maxTotal} · ` : ""}N/A domains: ${a.na}</span></div><div class="meter" role="img" aria-label="${a.total} of ${a.denominator}"><i style="width:${a.denominator ? (a.total / a.denominator) * 100 : 0}%"></i></div><div class="level-counts">${levels.map((l) => `<span class="level-count ${scoreTone(l.score)}"><b>${l.score}</b> ${esc(l.label)}</span>`).join("")}</div></div>`;
+  const chart = `<div class="rubric-radar">${radar(a.domains.map((d) => ({ domain: d.domain, name: d.name, mean: d.score })))}<div class="rubric-total"><span class="rating">${a.total}/${a.denominator}</span><span class="muted">${a.rubric && a.denominator !== a.rubric.maxTotal ? `of a possible ${a.rubric.maxTotal} · ` : ""}N/A domains: ${a.na}</span></div><div class="meter" role="img" aria-label="${a.total} of ${a.denominator}"><i style="width:${a.denominator ? (a.total / a.denominator) * 100 : 0}%"></i></div>${a.rubric ? "" : `<div class="level-counts">${levels.map((l) => `<span class="level-count ${scoreTone(l.score)}"><b>${l.score}</b> ${esc(l.label)}</span>`).join("")}</div>`}</div>`;
   const guide = a.rubric
-    ? `<details class="evidence rubric-guide"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><table class="fb-table"><thead><tr><th>Score</th><th>Label</th><th>Meaning</th></tr></thead><tbody>${a.rubric.scale.map((r) => `<tr class="${scoreTone(r.score)}"><td><b class="score-key">${r.score}</b></td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr class="bg-muted"><td><b class="score-key">N/A</b></td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></tbody></table></details><p class="muted small">${esc(a.rubric.interpretation)}</p>`
+    ? `<details class="evidence rubric-guide"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><table class="fb-table"><thead><tr><th>Score</th><th>Label</th><th>Meaning</th></tr></thead><tbody>${a.rubric.scale.map((r) => `<tr class="${scoreTone(r.score)}"><td><b class="score-key">${r.score}</b></td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr class="bg-muted"><td><b class="score-key">N/A</b></td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></tbody></table><p class="muted small">${esc(a.rubric.interpretation)}</p></details>`
     : "";
   return `<aside class="obj-card rubric-top">${chart}${guide}</aside>`;
 }
 function rubricView(a) {
   // One line per domain; the detail opens on demand.
   const domain = (d) =>
-    `<details class="domain-row ${scoreTone(d.score)}"><summary><span class="rating">${d.score === null ? "N/A" : d.score + " / 4"}</span><span class="domain-main"><span class="domain-title"><b>${d.domain}. ${esc(d.name)}</b>${d.label ? `<span class="level-chip">${esc(d.label)}</span>` : ""}<span class="steps" aria-hidden="true">${[1, 2, 3, 4].map((n) => `<i class="${d.score !== null && n <= d.score ? "on" : ""}"></i>`).join("")}</span></span><span class="muted why">${esc(d.reason)}</span></span><span class="domain-more" aria-hidden="true">Details</span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+    `<details class="domain-row ${scoreTone(d.score)}"><summary><span class="rating">${d.score === null ? "N/A" : d.score + "/4"}</span><span class="domain-main"><span class="domain-title"><b>${d.domain}. ${esc(d.name)}</b>${d.label ? `<span class="level-chip">${esc(d.label)}</span>` : ""}</span><span class="muted why">${esc(d.reason)}</span></span><span class="domain-more" aria-hidden="true">Details</span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
   const fields = a.rubric?.evidenceFields || {
     strengths: "Strengths demonstrated",
     gaps: "Missed opportunities",
@@ -1332,7 +1332,7 @@ function groupBuilder() {
           `<label class="group-patient-choice"><input type="checkbox" name="group-patient" value="${esc(p.id)}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt=""></span><span><b>${esc(p.name)}</b><small>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</small></span></label>`,
       )
       .join("") ||
-    "<p class=\"muted\">Publish patients in Patient Studio before creating a group.</p>"
+    '<p class="muted">Publish patients in Patient Studio before creating a group.</p>'
   }</div></fieldset><label class="group-open-toggle"><input id="group-available" type="checkbox"> Include in open assessments</label>${button("Create group", "create-group", "", "pri")}</details>`;
 }
 function testCatalog() {
@@ -1396,7 +1396,7 @@ async function loadInsights() {
   }
 }
 const pct = (v) => (v == null ? "–" : v + "%");
-const outOf4 = (v) => (v == null ? "–" : v + " / 4");
+const outOf4 = (v) => (v == null ? "–" : v + "/4");
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const initials = (name) =>
   String(name || "?")
@@ -1619,7 +1619,7 @@ function gapBars(gap) {
 function groupCharts(groups) {
   return [
     ["Rubric", (g) => g.rubricPct, (v) => v, "%"],
-    ["Rapport and empathy", (g) => g.empathy, (v) => (v / 4) * 100, " / 4"],
+    ["Rapport and empathy", (g) => g.empathy, (v) => (v / 4) * 100, "/4"],
     ["Learning objectives", (g) => g.objectivePct, (v) => v, "%"],
     ["Open questions", (g) => g.openShare, (v) => v, "%"],
   ]
@@ -2355,11 +2355,7 @@ function startLive() {
   rec.continuous = true;
   rec.interimResults = true;
   rec.onstart = () => {
-    if (live())
-      voiceState(
-        "listening",
-        "Listening…",
-      );
+    if (live()) voiceState("listening", "Listening…");
   };
   rec.onresult = (e) => {
     if (!live()) return;

@@ -2959,8 +2959,8 @@ label.check input {
 .rubric-guide .fb-table {
   font-size: 13px;
 }
-.rubric-guide .fb-table th:nth-child(2),
-.rubric-guide .fb-table td:nth-child(2) {
+.rubric-guide .fb-table th:nth-child(3),
+.rubric-guide .fb-table td:nth-child(3) {
   display: none;
 }
 .rubric-guide p {
@@ -3025,7 +3025,24 @@ label.check input {
   margin-left: auto;
 }
 .rubric-split .domain-row summary {
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+}
+/* The reason shows once the row is opened, to keep the list light. */
+.domain-row:not([open]) .why {
+  display: none;
+}
+.rubric-split .domain-row summary {
+  align-items: center;
+  padding: 14px 0;
+}
+.rubric-split .domain-row .rating {
+  font-size: 20px;
+}
+/* The collapsible notes inside an open row are plain one-line toggles. */
+.rubric-split .domain-detail summary {
+  display: list-item;
+  padding: 4px 0;
+  list-style: revert;
 }
 .rubric-split .domain-detail {
   padding-left: 74px;
@@ -3626,4 +3643,35 @@ summary:focus-visible {
   header {
     flex-wrap: wrap;
   }
+}
+
+/* Figures: the heading serif has old-style numerals that sit unevenly, so
+   scores and counts use the body sans face with lining, equal-width digits. */
+.score-num,
+.rating,
+.hc-val b,
+.hb-box b,
+.md-stat b,
+.hub-table .overall,
+.dom-val,
+.kpi-value,
+.stat-value {
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  letter-spacing: -0.01em;
+}
+.hub,
+.fb-table,
+.hub-table,
+.gap-row,
+.comp-top {
+  font-variant-numeric: lining-nums tabular-nums;
 }
