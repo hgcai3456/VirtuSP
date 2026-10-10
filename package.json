@@ -1,0 +1,12 @@
+{
+  "name": "virtusp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
