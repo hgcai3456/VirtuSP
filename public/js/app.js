@@ -46,6 +46,7 @@ let list = [],
   speechGeneration = 0,
   listening = false,
   micRestartTimer = null,
+  expandedDocId = "",
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const formMemory = {
   handoff: "",
@@ -533,25 +534,41 @@ function encounter() {
       .filter((p) => p.version)
       .map((p) => card(p, false))
       .join("")}</div></div>`;
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}, ${enc.age}</h1><div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
- <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div><span class="chip">Profile v${enc.version}</span></div><div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}<details><summary>Encounter provenance</summary><p class="muted">${esc(enc.id)} · Released findings stay distinct from patient reports. Opening a report does not count as reviewing it.</p><div class="audit-list">${enc.events
-   .filter((e) => ["release", "disclose", "review", "gate"].includes(e.type))
-   .map(
-     (e) =>
-       `<p>${esc(e.type)} · ${esc(e.id.split("-E").at(-1))} · ${esc(e.text)}</p>`,
-   )
-   .join("")}</div></details></section></div>`;
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}, ${enc.age}</h1><div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+ <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div>${conversationFiles()}<div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}${docLightbox()}</section></div>`;
+}
+function isVisualDoc(a) {
+  return ["ecg", "ct", "image"].includes(a.kind);
+}
+function artifactBody(a, expanded = false) {
+  const visual = a.fileUrl && isVisualDoc(a);
+  return `${a.rows?.length ? `<table class="lab-table"><thead><tr><th>Test</th><th>Result</th><th>Reference</th></tr></thead><tbody>${a.rows.map((r) => `<tr class="${esc(r.flag || "")}"><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit)}</td><td>${esc(r.ref)}</td></tr>`).join("")}</tbody></table>` : ""}${a.text ? `<p>${esc(a.text)}</p>` : ""}${visual ? `<img class="art-img${expanded ? " expanded" : ""}" src="${esc(a.fileUrl)}" alt="${esc(a.title)}">` : ""}${!visual && a.fileUrl ? `<iframe class="art-frame" title="${esc(a.title)}" src="${esc(a.fileUrl)}"></iframe>` : ""}`;
+}
+function artifactCard(a) {
+  if (!a.released) return "";
+
+  return `<article class="art released open ${a.justReleased ? "just-in" : ""}"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Expand", "expand-doc", `data-id="${esc(a.id)}"`)}</div><p class="chip">${esc(a.src || "Chart")} · ${esc(a.date || "Date unspecified")}</p>${artifactBody(a)}${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</article>`;
+}
+function conversationFiles() {
+  const released = enc.artifacts.filter((a) => a.released);
+  if (!released.length) return "";
+
+  return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
 function chart() {
   const facts = enc.disclosed.filter(
-      (f) => section === "ov" || f.ehr === section,
-    ),
-    arts = enc.artifacts.filter((a) => section === "ov" || a.sec === section);
-  return `<p class="chip">${enc.disclosed.length} findings released · ${enc.artifacts.filter((a) => a.released).length} reports released · ${enc.artifacts.filter((a) => a.reviewed).length} reviewed</p>
- ${arts.map((a) => `<article class="art ${a.released ? "released" : "locked"}"><h3>${esc(a.title)}</h3>${a.released ? `<p class="chip">${esc(a.src)} · ${esc(a.date || "Date unspecified")} · synthetic</p>${a.rows?.length ? `<table class="lab-table"><thead><tr><th>Test</th><th>Result</th><th>Reference</th></tr></thead><tbody>${a.rows.map((r) => `<tr><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit)}</td><td>${esc(r.ref)}</td></tr>`).join("")}</tbody></table>` : ""}${a.text ? `<p>${esc(a.text)}</p>` : ""}${a.img ? `<img class="art-img" src="${esc(a.img)}" alt="${esc(a.title)}">` : ""}${a.fileUrl ? `<a href="${esc(a.fileUrl)}" target="_blank" rel="noopener">Open attached report</a>` : ""}<div>${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</div>` : '<p class="muted">Not released yet. Follow the authored questions or chart workflow.</p>'}</article>`).join("")}
- ${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b><span class="st ${esc(f.type)}">${esc(f.type)}</span><p class="chip">${esc(f.src)} · ${esc(f.provenance.eventId.split("-E").at(-1))} · ${esc(f.provenance.via)}</p></article>`).join("")}
- ${!facts.length && !arts.length ? '<div class="empty">No information has been released in this section.</div>' : ""}
+    (f) => section === "ov" || f.ehr === section,
+  );
+
+  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b></article>`).join("")}
+ ${!facts.length ? '<div class="empty">Nothing in this section yet.</div>' : ""}
  ${section !== "ov" && facts.length && !enc.reviewedSections.includes(section) ? button("Record review of these findings", "review-section", `data-section="${section}"`) : ""}`;
+}
+function docLightbox() {
+  const a = enc.artifacts.find((d) => d.id === expandedDocId && d.released);
+  if (!a) return "";
+
+  return `<div class="doc-lightbox" data-action="close-doc" role="dialog" aria-modal="true" aria-label="${esc(a.title)}"><div class="doc-sheet" data-action="noop"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Close", "close-doc")}</div>${artifactBody(a, true)}</div></div>`;
 }
 function team() {
   if (!enc) return '<div class="pn"><h1>Launch an encounter first</h1></div>';
@@ -1136,6 +1153,8 @@ document.addEventListener("click", async (e) => {
         await mutate("open", { section: t.dataset.section });
       section = t.dataset.section;
     }
+    if (a === "expand-doc") expandedDocId = t.dataset.id;
+    if (a === "close-doc") expandedDocId = "";
     if (a === "review") await mutate("review", { artifactId: t.dataset.id });
     if (a === "review-section")
       await mutate("review", { section: t.dataset.section });

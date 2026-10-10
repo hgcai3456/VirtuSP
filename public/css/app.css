@@ -386,45 +386,10 @@ th {
   text-align: center;
 }
 
-.av-frame {
-  position: relative;
-  width: 168px;
-  height: 168px;
-  margin: 0 auto 12px;
-  border-radius: 50%;
-  border: 4px solid color-mix(in srgb, var(--ac) 45%, var(--bd));
-  overflow: hidden;
-  background: var(--soft);
-  box-shadow: 0 10px 30px rgba(16, 39, 42, 0.12);
-}
-
-.av-frame img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.av-frame.is-listening {
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--ac) 18%, transparent);
-}
-
 .av-status {
   font-size: 13px;
   color: var(--mu);
   margin-bottom: 10px;
-}
-
-.mic-btn {
-  font: 600 16px inherit;
-  min-width: 180px;
-  border: 0;
-  border-radius: 999px;
-  padding: 14px 22px;
-  background: var(--ac);
-  color: #fff;
-  cursor: pointer;
 }
 
 .studio-head {
@@ -449,8 +414,11 @@ th {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  cursor: pointer;
+  text-align: left;
 }
 
+.patient-card.selected,
 .patient-card.on {
   border-color: var(--ac);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ac) 25%, transparent);
@@ -465,23 +433,22 @@ th {
   text-align: center;
 }
 
-.patient-pick img {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
+.patient-card .patient-photo {
+  width: 112px;
+  height: 134px;
   object-fit: cover;
   display: block;
   margin: 0 auto 8px;
+  border-radius: 12px;
+  pointer-events: none;
 }
 
 .patient-pick b {
   display: block;
 }
 
-.compact-edit {
+.create-patient {
   margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--bd);
 }
 
 .enc-talk .tr {
@@ -493,17 +460,21 @@ th {
   margin-bottom: 12px;
 }
 
+.convo-files {
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--bd);
+}
+.convo-files h3 {
+  margin: 0;
+  font-size: 16px;
+}
 .art {
   border: 1px solid var(--bd);
   border-radius: 12px;
   padding: 12px;
   margin: 0 0 10px;
   background: var(--soft);
-}
-
-.art.locked {
-  opacity: 0.62;
-  border-style: dashed;
 }
 
 .art.released.just-in {
@@ -524,6 +495,41 @@ th {
   border-radius: 8px;
   margin-top: 8px;
   background: #111;
+}
+
+.art-img.expanded {
+  max-height: min(80vh, 720px);
+}
+
+.art-frame {
+  width: 100%;
+  min-height: 240px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.doc-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(12, 20, 24, 0.55);
+}
+
+.doc-sheet {
+  width: min(920px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--pn);
+  color: var(--tx);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
 }
 
 .lab-table {
@@ -733,6 +739,7 @@ main {
   border-top: 1px solid var(--bd);
   padding-top: 24px;
   margin-top: 24px;
+  scroll-margin-top: 88px;
 }
 .editor h3 {
   margin: 24px 0 10px;
@@ -1087,29 +1094,30 @@ main {
   top: 85px;
 }
 .av-frame {
-  width: 100%;
-  height: 230px;
-  margin: 12px 0;
+  width: min(100%, 340px);
+  height: 280px;
+  margin: 12px auto;
   position: relative;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 18px;
   background: var(--soft);
+  box-shadow: 0 10px 28px rgba(16, 39, 42, 0.1);
 }
-.av-frame .av-still {
+.av-frame .patient-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 35%;
+  display: block;
 }
-.av-frame.speaking .av-still {
-  animation: patient-breathe 2s ease-in-out infinite;
+.av-frame .voice-bars {
+  z-index: 2;
 }
 .av-frame.listening {
   box-shadow: 0 0 0 3px var(--ac);
 }
 .voice-bars {
   position: absolute;
-  bottom: 12px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   background: #17262bbd;
@@ -1148,13 +1156,77 @@ main {
     height: 23px;
   }
 }
-@keyframes patient-breathe {
+.voice-controls {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.voice-secondary {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.mic-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 320px);
+  border: 2px solid color-mix(in srgb, var(--ac) 55%, var(--bd));
+  border-radius: 16px;
+  padding: 14px 18px;
+  background: color-mix(in srgb, var(--ac) 12%, var(--soft));
+  color: var(--tx);
+  text-align: left;
+  box-shadow: 0 8px 24px rgba(16, 39, 42, 0.08);
+}
+.mic-btn .mic-glyph {
+  flex: 0 0 auto;
+  padding: 10px;
+  border-radius: 50%;
+  background: var(--ac);
+  color: #fff;
+}
+.mic-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.mic-copy strong {
+  font-size: 16px;
+}
+.mic-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mu);
+}
+.mic-btn.wait {
+  opacity: 0.72;
+  border-style: dashed;
+}
+.mic-btn.wait .mic-glyph {
+  background: var(--mu);
+}
+.mic-btn.on {
+  border-color: #c62828;
+  background: color-mix(in srgb, #c62828 10%, var(--soft));
+  box-shadow: 0 0 0 4px color-mix(in srgb, #c62828 18%, transparent);
+}
+.mic-btn.on .mic-glyph {
+  background: #c62828;
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
   50% {
-    transform: scale(1.015);
+    transform: scale(1.06);
   }
 }
-.voice-controls {
-  margin: 10px 0;
+.av-frame.listening .voice-bars {
+  opacity: 1;
+}
+.listening .voice-bars i {
+  animation: voice-level 0.55s ease-in-out infinite alternate;
 }
 #question-form label {
   display: block;
@@ -1271,8 +1343,7 @@ summary:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .speaking .voice-bars i,
-  .av-frame.speaking .av-still {
-    animation: none;
+  .speaking .voice-bars i {
+    animation: none !important;
   }
 }

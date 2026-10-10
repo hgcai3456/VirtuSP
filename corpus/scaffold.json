@@ -3,6 +3,7 @@
     "id": "denise",
     "name": "Denise Carter",
     "age": 58,
+    "gender": "female",
     "intro": "Hi, I'm Denise.",
     "hints": [
       "What brings you in today?",
@@ -282,16 +283,19 @@
         "date": "2026-09-14",
         "src": "Report LR-0914",
         "sec": "labs",
+        "release": "question",
         "unlock": [
-          "lab",
-          "kidney",
           "a1c",
-          "result",
-          "number",
+          "hba1c",
           "egfr",
           "glucose",
           "sugar",
-          "blood work"
+          "diabetes",
+          "kidney",
+          "creatinine",
+          "blood work",
+          "lab result",
+          "lab"
         ],
         "facts": ["c1", "c2"],
         "rows": [
@@ -318,7 +322,15 @@
         "date": "2026-09-14",
         "src": "ECG-0914",
         "sec": "img",
-        "unlock": ["ecg", "ekg", "heart", "chest pain", "palpit"],
+        "release": "question",
+        "unlock": [
+          "ecg",
+          "ekg",
+          "chest pain",
+          "palpit",
+          "heart racing",
+          "skipped beat"
+        ],
         "facts": ["c5"],
         "img": "img/denise-ecg.jpg"
       },
@@ -329,7 +341,20 @@
         "date": "2026-09-14",
         "src": "CT-0914",
         "sec": "img",
-        "unlock": ["ct", "scan", "imaging", "kidney scan", "abdomen"],
+        "release": "question",
+        "unlock": [
+          "abdomen",
+          "abdominal",
+          "belly",
+          "flank",
+          "kidney",
+          "renal",
+          "abdominal ct",
+          "kidney scan",
+          "abdominal scan",
+          "ct",
+          "scan"
+        ],
         "facts": ["c6"],
         "img": "img/denise-ct.jpg"
       }
@@ -423,6 +448,7 @@
     "id": "marcus",
     "name": "Marcus Lee",
     "age": 67,
+    "gender": "male",
     "intro": "Morning, doc. I'm Marcus.",
     "hints": [
       "What brings you in today?",
@@ -606,7 +632,16 @@
         "date": "2026-08-30",
         "src": "Spirometry SP-0830",
         "sec": "labs",
-        "unlock": ["lab", "fev", "spirom", "result", "lung", "breath test"],
+        "release": "question",
+        "unlock": [
+          "fev",
+          "spirom",
+          "lung function",
+          "breath test",
+          "shortness of breath",
+          "wheeze",
+          "inhaler"
+        ],
         "facts": ["x1"],
         "rows": [
           {
@@ -625,7 +660,8 @@
         "date": "2026-08-30",
         "src": "ECG-0830",
         "sec": "img",
-        "unlock": ["ecg", "ekg", "heart"],
+        "release": "question",
+        "unlock": ["ecg", "ekg", "chest pain", "palpit", "heart racing"],
         "facts": ["x3"],
         "img": "img/marcus-ecg.jpg"
       },
@@ -636,7 +672,21 @@
         "date": "2026-08-30",
         "src": "CT-0830",
         "sec": "img",
-        "unlock": ["ct", "scan", "imaging", "chest", "xray"],
+        "release": "question",
+        "unlock": [
+          "chest ct",
+          "chest scan",
+          "chest xray",
+          "chest x-ray",
+          "chest pain",
+          "lung",
+          "cough",
+          "shortness of breath",
+          "wheeze",
+          "copd",
+          "ct",
+          "scan"
+        ],
         "facts": ["x4"],
         "img": "img/marcus-ct.jpg"
       }

@@ -63,6 +63,18 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
       requestId: "second",
     });
     assert.equal(r2.data.encounter.transcript.at(-1).text, p.facts[0].say);
+    const started = (
+      await request("/api/profiles", "POST", {
+        starter: {
+          name: "Pat Rivera",
+          age: 33,
+          concern: "I get winded on stairs.",
+        },
+      })
+    ).data.profile;
+    assert.equal(started.name, "Pat Rivera");
+    assert.equal(started.age, 33);
+    assert.equal(started.facts[0].id, "concern");
     const fresh = (await request("/api/profiles", "POST", {})).data.profile;
     assert.equal(fresh.age, null);
     fresh.age = 40;
@@ -114,6 +126,18 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     assert.equal((await fetch(base + "/img/denise-ecg.jpg")).status, 404);
     await request(`/api/encounters/${denise.id}/open`, "POST", {
       section: "img",
+    });
+    assert.equal(
+      (
+        await fetch(
+          base + `/api/encounters/${denise.id}/artifacts/den-ecg/file`,
+        )
+      ).status,
+      403,
+    );
+    await request(`/api/encounters/${denise.id}/turn`, "POST", {
+      question: "Have you been having chest pain?",
+      requestId: "denise-ecg",
     });
     assert.equal(
       (
