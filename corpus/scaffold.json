@@ -34,7 +34,8 @@
         "gate": 0,
         "say": "I've been really thirsty and tired for a few months. My doctor says it's diabetes.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Reason for visit and symptoms"
       },
       {
         "id": "d2",
@@ -44,17 +45,13 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "understand",
-          "diabetes mean",
-          "know about",
-          "diagnos"
-        ],
+        "kw": ["understand", "diabetes mean", "know about", "diagnos"],
         "ehr": "hx",
         "gate": 0,
         "say": "They said my sugar is high. I think it means no sweets? Honestly I'm confused about the rest.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Understanding of the diagnosis"
       },
       {
         "id": "d3",
@@ -76,7 +73,8 @@
         "gate": 0,
         "say": "I take my metformin every day, like I'm supposed to.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Patient reported medication use"
       },
       {
         "id": "d4",
@@ -102,7 +100,8 @@
         "deflect": "I take it. Like I said.",
         "say": "...Okay, honestly I skip the evening one a lot. It upsets my stomach and I run out before the refill.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Medication adherence and barriers"
       },
       {
         "id": "d5",
@@ -112,19 +111,14 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "cost",
-          "afford",
-          "insurance",
-          "pay",
-          "money"
-        ],
+        "kw": ["cost", "afford", "insurance", "pay", "money"],
         "ehr": "soc",
         "gate": 1,
         "deflect": "I'd rather not talk about money.",
         "say": "Money is tight. Sometimes I wait to refill until payday.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Costs and access to care"
       },
       {
         "id": "d6",
@@ -134,16 +128,14 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "allerg",
-          "reaction"
-        ],
+        "kw": ["allerg", "reaction"],
         "ehr": "hx",
         "gate": 0,
         "allergyDrug": "sulfonamide",
         "say": "Sulfa drugs gave me a rash.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Allergies and reactions"
       },
       {
         "id": "d7",
@@ -153,18 +145,13 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "kidney",
-          "lab",
-          "result",
-          "a1c",
-          "number"
-        ],
+        "kw": ["kidney", "lab", "result", "a1c", "number"],
         "ehr": "hx",
         "gate": 0,
         "say": "Someone mentioned my kidneys, but I don't remember any numbers.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Patient understanding of laboratory results"
       },
       {
         "id": "d8",
@@ -174,19 +161,13 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "eat",
-          "diet",
-          "food",
-          "drink",
-          "soda",
-          "meal"
-        ],
+        "kw": ["eat", "diet", "food", "drink", "soda", "meal"],
         "ehr": "soc",
         "gate": 0,
         "say": "I drink a lot of sweet tea and eat out a lot because of my work hours.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Eating and drinking habits"
       },
       {
         "id": "c1",
@@ -196,13 +177,7 @@
         "src": "Report LR-0914",
         "role": "Lab",
         "vis": "chart",
-        "kw": [
-          "lab",
-          "kidney",
-          "egfr",
-          "result",
-          "number"
-        ],
+        "kw": ["lab", "kidney", "egfr", "result", "number"],
         "ehr": "labs",
         "gate": 0,
         "sec": "labs",
@@ -210,7 +185,8 @@
         "unit": "mL/min/1.73m²",
         "ref": "≥90",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Kidney function laboratory report"
       },
       {
         "id": "c2",
@@ -220,13 +196,7 @@
         "src": "Report LR-0914",
         "role": "Lab",
         "vis": "chart",
-        "kw": [
-          "a1c",
-          "sugar",
-          "glucose",
-          "lab",
-          "result"
-        ],
+        "kw": ["a1c", "sugar", "glucose", "lab", "result"],
         "ehr": "labs",
         "gate": 0,
         "sec": "labs",
@@ -234,7 +204,8 @@
         "unit": "%",
         "ref": "<5.7",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Blood sugar laboratory report"
       },
       {
         "id": "c3",
@@ -244,17 +215,13 @@
         "src": "Note N-0921",
         "role": "Primary care physician",
         "vis": "chart",
-        "kw": [
-          "refill",
-          "pharmacy",
-          "chart",
-          "note"
-        ],
+        "kw": ["refill", "pharmacy", "chart", "note"],
         "ehr": "notes",
         "gate": 0,
         "sec": "notes",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Pharmacy refill record"
       },
       {
         "id": "c4",
@@ -269,7 +236,8 @@
         "gate": 0,
         "sec": "meds",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Medication list in chart"
       },
       {
         "id": "c5",
@@ -279,18 +247,14 @@
         "src": "ECG-0914",
         "role": "Cardiology",
         "vis": "chart",
-        "kw": [
-          "ecg",
-          "ekg",
-          "heart",
-          "chest"
-        ],
+        "kw": ["ecg", "ekg", "heart", "chest"],
         "ehr": "img",
         "gate": 0,
         "sec": "img",
         "artifact": "ecg",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Electrocardiogram report"
       },
       {
         "id": "c6",
@@ -300,18 +264,14 @@
         "src": "CT-0914",
         "role": "Radiology",
         "vis": "chart",
-        "kw": [
-          "ct",
-          "scan",
-          "imaging",
-          "kidney"
-        ],
+        "kw": ["ct", "scan", "imaging", "kidney"],
         "ehr": "img",
         "gate": 0,
         "sec": "img",
         "artifact": "ct",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Abdominal imaging report"
       }
     ],
     "artifacts": [
@@ -333,10 +293,7 @@
           "sugar",
           "blood work"
         ],
-        "facts": [
-          "c1",
-          "c2"
-        ],
+        "facts": ["c1", "c2"],
         "rows": [
           {
             "name": "eGFR",
@@ -361,16 +318,8 @@
         "date": "2026-09-14",
         "src": "ECG-0914",
         "sec": "img",
-        "unlock": [
-          "ecg",
-          "ekg",
-          "heart",
-          "chest pain",
-          "palpit"
-        ],
-        "facts": [
-          "c5"
-        ],
+        "unlock": ["ecg", "ekg", "heart", "chest pain", "palpit"],
+        "facts": ["c5"],
         "img": "img/denise-ecg.jpg"
       },
       {
@@ -380,16 +329,8 @@
         "date": "2026-09-14",
         "src": "CT-0914",
         "sec": "img",
-        "unlock": [
-          "ct",
-          "scan",
-          "imaging",
-          "kidney scan",
-          "abdomen"
-        ],
-        "facts": [
-          "c6"
-        ],
+        "unlock": ["ct", "scan", "imaging", "kidney scan", "abdomen"],
+        "facts": ["c6"],
         "img": "img/denise-ct.jpg"
       }
     ],
@@ -399,9 +340,7 @@
         "t": "Elicit adherence barrier (critical)",
         "w": 25,
         "ty": "fact",
-        "f": [
-          "d4"
-        ],
+        "f": ["d4"],
         "tip": "Ask open, nonjudgmental questions about missed doses."
       },
       {
@@ -409,10 +348,7 @@
         "t": "Explore cost and diet barriers",
         "w": 15,
         "ty": "fact",
-        "f": [
-          "d5",
-          "d8"
-        ],
+        "f": ["d5", "d8"],
         "tip": "Ask how cost and daily routine affect the regimen."
       },
       {
@@ -420,9 +356,7 @@
         "t": "Review eGFR and HbA1c",
         "w": 20,
         "ty": "review",
-        "s": [
-          "labs"
-        ],
+        "s": ["labs"],
         "tip": "Open the lab report before drawing conclusions."
       },
       {
@@ -483,15 +417,7 @@
       }
     ],
     "reviewAcknowledged": true,
-    "rubricApplicable": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-    ]
+    "rubricApplicable": [1, 2, 3, 4, 5, 6, 7]
   },
   {
     "id": "marcus",
@@ -526,7 +452,8 @@
         "gate": 0,
         "say": "I get winded climbing one flight of stairs. It's worse than last winter.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Reason for visit and symptoms"
       },
       {
         "id": "m2",
@@ -536,18 +463,13 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "inhaler",
-          "medication",
-          "medicine",
-          "taking",
-          "puff"
-        ],
+        "kw": ["inhaler", "medication", "medicine", "taking", "puff"],
         "ehr": "meds",
         "gate": 0,
         "say": "I use my blue inhaler maybe four times a week.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Patient reported inhaler use"
       },
       {
         "id": "m3",
@@ -570,7 +492,8 @@
         "deflect": "I use it fine.",
         "say": "Truth is, nobody showed me. I just puff and breathe in quick.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Inhaler technique and barriers"
       },
       {
         "id": "m4",
@@ -580,18 +503,14 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "smok",
-          "cigar",
-          "tobacco",
-          "quit"
-        ],
+        "kw": ["smok", "cigar", "tobacco", "quit"],
         "ehr": "soc",
         "gate": 1,
         "deflect": "I quit a while back.",
         "say": "Okay... I still have about half a pack a day. I didn't want to say.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Patient reported tobacco use"
       },
       {
         "id": "m5",
@@ -601,16 +520,13 @@
         "src": "Approved case",
         "role": "Patient",
         "vis": "ask",
-        "kw": [
-          "habit",
-          "lifestyle",
-          "social"
-        ],
+        "kw": ["habit", "lifestyle", "social"],
         "ehr": "soc",
         "gate": 0,
         "say": "I quit smoking years ago.",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Social history and health habits"
       },
       {
         "id": "x1",
@@ -620,13 +536,7 @@
         "src": "Spirometry SP-0830",
         "role": "Lab",
         "vis": "chart",
-        "kw": [
-          "lab",
-          "fev",
-          "spirom",
-          "result",
-          "lung"
-        ],
+        "kw": ["lab", "fev", "spirom", "result", "lung"],
         "ehr": "labs",
         "gate": 0,
         "sec": "labs",
@@ -634,7 +544,8 @@
         "unit": "% predicted",
         "ref": "≥80",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Lung function report"
       },
       {
         "id": "x2",
@@ -644,16 +555,13 @@
         "src": "Note N-0830",
         "role": "Pulmonologist",
         "vis": "chart",
-        "kw": [
-          "note",
-          "chart",
-          "pack"
-        ],
+        "kw": ["note", "chart", "pack"],
         "ehr": "notes",
         "gate": 0,
         "sec": "notes",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Tobacco history in chart"
       },
       {
         "id": "x3",
@@ -663,17 +571,14 @@
         "src": "ECG-0830",
         "role": "Cardiology",
         "vis": "chart",
-        "kw": [
-          "ecg",
-          "ekg",
-          "heart"
-        ],
+        "kw": ["ecg", "ekg", "heart"],
         "ehr": "img",
         "gate": 0,
         "sec": "img",
         "artifact": "ecg",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Electrocardiogram report"
       },
       {
         "id": "x4",
@@ -683,19 +588,14 @@
         "src": "CT-0830",
         "role": "Radiology",
         "vis": "chart",
-        "kw": [
-          "ct",
-          "scan",
-          "imaging",
-          "chest",
-          "xray"
-        ],
+        "kw": ["ct", "scan", "imaging", "chest", "xray"],
         "ehr": "img",
         "gate": 0,
         "sec": "img",
         "artifact": "ct",
         "reviewed": true,
-        "origin": "scaffold"
+        "origin": "scaffold",
+        "topic": "Chest imaging report"
       }
     ],
     "artifacts": [
@@ -706,17 +606,8 @@
         "date": "2026-08-30",
         "src": "Spirometry SP-0830",
         "sec": "labs",
-        "unlock": [
-          "lab",
-          "fev",
-          "spirom",
-          "result",
-          "lung",
-          "breath test"
-        ],
-        "facts": [
-          "x1"
-        ],
+        "unlock": ["lab", "fev", "spirom", "result", "lung", "breath test"],
+        "facts": ["x1"],
         "rows": [
           {
             "name": "FEV1",
@@ -734,14 +625,8 @@
         "date": "2026-08-30",
         "src": "ECG-0830",
         "sec": "img",
-        "unlock": [
-          "ecg",
-          "ekg",
-          "heart"
-        ],
-        "facts": [
-          "x3"
-        ],
+        "unlock": ["ecg", "ekg", "heart"],
+        "facts": ["x3"],
         "img": "img/marcus-ecg.jpg"
       },
       {
@@ -751,16 +636,8 @@
         "date": "2026-08-30",
         "src": "CT-0830",
         "sec": "img",
-        "unlock": [
-          "ct",
-          "scan",
-          "imaging",
-          "chest",
-          "xray"
-        ],
-        "facts": [
-          "x4"
-        ],
+        "unlock": ["ct", "scan", "imaging", "chest", "xray"],
+        "facts": ["x4"],
         "img": "img/marcus-ct.jpg"
       }
     ],
@@ -770,9 +647,7 @@
         "t": "Uncover true smoking status (critical)",
         "w": 30,
         "ty": "fact",
-        "f": [
-          "m4"
-        ],
+        "f": ["m4"],
         "tip": "Build rapport, then ask directly and kindly."
       },
       {
@@ -780,9 +655,7 @@
         "t": "Assess inhaler technique",
         "w": 20,
         "ty": "fact",
-        "f": [
-          "m3"
-        ],
+        "f": ["m3"],
         "tip": "Ask the patient to describe how they use it."
       },
       {
@@ -790,9 +663,7 @@
         "t": "Review spirometry",
         "w": 20,
         "ty": "review",
-        "s": [
-          "labs"
-        ],
+        "s": ["labs"],
         "tip": "Open labs before concluding."
       },
       {
@@ -814,13 +685,7 @@
       "a": "m5",
       "b": "x2",
       "fu": "m4",
-      "kw": [
-        "smok",
-        "current",
-        "quit",
-        "discrep",
-        "cigar"
-      ]
+      "kw": ["smok", "current", "quit", "discrep", "cigar"]
     },
     "personality": "Proud, minimizes illness",
     "emotion": "Guarded about smoking",
@@ -843,14 +708,6 @@
       }
     ],
     "reviewAcknowledged": true,
-    "rubricApplicable": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7
-    ]
+    "rubricApplicable": [1, 2, 3, 4, 5, 6, 7]
   }
 ]

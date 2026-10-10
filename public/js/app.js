@@ -133,7 +133,7 @@ async function save() {
   await refresh();
 }
 function card(p, faculty = true) {
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"><h3>${esc(p.name)}</h3><p>${p.age} years · ${esc(p.origin || "")}</p><span class="chip">${p.version ? "Published v" + p.version : "Faculty draft"}</span><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"} · ${esc(p.origin || "")}</p><span class="chip">${p.version ? "Published v" + p.version : "Faculty draft"}</span><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
 }
 function studio() {
   const preferred = [...list].sort(
@@ -329,6 +329,9 @@ function voiceState(state, text) {
 async function speak(turn) {
   stopAudio();
   const generation = speechGeneration;
+  const updateVoice = (state, text) => {
+    if (generation === speechGeneration) voiceState(state, text);
+  };
   if (muted || tab !== "enc") return;
   if (health.speech === "elevenlabs-configured")
     try {
@@ -344,10 +347,10 @@ async function speak(turn) {
       audioUrl = URL.createObjectURL(blob);
       audio = new Audio(audioUrl);
       audio.onplay = () =>
-        voiceState("speaking", "Patient speaking · ElevenLabs");
-      audio.onended = () => voiceState("ready", "Ready for your question");
+        updateVoice("speaking", "Patient speaking · ElevenLabs");
+      audio.onended = () => updateVoice("ready", "Ready for your question");
       audio.onerror = () =>
-        voiceState("ready", "Audio unavailable; transcript remains available");
+        updateVoice("ready", "Audio unavailable; transcript remains available");
       await audio.play();
       return;
     } catch {
@@ -357,10 +360,10 @@ async function speak(turn) {
   if ("speechSynthesis" in window) {
     const utter = new SpeechSynthesisUtterance(turn.text);
     utter.onstart = () =>
-      voiceState("speaking", "Patient speaking · browser voice");
-    utter.onend = () => voiceState("ready", "Ready for your question");
+      updateVoice("speaking", "Patient speaking · browser voice");
+    utter.onend = () => updateVoice("ready", "Ready for your question");
     utter.onerror = () =>
-      voiceState("ready", "Audio unavailable; use the transcript");
+      updateVoice("ready", "Audio unavailable; use the transcript");
     speechSynthesis.speak(utter);
   }
 }
@@ -396,11 +399,18 @@ function mic() {
     return;
   }
   stopAudio();
+  const generation = speechGeneration;
   recognition = new Rec();
   recognition.lang = "en-US";
   recognition.interimResults = true;
   voiceState("listening", "Listening…");
   recognition.onresult = (e) => {
+    if (
+      generation !== speechGeneration ||
+      tab !== "enc" ||
+      enc?.status !== "active"
+    )
+      return;
     const result = e.results[e.results.length - 1];
     if ($("#question")) $("#question").value = result[0].transcript;
     if (result.isFinal) {
@@ -410,12 +420,17 @@ function mic() {
       question(text);
     }
   };
-  recognition.onerror = (e) =>
+  recognition.onerror = (e) => {
+    if (generation !== speechGeneration) return;
     voiceState(
       "ready",
       "Microphone unavailable: " + e.error + ". Type your question.",
     );
-  recognition.onend = () => voiceState("ready", "Ready for your question");
+  };
+  recognition.onend = () => {
+    if (generation === speechGeneration)
+      voiceState("ready", "Ready for your question");
+  };
   recognition.start();
 }
 async function upload(file) {
@@ -486,8 +501,13 @@ document.addEventListener("input", (e) => {
       if (
         ["facts", "sources", "artifacts"].includes(keys[0]) &&
         keys.at(-1) !== "reviewed"
-      )
+      ) {
         obj.reviewed = false;
+        const reviewControl = $(
+          "#field-" + keys.slice(0, 2).join("-") + "-reviewed",
+        );
+        if (reviewControl) reviewControl.checked = false;
+      }
       const acknowledgment = $("#field-reviewAcknowledged");
       if (acknowledgment) acknowledgment.checked = false;
     }

@@ -47,6 +47,19 @@ function facultyCase(p) {
   return profile;
 }
 const profiles = imported.map(facultyCase);
+const patientWording = [
+  "I went to college in India. I am a TV producer and moved from Mumbai to Brooklyn 8 months ago. I live alone, walk everywhere and play cricket monthly.",
+  "I am a high school student.",
+  "I am a retired janitor and live alone.",
+  "I am a sales associate at Westwood One.",
+  "I am a small aircraft mechanic.",
+  "I am an IT professional and am married. This is my first hospitalization.",
+  "I work full time for the state and have an associate’s degree in political science.",
+  "I am a college student and community volunteer.",
+];
+profiles.forEach((p, i) => {
+  p.facts[0].say = patientWording[i];
+});
 const questions = profiles.flatMap((p) => [
   {
     id: `${p.id}-fact`,

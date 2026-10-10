@@ -149,6 +149,55 @@ test("Reject unsupported numeric claims, empty citations and wrong IDs", () => {
     ),
   );
 });
+test("Grounding quotes tolerate typography but preserve numbers and negation", () => {
+  const review = {
+    supported: true,
+    claims: [
+      {
+        claim: "Patient is unsure",
+        factId: "a",
+        quote: "I'm not sure.",
+        inferred: false,
+      },
+    ],
+  };
+  assert.ok(engine.validReview(review, [{ id: "a", say: "I’m not sure." }]));
+  assert.ok(!engine.validReview(review, [{ id: "a", say: "I'm sure." }]));
+  review.claims[0].quote = "I take 50 mg.";
+  assert.ok(!engine.validReview(review, [{ id: "a", say: "I take 5 mg." }]));
+});
+test("An unrelated identity selection cannot replace a guarded topic", async () => {
+  const saved = { ...cloud },
+    prior = process.env.AI_ENABLED;
+  process.env.AI_ENABLED = "true";
+  try {
+    cloud.guard = async () => {};
+    cloud.select = async () => ({
+      factIds: ["$identity", "secret"],
+      empathy: false,
+      openQuestion: false,
+      judgmental: false,
+    });
+    cloud.paraphrase = async (identity, allowed, q, history, deflections) => {
+      assert.deepEqual(allowed, []);
+      return { text: deflections[0], factIds: [] };
+    };
+    const enc = engine.create(profile());
+    await engine.ask(enc, "Do you ever miss a dose?", "gated");
+    assert.equal(
+      enc.transcript.at(-1).text,
+      "I would rather not discuss that yet.",
+    );
+    assert.equal(enc.disclosed.secret, undefined);
+    assert.equal(
+      engine.publicView(enc).events.find((e) => e.type === "gate").factId,
+      undefined,
+    );
+  } finally {
+    Object.assign(cloud, saved);
+    process.env.AI_ENABLED = prior || "false";
+  }
+});
 test("Completed encounters reject new turns and preserve applicable denominator", async () => {
   const p = profile();
   p.rubricApplicable = [1, 2, 3, 4];
@@ -185,6 +234,14 @@ test("Assessment rejects invented evidence, invalid N/A and unsupported positive
   const inflated = structuredClone(good);
   inflated.domains[0].score = 4;
   assert.throws(() => validateFeedback(inflated, enc));
+  const classification = engine.event(enc, "communication", { empathy: true });
+  const tags = structuredClone(good);
+  tags.domains[1].score = 3;
+  tags.domains[1].evidence = [classification.id];
+  assert.throws(
+    () => validateFeedback(tags, enc),
+    "Classifier tags are not observed student evidence.",
+  );
 });
 test("Bedrock receives only permitted values; verifier rejection returns approved fallback", async () => {
   const saved = { ...cloud },
@@ -213,6 +270,44 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
     await engine.ask(enc, "What is bothering you?", "bedrock");
     assert.equal(enc.transcript.at(-1).text, "I feel tired.");
     assert.equal(enc.transcript.at(-1).provider, "approved-fallback");
+    cloud.verify = async () => ({
+      supported: true,
+      claims: [
+        {
+          claim: "Chest pain",
+          factId: "concern",
+          quote: "I have chest pain.",
+          inferred: false,
+        },
+      ],
+    });
+    await engine.ask(enc, "What is bothering you?", "fake-support");
+    assert.equal(enc.transcript.at(-1).text, "I feel tired.");
+    assert.equal(
+      enc.events.filter((e) => e.type === "grounding-review").at(-1).accepted,
+      false,
+    );
+    cloud.paraphrase = async () => ({
+      text: "I feel tired.",
+      factIds: ["concern"],
+    });
+    cloud.verify = async () => ({
+      supported: true,
+      claims: [
+        {
+          claim: "Feels tired",
+          factId: "concern",
+          quote: "I feel tired.",
+          inferred: false,
+        },
+      ],
+    });
+    await engine.ask(enc, "What is bothering you?", "real-support");
+    assert.equal(enc.transcript.at(-1).provider, "bedrock");
+    assert.equal(
+      enc.events.filter((e) => e.type === "grounding-review").at(-1).accepted,
+      true,
+    );
   } finally {
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";

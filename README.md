@@ -19,6 +19,8 @@ For real AWS calls, fill the root `.env` from `.env.example`, run `npm run setup
 
 ## Faculty workflow
 
+Teammates and their agents should start with [the handoff and remaining steps](docs/HANDOFF.md). [Prototype results](docs/BENCHMARKS.md) distinguish verified behavior from unresolved assessment quality and recording work.
+
 1. Eight organizer personas arrive as UUID-preserving, unreviewed drafts. Denise and Marcus remain published synthetic scaffold examples.
 2. Select Omar or Yvette and **Prepare organizer teaching suggestions**, or create a patient directly/from a description. Descriptive generation is an unreviewed AI draft when enabled.
 3. Edit patient-known facts, approved wording, chart records, sources, artifacts, release conditions and mapped learning objectives. Original CSV content and provenance remain preserved. Unknown allergies, medications, dates and units stay unspecified.

@@ -6,7 +6,22 @@ try {
 }
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHash } = require("node:crypto");
+const syncFs = require("node:fs");
+const revision = createHash("sha256")
+  .update(
+    [
+      "lib/cloud.js",
+      "lib/schemas.js",
+      "lib/engine.js",
+      "lib/assessment.js",
+      "evaluation/cases.js",
+      "corpus/development-examples.json",
+    ]
+      .map((f) => syncFs.readFileSync(path.join(__dirname, "..", f)))
+      .join("\n"),
+  )
+  .digest("hex");
 const engine = require("../lib/engine");
 const cloud = require("../lib/cloud");
 const fixtures = require("../evaluation/cases");
@@ -115,6 +130,7 @@ async function main() {
     )
       errors.push(`Hidden value delivered: ${item.id}`);
   }
+  console.log("Eight adversarial cases complete.");
   const newEncounter = engine.create(fixtures.unseen());
   for (const item of [
     { question: "What brings you in?", expected: ["concern"] },
@@ -128,6 +144,7 @@ async function main() {
     { question: "What allergies do you have?", expected: [] },
   ])
     await question(newEncounter, item, "unseen-patient");
+  console.log("Unseen patient complete.");
   const assessments = [];
   for (const item of assessmentCases.cases) {
     const p = fixtures.unseen();
@@ -135,6 +152,7 @@ async function main() {
     const enc = engine.create(p);
     for (const q of item.turns) await engine.ask(enc, q, randomUUID());
     await engine.complete(enc);
+    console.log(`Assessment complete: ${item.id} (${enc.assessment.provider})`);
     assessments.push({
       id: item.id,
       rubric: enc.assessment,
@@ -186,6 +204,8 @@ async function main() {
     JSON.stringify(
       {
         at: new Date().toISOString(),
+        revision,
+        profiles: fixtures.profiles,
         summary,
         errors,
         results,

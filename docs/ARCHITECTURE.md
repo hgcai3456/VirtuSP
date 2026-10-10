@@ -49,7 +49,7 @@ Disclosure includes patient-known `ask` facts and chart-only `chart` facts. Trus
 3. A semantic selector sees only neutral topic IDs/descriptions and the conversation. It does not receive hidden fact text or chart values.
 4. The server applies disclosure conditions and selects approved deflections. The patient generator receives permitted patient wording, identity, style, recent history and behavior examples.
 5. Returned JSON must have valid supporting IDs. Empty citations allow only an exact approved deflection or unknown response. New numeric values fail validation.
-6. An independent model call checks semantic entailment against supporting facts. A failure returns approved wording, never the rejected candidate.
+6. An independent model call checks every factual clause against supporting facts. Claims must cite existing IDs and quote actual approved wording; only typographic quotation/whitespace normalization is tolerated. A failure returns approved wording, never the rejected candidate. Neutral selector IDs are opaque aliases, so an authored ID cannot reveal a hidden value.
 7. Stable events record actual patient replies, disclosure, release, review, provider, model, latency and fallback reason. Speech uses only those saved replies.
 
 This is a bounded backend workflow, not an autonomous agent loop. A model-based reviewer can also make mistakes; the held-out suite and manual review remain necessary. The local fallback uses keyword matching and does not provide equivalent naturalness or semantic matching.
@@ -61,6 +61,8 @@ Seven domains use 1–4 or N/A, with denominator `4 × applicable domains`. N/A 
 Local snapshots use a serialized write queue and atomic rename. Cloud snapshots copy attachments before their manifest; immutable profile versions and completed encounters also have explicit paths. These are application-level immutable versions with S3 versioning, not S3 Object Lock. Recovery is explicit into a new directory.
 
 ## AWS services
+
+Supported Claude models use fixed strict JSON schemas for grounding claims and rubric outputs, with additional runtime checks for evidence, applicability and disclosure. Schemas are shared across cases to reuse the AWS compilation cache. First compilation may take minutes; warm them before rehearsal. [AWS structured-output documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/structured-output.html) describes supported models and schema restrictions. Nova uses prompted JSON and the same application validation.
 
 Bedrock Converse uses configurable `us-west-2` or `us-east-1` access. Candidate model IDs are `us.anthropic.claude-sonnet-4-6` and `us.amazon.nova-2-lite-v1:0`. S3 stores source attachments, artifacts, versions and encounter recovery. Credentials are read only by the server and scripts through the AWS SDK credential provider chain.
 

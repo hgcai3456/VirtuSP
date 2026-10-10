@@ -27,6 +27,16 @@ Structural safety checks validate supporting IDs, gates, exact unknown/deflectio
 
 ## Review and selection
 
+[BENCHMARKS.md](BENCHMARKS.md) records current aggregates and unresolved assessment judgments. The suite has informed fixes, so subsequent runs are regression checks rather than untouched holdouts.
+
+To rerun only the two recorded reference assessments after a grading change:
+
+```powershell
+node scripts/evaluate-assessment.js --from=output/evaluation-<model>-<timestamp>.json
+```
+
+This reuses the reference student/patient transcript and events, writes source/revision metadata, and fails if either assessment is provisional. It does not benchmark new dialogue. Faculty review must check prose, order and fairness. `node scripts/cloud-smoke.js` exercises real Bedrock/S3 and new-patient HTTP publication with isolated synthetic data.
+
 1. Review the 32 persona questions and eight conversations for naturalness, continuity and appropriate patient knowledge. Annotate pass/fail, unwanted verbosity, new facts, negations and uncertainty.
 2. Confirm no hidden fact, locked report or cross-patient clinical claim was delivered in adversarial or unseen cases.
 3. Review the two assessment outputs against the supplied faculty rubric. Check every citation, skipped expected action, N/A domain, denominator, actionable coaching and domain 6/7 safety-review flag.

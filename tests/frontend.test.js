@@ -68,6 +68,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("review-all");
     fill("field-reviewAcknowledged", true);
+    fill("field-facts-0-say", wording);
+    assert.equal(doc.getElementById("field-facts-0-reviewed").checked, false);
+    assert.equal(doc.getElementById("field-reviewAcknowledged").checked, false);
+    click("review-all");
+    fill("field-reviewAcknowledged", true);
     click("publish");
     await wait(() =>
       doc.querySelector(

@@ -96,7 +96,9 @@ function checkedState(state) {
 }
 async function backup() {
   if (!process.env.S3_BUCKET) throw new Error("Configure S3_BUCKET first.");
-  const directory = path.join(root, "data");
+  const directory = path.resolve(root, process.env.VIRTUSP_DATA_DIR || "data");
+  if (!directory.startsWith(root + path.sep))
+    throw new Error("Backup data must be within the repository workspace.");
   const state = checkedState(
     JSON.parse(await fs.readFile(path.join(directory, "state.json"), "utf8")),
   );

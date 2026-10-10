@@ -69,6 +69,10 @@ test("CSV supports multiline, escaped quotes, rejects malformed rows", () => {
   assert.ok(rows[0].b.includes("line 2"));
   assert.throws(() => csvRows("a,b\nx"));
   assert.throws(() => csvRows('a,b\n"x,y'));
+  assert.equal(
+    importCsv("patient-name,age\nSynthetic Missing,\n")[0].age,
+    null,
+  );
 });
 test("Ready profile publishes only with explicit review and mapped objectives", () => {
   const p = ready();
