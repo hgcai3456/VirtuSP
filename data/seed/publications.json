@@ -1,0 +1,106 @@
+[
+  {
+    "pmid": "11942998",
+    "doi": "10.1046/j.1464-5491.2002.00692.x",
+    "title": "Adherence to prescribed oral hypoglycaemic medication in a population of patients with Type 2 diabetes: a retrospective cohort study",
+    "authors": "Donnan PT, MacDonald TM, Morris AD",
+    "journal_name": "Diabetic Medicine",
+    "year": 2002,
+    "volume": "19",
+    "issue": "4",
+    "pages": "279-284",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/11942998/",
+    "source_type": "seed",
+    "abstract": "Faculty synopsis citing Donnan et al., Diabetic Medicine, 2002 (PMID 11942998): This retrospective cohort study examined adherence to prescribed oral hypoglycaemic medication in people with type 2 diabetes. The paper is used in VirtuSP as ground truth that missed doses and incomplete refill histories are clinically documented problems, not inventions of the dialogue model.",
+    "facts": [
+      {
+        "claim": "Adherence to prescribed oral hypoglycaemic medication in type 2 diabetes has been studied in a population cohort and is a documented clinical problem.",
+        "quote": "This retrospective cohort study examined adherence to prescribed oral hypoglycaemic medication in people with type 2 diabetes.",
+        "topic": "diabetes;adherence;oral hypoglycaemic",
+        "section": "synopsis",
+        "population": "people with type 2 diabetes",
+        "intervention": "oral hypoglycaemic medication",
+        "outcome": "medication adherence",
+        "evidence_level": "cohort study"
+      }
+    ]
+  },
+  {
+    "pmid": "27987248",
+    "doi": "10.1111/dom.12854",
+    "title": "Understanding and overcoming metformin gastrointestinal intolerance",
+    "authors": "Bonnet F, Scheen A",
+    "journal_name": "Diabetes, Obesity and Metabolism",
+    "year": 2017,
+    "volume": "19",
+    "issue": "4",
+    "pages": "473-481",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/27987248/",
+    "source_type": "seed",
+    "abstract": "Faculty synopsis citing Bonnet and Scheen, Diabetes Obesity and Metabolism, 2017 (PMID 27987248): This review discusses gastrointestinal intolerance as a common reason patients stop or skip metformin. VirtuSP uses it as ground truth for Denise's evening-dose stomach upset, which must come from an approved source rather than a generated symptom.",
+    "facts": [
+      {
+        "claim": "Gastrointestinal intolerance is a documented reason patients discontinue or skip metformin.",
+        "quote": "This review discusses gastrointestinal intolerance as a common reason patients stop or skip metformin.",
+        "topic": "diabetes;metformin;gastrointestinal",
+        "section": "synopsis",
+        "population": "patients taking metformin",
+        "intervention": "metformin",
+        "outcome": "gastrointestinal intolerance and missed doses",
+        "evidence_level": "review"
+      }
+    ]
+  },
+  {
+    "pmid": "27060726",
+    "doi": "10.1016/j.chest.2016.03.041",
+    "title": "Systematic Review of Errors in Inhaler Use: Has Patient Technique Improved Over Time?",
+    "authors": "Sanchis J, Gich I, Pedersen S",
+    "journal_name": "Chest",
+    "year": 2016,
+    "volume": "150",
+    "issue": "2",
+    "pages": "394-406",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/27060726/",
+    "source_type": "seed",
+    "abstract": "Faculty synopsis citing Sanchis, Gich, and Pedersen, Chest, 2016 (PMID 27060726): This systematic review found that errors in inhaler technique are common and affect drug delivery. VirtuSP uses it as ground truth for Marcus's shallow puff and unused spacer, which are teaching facts drawn from published evidence rather than model improvisation.",
+    "facts": [
+      {
+        "claim": "Errors in inhaler technique are common and have consequences for drug delivery.",
+        "quote": "This systematic review found that errors in inhaler technique are common and affect drug delivery.",
+        "topic": "COPD;inhaler technique;drug delivery",
+        "section": "synopsis",
+        "population": "patients using inhalers",
+        "intervention": "inhaled therapy technique",
+        "outcome": "errors affecting drug delivery",
+        "evidence_level": "systematic review"
+      }
+    ]
+  },
+  {
+    "pmid": "15710956",
+    "doi": "10.7326/0003-4819-142-4-200502150-00005",
+    "title": "The effects of a smoking cessation intervention on 14.5-year mortality: a randomized clinical trial",
+    "authors": "Anthonisen NR, Skeans MA, Wise RA, Manfreda J, Kanner RE, Connett JE",
+    "journal_name": "Annals of Internal Medicine",
+    "year": 2005,
+    "volume": "142",
+    "issue": "4",
+    "pages": "233-239",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/15710956/",
+    "source_type": "seed",
+    "abstract": "Faculty synopsis citing Anthonisen et al., Annals of Internal Medicine, 2005 (PMID 15710956): This randomized trial followed a smoking cessation intervention and reported mortality outcomes. VirtuSP uses the citation as ground truth that continued smoking is a clinically important, evidence-linked topic when a COPD case conceals current use.",
+    "facts": [
+      {
+        "claim": "Smoking cessation in people with airway disease is an evidence-linked clinical intervention with published mortality outcomes.",
+        "quote": "This randomized trial followed a smoking cessation intervention and reported mortality outcomes.",
+        "topic": "COPD;smoking cessation;mortality",
+        "section": "synopsis",
+        "population": "people who smoke, including those with airway disease",
+        "intervention": "smoking cessation intervention",
+        "outcome": "mortality",
+        "evidence_level": "randomized clinical trial"
+      }
+    ]
+  }
+]

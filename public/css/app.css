@@ -261,6 +261,11 @@ textarea.code {
   border-left: 3px solid var(--ac);
 }
 
+.bubble.gate p {
+  background: color-mix(in srgb, var(--wr) 12%, transparent);
+  border-left: 3px solid var(--wr);
+}
+
 .chip {
   font-size: 11px;
   color: var(--mu);

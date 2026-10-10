@@ -1,0 +1,28 @@
+{
+  "started_at": "2026-10-10T18:35:12.540Z",
+  "updated_at": "2026-10-10T18:35:27.700Z",
+  "status": "complete",
+  "topic_index": 6,
+  "retstart": 0,
+  "per_topic": 0,
+  "chunk": 10,
+  "delay_ms": 800,
+  "conversations": 32,
+  "turns": 0,
+  "errors": 0,
+  "current_topic": "",
+  "done": [
+    "greeting",
+    "acknowledgement",
+    "hesitation",
+    "clarification",
+    "closing",
+    "bridge"
+  ],
+  "library": {
+    "journals": 28900,
+    "medical_data": 63316,
+    "conversations": 32,
+    "conversation_turns": 144
+  }
+}
