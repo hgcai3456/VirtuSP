@@ -10,3 +10,5 @@ data/*.sqlite-shm
 data/ingest-checkpoint.json
 data/ingest-checkpoint-*.json
 data/reports/
+tests/e2e/reports/
+tests/e2e/.tmp/

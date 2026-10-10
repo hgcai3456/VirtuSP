@@ -5,6 +5,8 @@
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
     "start": "node server.js",
+    "test": "node --test --experimental-test-coverage --test-coverage-include=**/grounding-gate.js --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100",
+    "test": "node --experimental-test-module-mocks --test --test-isolation=process --test-concurrency=1 --experimental-test-coverage --test-coverage-include=lib/**/*.js --test-coverage-include=server.js --test-coverage-include=agents/**/*.js --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100",
     "ingest": "node agents/ingest.js",
     "ingest:seed": "node agents/ingest.js --seed",
     "ingest:nih": "node agents/ingest.js --nih --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
@@ -12,8 +14,14 @@
     "ingest:nih:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
     "ingest:nih:2:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
     "ingest:nih:all": "node agents/ingest.js --nih --all --resume --shards 2 --shard 0 --chunk 20 --delay 800",
-    "ingest:status": "node agents/ingest.js --status"
+    "ingest:status": "node agents/ingest.js --status",
+    "test": "npm run test:e2e",
+    "test:e2e": "cucumber-js --config tests/e2e/cucumber.js"
   },
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.3.0",
+    "selenium-webdriver": "^4.35.0"
+  }
   "engines": {
     "node": ">=16"
   }
