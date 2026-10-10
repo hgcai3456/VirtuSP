@@ -1572,6 +1572,93 @@ summary:focus-visible {
   margin: 10px 0 0;
   color: var(--mu);
 }
+.student-home {
+  min-height: calc(100dvh - 100px);
+  max-width: 1400px;
+  margin: auto;
+  padding: clamp(24px, 4vw, 56px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.student-home h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  margin: 10px 0;
+}
+.simulation-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 28px 0;
+  flex: 1;
+  min-height: 320px;
+}
+.simulation-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 20px;
+  padding: clamp(24px, 4vw, 52px);
+  border: 2px solid var(--bd);
+  border-radius: 20px;
+  background: var(--pn);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.simulation-choice:hover,
+.simulation-choice:focus-visible {
+  border-color: var(--ac);
+  background: var(--soft);
+}
+.simulation-choice:focus-visible {
+  outline: 3px solid var(--ac);
+  outline-offset: 4px;
+}
+.choice-symbol {
+  color: var(--ac);
+  font-size: 18px;
+  font-weight: 700;
+}
+.choice-title {
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.choice-description {
+  color: var(--mu);
+  max-width: 38ch;
+  line-height: 1.6;
+}
+.choice-cta {
+  color: var(--ac);
+  font-weight: 700;
+  margin-top: auto;
+}
+.group-builder {
+  padding: 18px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+.group-builder > label,
+.group-builder fieldset label {
+  display: block;
+  margin: 12px 0 6px;
+}
+.group-builder > input,
+.group-builder > select {
+  width: 100%;
+}
+.group-builder fieldset {
+  border: 1px solid var(--bd);
+  margin: 16px 0;
+}
 .role-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1650,6 +1737,14 @@ summary:focus-visible {
   margin: 10px 0;
 }
 @media (max-width: 680px) {
+  .simulation-choices {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    min-height: auto;
+  }
+  .simulation-choice {
+    min-height: 250px;
+  }
   .role-grid {
     grid-template-columns: 1fr;
   }

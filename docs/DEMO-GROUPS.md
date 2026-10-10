@@ -12,12 +12,18 @@ Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. If
 ## Run and review
 
 1. Use **Faculty · switch**, choose **Student A**, then enter Student.
-2. Start the assigned test. Its two cases run in a shuffled order that is saved once. Try a greeting, medication concerns, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
-3. Finish the first trial. Feedback is held. Continue through **Assigned tests → Start / resume test** for the second trial. Finishing both releases the standard rubric and separate learning-objective feedback.
+2. Choose the large **Patient group** tile, then start the assigned test. Its two cases run in a shuffled order that is saved once. Try a greeting, medication concerns, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
+3. Finish the first trial. Feedback is held. Continue through **Patient groups → Start / resume test** for the second trial. Finishing both releases the standard rubric and separate learning-objective feedback.
 4. Refresh or restart midway to test recovery. Choose the same alias after restart, then resume the assignment. Starting twice resumes the same attempt and encounter.
 5. Switch to Faculty and open **Student results**. Inspect the trial assessments and evidence. Group and encounter bias panels say **Awaiting analysis** until the teammate's detector supplies results. Faculty inspection cannot modify a student's encounter.
-6. Switch to Student B: Student A's assignments, history and faculty analysis should be absent. Ordinary single-patient practice still provides immediate feedback.
+6. Switch to Student B: Student A's assignments, history and faculty analysis should be absent. Choose **Individual patient** for ordinary practice with immediate feedback. Use **Simulation options** to change paths.
 7. Separately demonstrate **Patient Studio → New patient → upload/extract → review/publish → Start visit**. Comparison groups supplement the challenge's required reusable authoring demonstration.
+
+## Available groups and faculty creation
+
+In Faculty **Prepared groups**, use **Make available to all** to offer a reviewed/published group without assigning each student individually. Students find it under **Patient group → Available simulations**. Starting it fixes patient versions and trial order, then behaves like an assigned test. Repeated starts resume the same attempt. **Use assignments only** stops new self-starts; already created assignments remain resumable.
+
+**Create a patient group** selects at least two published patients, a title and group type; purpose is optional. Practice groups can combine conditions. Demographic comparison groups retain the matching clinical/scenario checks and require faculty preparation. A practice group is not automatically a controlled bias comparison. Creation, availability and student aliases are faculty-only; students never see these controls.
 
 ## Prepared case provenance
 
