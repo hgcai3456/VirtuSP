@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "environment" {
   type        = string
   description = "production, staging, or development. Production stays private, protected, and snapshot-backed."
-  default     = "production"
+  default     = "development"
 
   validation {
     condition     = contains(["production", "staging", "development"], var.environment)
@@ -84,13 +84,13 @@ variable "db_username" {
 
 variable "publicly_accessible" {
   type        = bool
-  description = "Attach a public address. Production rejects this."
-  default     = false
+  description = "Attach a public address so this machine can load SQL. Production rejects this."
+  default     = true
 }
 
 variable "allowed_cidrs" {
   type        = list(string)
-  description = "CIDR blocks allowed to connect on port 5432 when the instance is public. Never 0.0.0.0/0."
+  description = "CIDR blocks allowed to connect on port 5432 when the instance is public. Empty uses this machine's address. Never 0.0.0.0/0."
   default     = []
 
   validation {
@@ -124,17 +124,17 @@ variable "backup_retention_period" {
 variable "deletion_protection" {
   type        = bool
   description = "Block deletion of the instance. Required in production."
-  default     = true
+  default     = false
 }
 
 variable "skip_final_snapshot" {
   type        = bool
   description = "Skip the snapshot taken when the instance is deleted. Production rejects this."
-  default     = false
+  default     = true
 }
 
 variable "load_sql" {
   type        = bool
   description = "Run the schema and seed loader from this machine after create. The machine must be able to open TLS to the instance."
-  default     = false
+  default     = true
 }

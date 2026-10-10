@@ -28,6 +28,7 @@ RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
 ENV PORT=3000 \
     NODE_ENV=production \
     HOME=/tmp \
+    HOST=0.0.0.0 \
     VIRTUSP_SHARDS=1 \
     VIRTUSP_DB=/app/data/virtusp.sqlite \
     VIRTUSP_SQLITE_JOURNAL=DELETE

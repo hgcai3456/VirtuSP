@@ -6,6 +6,7 @@ What Terraform creates:
 
 - A VPC with two public subnets and two private subnets
 - An internet-facing load balancer and an S3 bucket for its access logs
+- A private S3 bucket for the patient PDFs in `data/reports`
 - An ECS cluster, one Fargate service, and a one-off schema task
 - An encrypted EFS volume mounted at `/app/data`
 - An ECR repository

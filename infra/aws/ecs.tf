@@ -57,6 +57,7 @@ resource "aws_ecs_task_definition" "app" {
         { name = "PORT", value = tostring(var.container_port) },
         { name = "NODE_ENV", value = "production" },
         { name = "HOME", value = "/tmp" },
+        { name = "HOST", value = "0.0.0.0" },
         { name = "VIRTUSP_SHARDS", value = "1" },
         { name = "VIRTUSP_DB", value = "/app/data/virtusp.sqlite" },
         { name = "VIRTUSP_SQLITE_JOURNAL", value = "DELETE" },

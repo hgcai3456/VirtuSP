@@ -72,3 +72,13 @@ output "rds_secret_arn" {
   description = "Secrets Manager ARN for the generated database password."
   value       = local.db_secret_arn
 }
+
+output "reports_bucket" {
+  description = "Private bucket that stores the patient PDF reports."
+  value       = aws_s3_bucket.reports.id
+}
+
+output "reports_object_count" {
+  description = "Number of PDFs uploaded from data/reports."
+  value       = length(local.report_pdfs)
+}
