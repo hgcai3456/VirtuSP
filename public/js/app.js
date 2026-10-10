@@ -29,6 +29,7 @@ const domainNames = [
 let list = [],
   history = [],
   profile = null,
+  patientDialog = null,
   enc = null,
   issues = [],
   versions = [],
@@ -47,7 +48,6 @@ let list = [],
   micRestartTimer = null,
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const formMemory = {
-  description: "",
   handoff: "",
   careplan: "",
   note: "",
@@ -135,7 +135,7 @@ async function pick(id) {
   dirty = false;
 }
 async function save() {
-  if (!profile) return;
+  if (!profile || patientDialog?.mode === "new") return;
   const r = await api("/api/profiles/" + profile.id, "PUT", { profile });
   issues = r.issues;
   dirty = false;
@@ -147,28 +147,28 @@ function card(p, faculty = true) {
 function studio() {
   const preferred = [...list].sort(
     (a, b) =>
+      (b.id === profile?.id) - (a.id === profile?.id) ||
       (a.name === "Omar Sinclair"
         ? -2
         : a.name === "Yvette Armstrong"
           ? -1
           : 0) -
-      (b.name === "Omar Sinclair"
-        ? -2
-        : b.name === "Yvette Armstrong"
-          ? -1
-          : 0),
+        (b.name === "Omar Sinclair"
+          ? -2
+          : b.name === "Yvette Armstrong"
+            ? -1
+            : 0),
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("New patient", "new", "", "pri")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
  <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
- <details class="draft-generator"><summary>Create from a description</summary><label for="description">Describe the synthetic patient using explicit facts. The selected patient's sources are included for drafting.</label><textarea id="description" data-memory="description" rows="4" placeholder="Name, age, concerns, patient-known history, chart records, objectives…">${esc(formMemory.description)}</textarea>${button(health.dialogue === "local" ? "Preserve description as draft" : "Generate a reviewable draft", "generate", "", "pri")}<p class="muted">Generated content requires review. Missing details stay unspecified.</p></details>
- ${profile ? editor() : ""}</div>`;
+ </div>`;
 }
 function editor() {
-  return `<div class="editor"><div class="studio-head"><div><h2>Edit ${esc(profile.name)}</h2><span class="chip">Draft · published versions ${versions.map((v) => v.version).join(", ") || "none"}</span></div><div class="row">${button("Save & check", "save")} ${button("Publish version", "publish", "", "pri")}</div></div>
+  return `<div class="editor">
  ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer teaching suggestions", "prepare") : ""}
  <p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Saved draft"} · Published versions and active encounters remain fixed.</p>
  ${profile.missing?.length ? `<details><summary>Imported omissions and review notes (${profile.missing.length})</summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul><p class="muted">An omission may remain unspecified. Do not convert it to a negative finding.</p></details>` : ""}
- <div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Authored emotional state", "emotion")}${control("ElevenLabs voice ID (optional)", "voiceId")}${control("Image S3 URI (optional)", "image")}</div>
+ <div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Authored emotional state", "emotion")}</div><details class="card-edit"><summary>Optional voice and portrait configuration</summary><div class="fields">${control("ElevenLabs voice ID", "voiceId")}${control("Portrait S3 URI", "image")}</div></details>
  <h3>Clinical facts</h3><p class="muted">These are the authoritative records. Editing them changes the next published encounter directly. Neutral topic descriptions help question matching without exposing hidden values.</p>
  ${profile.facts
    .map(
@@ -182,13 +182,22 @@ function editor() {
              ["chart", "Chart only"],
            ],
          },
-       )}${control("Chart category", `facts.${i}.ehr`, { options: sections.slice(1) })}${control("Section that releases chart fact", `facts.${i}.sec`, { options: [["", "Not a chart fact"], ...sections.slice(1)] })}${control("Provenance status", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}${control("Source ID or report reference", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}${control("Trust gate (0–3)", `facts.${i}.gate`, { type: "number" })}${control("Approved deflection", `facts.${i}.deflect`)}${control("Match key for handoff", `facts.${i}.k`)}${control("Measurement units", `facts.${i}.unit`)}${control("Reference / interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}${control("Medication identifier (if applicable)", `facts.${i}.drug`)}${control("Allergy medication identifier", `facts.${i}.allergyDrug`)}${control("Measurement", `facts.${i}.lab`, { type: "checkbox" })}${control("I reviewed this fact", `facts.${i}.reviewed`, { type: "checkbox" })}</div>${control("Patient response / approved fallback", `facts.${i}.say`, { type: "textarea" })}${button("Remove fact", "remove-fact", `data-index="${i}"`)}</details>`,
+       )}${control("Chart category", `facts.${i}.ehr`, { options: sections.slice(1) })}${control("Section that releases chart fact", `facts.${i}.sec`, { options: [["", "Not a chart fact"], ...sections.slice(1)] })}${control("Provenance status", `facts.${i}.type`, { options: ["reported", "documented", "confirmed", "unknown"] })}${control("Source ID or report reference", `facts.${i}.src`)}${control("Question keywords", `facts.${i}.kw`, { list: true })}${control("Trust gate (0–3)", `facts.${i}.gate`, { type: "number" })}${control("Approved deflection", `facts.${i}.deflect`)}${control("Match key for handoff", `facts.${i}.k`)}${control("Measurement units", `facts.${i}.unit`)}${control("Reference / interpretation context", `facts.${i}.ref`)}${control("Measurement date", `facts.${i}.date`, { type: "date" })}${control("Medication identifier (if applicable)", `facts.${i}.drug`)}${control("Allergy medication identifier", `facts.${i}.allergyDrug`)}${control(
+         "Measurement",
+         `facts.${i}.lab`,
+         {
+           options: [
+             ["false", "No"],
+             ["true", "Yes"],
+           ],
+         },
+       )}</div>${control("Patient response / approved fallback", `facts.${i}.say`, { type: "textarea" })}${button("Remove fact", "remove-fact", `data-index="${i}"`)}</details>`,
    )
    .join("")}
  ${button("Add fact", "add-fact")}
  <h3>Teaching sources</h3><p class="muted">References support review and coaching. Their contents are treated as evidence, not instructions.</p>
- ${profile.sources.map((s, i) => `<details class="card-edit"><summary>${esc(s.title)} · ${s.reviewed ? "reviewed" : "review required"}</summary><div class="fields">${control("Source ID", `sources.${i}.id`)}${control("Title", `sources.${i}.title`)}${control("Reference URL", `sources.${i}.url`)}${control("I reviewed this source", `sources.${i}.reviewed`, { type: "checkbox" })}</div>${control("Relevant source excerpt", `sources.${i}.excerpt`, { type: "textarea" })}${s.fileId ? `<a href="/api/files/${esc(s.fileId)}" target="_blank" rel="noopener">Open uploaded source</a>` : ""}${safeLink(s.url) ? ` <a href="${safeLink(s.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove source", "remove-source", `data-index="${i}"`)}</details>`).join("")}
- <div class="row">${button("Add source", "add-source")}${button("Add reference links", "references")}<label class="btn file-label">Upload PDF / TXT source<input type="file" id="source-upload" accept=".pdf,.txt,application/pdf,text/plain" hidden></label></div>
+ ${profile.sources.map((s, i) => `<details class="card-edit"><summary>${esc(s.title)} · ${s.reviewed ? "reviewed" : "review required"}</summary><div class="fields">${control("Source ID", `sources.${i}.id`)}${control("Title", `sources.${i}.title`)}${control("Reference URL", `sources.${i}.url`)}</div>${control("Relevant source excerpt", `sources.${i}.excerpt`, { type: "textarea" })}${s.fileId ? `<a href="/api/files/${esc(s.fileId)}" target="_blank" rel="noopener">Open uploaded source</a>` : ""}${safeLink(s.url) ? ` <a href="${safeLink(s.url)}" target="_blank" rel="noopener">Open reference</a>` : ""}${button("Remove source", "remove-source", `data-index="${i}"`)}</details>`).join("")}
+ <div class="row">${button("Add source", "add-source")}${button("Add reference links", "references")}</div>
  <h3>Clinical artifacts</h3>${profile.artifacts
    .map(
      (a, i) =>
@@ -202,10 +211,10 @@ function editor() {
              ["question", "Matching question only"],
            ],
          },
-       )}${control("Question release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked fact IDs", `artifacts.${i}.facts`, { list: true })}${control("Artifact agrees with approved facts", `artifacts.${i}.reviewed`, { type: "checkbox" })}</div>${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">Open attachment</a>` : ""}${button("Remove artifact", "remove-artifact", `data-index="${i}"`)}</details>`,
+       )}${control("Question release keywords", `artifacts.${i}.unlock`, { list: true })}${control("Linked fact IDs", `artifacts.${i}.facts`, { list: true })}</div>${control("Report text", `artifacts.${i}.text`, { type: "textarea" })}${control("Lab rows: test | value | unit | reference", `artifacts.${i}.rows`, { type: "textarea", rows: true })}${a.fileId ? `<a href="/api/files/${esc(a.fileId)}" target="_blank" rel="noopener">Open attachment</a>` : ""}${button("Remove artifact", "remove-artifact", `data-index="${i}"`)}</details>`,
    )
    .join("")}
- <div class="row">${button("Add structured report", "add-artifact")}<label class="btn file-label">Attach PDF / PNG / JPG<input type="file" id="artifact-upload" accept=".pdf,.png,.jpg,.jpeg" hidden></label></div>
+ <div class="row">${button("Add structured report", "add-artifact")}</div>
  <h3>Learning objectives</h3>${profile.obj
    .map(
      (o, i) =>
@@ -225,9 +234,197 @@ function editor() {
    )
    .join("")}${button("Add objective", "add-objective")}
  <details class="card-edit"><summary>Intentional discrepancy (optional)</summary>${profile.mm ? `<div class="fields">${control("Patient statement fact ID", "mm.a")}${control("Chart record fact ID", "mm.b")}${control("Follow-up fact ID", "mm.fu")}${control("Reconciliation keywords", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Define discrepancy", "add-mm")}</details>
- <h3>Observable rubric domains</h3><div class="domain-picks">${domainNames.map((name, i) => `<label><input type="checkbox" data-domain="${i + 1}" ${profile.rubricApplicable.includes(i + 1) ? "checked" : ""}>${i + 1}. ${name}</label>`).join("")}</div>
- <div class="review-box">${control("I reviewed the complete profile, sources and report consistency", "reviewAcknowledged", { type: "checkbox" })}${button("Mark all individual records reviewed", "review-all")}<p class="muted">Use this only after reviewing every record above. This records your approval; it does not certify clinical correctness.</p></div>
- ${issues.length ? `<details class="issues" open><summary>Publication checks (${issues.filter((i) => i.severity === "error").length} errors)</summary>${issues.map((i) => `<p class="issue ${i.severity === "error" ? "err" : "warn"}">${esc(i.message)}</p>`).join("")}</details>` : ""}</div>`;
+ <details class="card-edit"><summary>Assessment scope (optional)</summary><p class="muted">All seven rubric domains apply by default. Use N/A only when the scenario cannot support observation.</p>${control("Applicable domain numbers (1-7, comma separated)", "rubricApplicable", { list: true })}</details>
+ <div class="review-box">${control("I acknowledge the faculty review and publication policy: this is synthetic educational material; I have checked the profile, sources, clinical records, disclosure rules and learning objectives for accuracy and consistency, and approve this version for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
+}
+function openPatientDialog(mode, selected = profile) {
+  patientDialog = {
+    mode,
+    previous: { profile, versions, issues, dirty },
+    files: [],
+    description: "",
+    notice: "",
+  };
+  profile =
+    mode === "new"
+      ? {
+          id: crypto.randomUUID(),
+          name: "",
+          age: null,
+          intro: "Hello.",
+          personality: "",
+          style: "",
+          emotion: "",
+          origin: "faculty",
+          facts: [],
+          sources: [],
+          artifacts: [],
+          obj: [],
+          hints: [],
+          missing: [],
+          rubricApplicable: [1, 2, 3, 4, 5, 6, 7],
+          reviewAcknowledged: false,
+          createdAt: new Date().toISOString(),
+        }
+      : structuredClone(selected);
+  versions = mode === "new" ? [] : versions;
+  issues = [];
+  dirty = false;
+  if (mode === "edit") {
+    patientDialog.description =
+      profile.sources.find((s) => s.id === "description")?.excerpt || "";
+    patientDialog.files = profile.sources
+      .filter((s) => s.fileId)
+      .slice(0, 2)
+      .map((s) => {
+        const artifact = profile.artifacts.find((a) => a.fileId === s.fileId);
+        return {
+          id: s.fileId,
+          name: s.title,
+          excerpt: s.excerpt,
+          role: artifact ? "clinical" : s.role || "case",
+          section: artifact?.sec || "notes",
+        };
+      });
+  }
+}
+function closePatientDialog(restore = true) {
+  if (restore) ({ profile, versions, issues, dirty } = patientDialog.previous);
+  patientDialog = null;
+}
+function syncDialogAttachments() {
+  for (const file of patientDialog.files) {
+    let source = profile.sources.find((s) => s.fileId === file.id);
+    if (!source) {
+      source = {
+        id: "upload-" + file.id,
+        title: file.name,
+        excerpt: file.excerpt || "",
+        fileId: file.id,
+        reviewed: false,
+      };
+      profile.sources.push(source);
+    }
+    source.role = file.role;
+    const report = profile.artifacts.find((a) => a.fileId === file.id);
+    if (file.role === "clinical") {
+      if (report) report.sec = file.section;
+      else
+        profile.artifacts.push({
+          id: "report-" + file.id,
+          title: file.name,
+          src: source.id,
+          fileId: file.id,
+          kind: "report",
+          sec: file.section,
+          date: "",
+          release: "section",
+          unlock: [],
+          facts: profile.facts
+            .filter((f) => f.src === source.id && f.vis === "chart")
+            .map((f) => f.id),
+          rows: [],
+          reviewed: false,
+        });
+    } else if (report)
+      profile.artifacts = profile.artifacts.filter((a) => a !== report);
+  }
+}
+function patientForm() {
+  if (!patientDialog) return "";
+  const d = patientDialog,
+    isNew = d.mode === "new";
+  return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
+    <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1><p class="muted">Upload a case, review the details, and create a reusable encounter.</p></div>${button("Cancel", "close-patient")}</div>
+    <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
+    <section class="form-section"><h2>1. Case documents</h2><p class="muted">Start with a synthetic case brief containing identity, history and objectives. Optionally add a clinical report. Choose each file’s purpose before extracting details.</p>
+      <label class="upload-zone">Choose PDF, TXT or image files <span>Up to two files · 5 MB each · optional</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
+      ${d.files
+        .map(
+          (f, i) =>
+            `<div class="uploaded-document"><div><b>${esc(f.name)}</b><p class="muted">${f.excerpt?.trim() ? "Text extracted" : "No selectable text; enter details manually. OCR is planned."} · <a href="/api/files/${esc(f.id)}" target="_blank" rel="noopener">View original</a></p></div><label>Document purpose<select data-upload-index="${i}" data-upload-key="role">${[
+              ["case", "Faculty case brief (patient details)"],
+              ["clinical", "Clinical report (student chart)"],
+              ["reference", "Teaching reference (guideline or paper)"],
+            ]
+              .map(
+                ([v, label]) =>
+                  `<option value="${v}" ${f.role === v ? "selected" : ""}>${label}</option>`,
+              )
+              .join("")}</select></label>${
+              f.role === "clinical"
+                ? `<label>Chart section<select data-upload-index="${i}" data-upload-key="section">${sections
+                    .slice(1)
+                    .map(
+                      ([v, label]) =>
+                        `<option value="${v}" ${f.section === v ? "selected" : ""}>${label}</option>`,
+                    )
+                    .join("")}</select></label>`
+                : ""
+            }${button("Remove", "remove-upload", `data-index="${i}"`)}</div>`,
+        )
+        .join("")}
+      <label for="patient-description">Patient description or additional details</label><textarea id="patient-description" rows="4" placeholder="Name, age, concerns, patient-known history, personality and teaching objectives. Leave unspecified medical details unknown.">${esc(d.description)}</textarea>
+      ${button(busy ? "Extracting…" : "Extract & fill form", "parse-patient", "", "pri")}<p class="muted">Extraction rebuilds the fields below from these documents and your description. Selectable PDF text is supported; scans and handwritten notes need manual transcription for now. References never establish patient-specific facts.</p>
+    </section>
+    <section class="form-section"><h2>2. Review patient details</h2><p class="muted">Correct extracted details and add anything missing. Patient-known facts drive dialogue; chart-only findings and reports follow their release rules. Learning objectives guide feedback.</p>${editor()}</section>
+    </fieldset></div>
+    <div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${button("Save draft", "save-patient")}${button(isNew ? "Create & publish patient" : "Publish version", "submit-patient", "", "pri")}</div><p class="muted">Drafts can be incomplete. Publication requires complete, faculty-approved information.</p></div>
+  </form></dialog>`;
+}
+async function parsePatient() {
+  const d = patientDialog;
+  busy = true;
+  d.notice = "Extracting explicit patient details and checking their support…";
+  render();
+  try {
+    const r = await api("/api/generate", "POST", {
+      description: d.description,
+      files: d.files.map(({ id, role, section }) => ({ id, role, section })),
+      preview: true,
+    });
+    // Previewing must never create a library entry or change an existing identity.
+    profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
+    dirty = true;
+    d.notice = r.warning;
+  } catch (e) {
+    d.notice = e.message;
+  } finally {
+    busy = false;
+    render();
+  }
+}
+async function submitPatient(publish) {
+  const d = patientDialog;
+  busy = true;
+  d.notice = publish
+    ? "Saving the reviewed patient and publishing…"
+    : "Saving draft…";
+  render();
+  try {
+    const id = profile.id;
+    if (d.mode === "new")
+      await api("/api/profiles", "POST", { profile, publish });
+    else {
+      await api("/api/profiles/" + id, "PUT", { profile });
+      if (publish) await api("/api/profiles/" + id + "/publish", "POST", {});
+    }
+    closePatientDialog(false);
+    await refresh();
+    await pick(id);
+    tab = "studio";
+    message = publish
+      ? `${profile.name} published. Start a visit from the patient card.`
+      : `${profile.name || "Untitled patient"} saved as a draft.`;
+  } catch (e) {
+    if (patientDialog) patientDialog.notice = e.message;
+    else message = e.message;
+  } finally {
+    busy = false;
+    render();
+    if (!patientDialog)
+      $('[data-action="pick"][data-id="' + profile.id + '"]')?.focus();
+  }
 }
 function encounter() {
   if (!enc)
@@ -293,6 +490,8 @@ function past() {
   return `<div class="pn"><h1>Encounter history</h1><p class="muted">Each attempt retains its patient version, transcript and assessment.</p><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(new Date(e.createdAt).toLocaleString())} · ${e.turns} questions · ${e.status}</p>${button(e.status === "complete" ? "View feedback" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
 }
 function render() {
+  const focusId = document.activeElement?.id;
+  const dialogScroll = $(".patient-form-body")?.scrollTop || 0;
   const navs = [
     ["studio", "Patient Studio"],
     ["enc", "Encounter"],
@@ -312,7 +511,25 @@ function render() {
   $("#themeBtn").textContent = "Theme";
   $("#app").innerHTML =
     `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
-    { studio, enc: encounter, team, rep: assessment, history: past }[tab]();
+    { studio, enc: encounter, team, rep: assessment, history: past }[tab]() +
+    patientForm();
+  if (patientDialog) {
+    const dialog = $("#patient-dialog");
+    if (dialog.showModal) dialog.showModal();
+    else dialog.setAttribute("open", "");
+    $(".patient-form-body").scrollTop = dialogScroll;
+    const focus = focusId && document.getElementById(focusId);
+    if (focus && dialog.contains(focus)) focus.focus();
+    else $("#patient-upload")?.focus();
+    dialog.addEventListener("cancel", (e) => {
+      e.preventDefault();
+      if (!busy) {
+        closePatientDialog();
+        render();
+        $('[data-action="new"]')?.focus();
+      }
+    });
+  }
   if ($("#question")) {
     $("#question").value = formMemory.question;
     $("#question").dataset.memory = "question";
@@ -579,17 +796,14 @@ async function upload(file) {
 }
 document.addEventListener("input", (e) => {
   const t = e.target;
+  if (t.id === "patient-description") {
+    patientDialog.description = t.value;
+    dirty = true;
+    return;
+  }
   if (t.dataset.memory) {
     formMemory[t.dataset.memory] = t.value;
     return;
-  }
-  if (t.dataset.domain) {
-    const n = Number(t.dataset.domain);
-    profile.rubricApplicable = t.checked
-      ? [...new Set([...profile.rubricApplicable, n])]
-      : profile.rubricApplicable.filter((d) => d !== n);
-    profile.reviewAcknowledged = false;
-    dirty = true;
   }
   if (t.dataset.path) {
     const keys = t.dataset.path.split(".");
@@ -616,7 +830,13 @@ document.addEventListener("input", (e) => {
           const [name, value, unit, ref] = line.split("|").map((s) => s.trim());
           return { name, value, unit, ref };
         });
+    if (t.dataset.path === "rubricApplicable") v = v.map(Number);
+    if (keys.at(-1) === "lab") v = v === "true";
     obj[keys.at(-1)] = v;
+    if (t.dataset.path === "reviewAcknowledged") {
+      for (const records of [profile.facts, profile.sources, profile.artifacts])
+        records.forEach((r) => (r.reviewed = v));
+    }
     if (t.dataset.path !== "reviewAcknowledged") {
       profile.reviewAcknowledged = false;
       if (
@@ -636,9 +856,13 @@ document.addEventListener("input", (e) => {
   }
   if ($("#save-status"))
     $("#save-status").textContent =
-      "Unsaved changes · Save & check before leaving the editor.";
+      "Unsaved changes · Save draft before leaving the editor.";
 });
 document.addEventListener("submit", (e) => {
+  if (e.target.id === "patient-form") {
+    e.preventDefault();
+    if (!busy) submitPatient(true);
+  }
   if (e.target.id === "question-form") {
     e.preventDefault();
     question($("#question").value);
@@ -646,6 +870,38 @@ document.addEventListener("submit", (e) => {
 });
 document.addEventListener("change", async (e) => {
   try {
+    if (e.target.dataset.uploadIndex !== undefined) {
+      patientDialog.files[Number(e.target.dataset.uploadIndex)][
+        e.target.dataset.uploadKey
+      ] = e.target.value;
+      syncDialogAttachments();
+      profile.reviewAcknowledged = false;
+      dirty = true;
+      render();
+    }
+    if (e.target.id === "patient-upload") {
+      const files = Array.from(e.target.files || []);
+      if (patientDialog.files.length + files.length > 2)
+        throw new Error(
+          "Choose up to two documents. Remove a file to replace it.",
+        );
+      busy = true;
+      patientDialog.notice = "Uploading and extracting document text…";
+      render();
+      for (const file of files)
+        patientDialog.files.push({
+          ...(await upload(file)),
+          role: "case",
+          section: "notes",
+        });
+      syncDialogAttachments();
+      patientDialog.notice =
+        "Choose each document’s purpose, then Extract & fill form. Your original files are preserved.";
+      profile.reviewAcknowledged = false;
+      dirty = true;
+      busy = false;
+      render();
+    }
     if (e.target.id === "csv-import") {
       const r = await api("/api/import", "POST", {
         csv: await e.target.files[0].text(),
@@ -654,47 +910,14 @@ document.addEventListener("change", async (e) => {
       await refresh();
       render();
     }
-    if (["source-upload", "artifact-upload"].includes(e.target.id)) {
-      const source = e.target.id === "source-upload";
-      busy = true;
-      const file = await upload(e.target.files[0]);
-      if (source)
-        profile.sources.push({
-          id: "source-" + crypto.randomUUID(),
-          title: file.name,
-          excerpt:
-            file.excerpt || "Scanned/image source: add a manual excerpt.",
-          fileId: file.id,
-          reviewed: false,
-        });
-      else
-        profile.artifacts.push({
-          id: "artifact-" + crypto.randomUUID(),
-          title: file.name,
-          kind: "report",
-          src: "Faculty attachment",
-          date: "",
-          sec: "labs",
-          release: "section",
-          unlock: [],
-          facts: [],
-          fileId: file.id,
-          text: file.type === "application/pdf" ? "" : undefined,
-          reviewed: false,
-        });
-      dirty = true;
-      message =
-        "Attachment uploaded. Map it to facts and review before publishing.";
-      busy = false;
-      render();
-    }
     if (e.target.id === "team-role") {
       await mutate("role", { role: e.target.value });
       render();
     }
   } catch (err) {
     busy = false;
-    message = err.message;
+    if (patientDialog) patientDialog.notice = err.message;
+    else message = err.message;
     render();
   }
 });
@@ -714,17 +937,37 @@ document.addEventListener("click", async (e) => {
       if (dirty) await save();
       await pick(t.dataset.id);
       tab = "studio";
+      openPatientDialog("edit");
     }
     if (a === "new") {
       if (dirty) await save();
-      const r = await api("/api/profiles", "POST", {});
-      await refresh();
-      await pick(r.profile.id);
       tab = "studio";
+      openPatientDialog("new");
     }
-    if (a === "save") {
-      await save();
-      message = "Draft saved. Publication checks updated.";
+    if (a === "close-patient") {
+      closePatientDialog();
+      render();
+      $('[data-action="new"]')?.focus();
+      return;
+    }
+    if (a === "parse-patient") {
+      await parsePatient();
+      return;
+    }
+    if (a === "save-patient" || a === "submit-patient") {
+      await submitPatient(a === "submit-patient");
+      return;
+    }
+    if (a === "remove-upload") {
+      const [file] = patientDialog.files.splice(Number(t.dataset.index), 1);
+      const sources = profile.sources
+        .filter((s) => s.fileId === file.id)
+        .map((s) => s.id);
+      profile.sources = profile.sources.filter((s) => s.fileId !== file.id);
+      profile.artifacts = profile.artifacts.filter((a) => a.fileId !== file.id);
+      profile.facts = profile.facts.filter((f) => !sources.includes(f.src));
+      patientDialog.notice =
+        "File removed from extraction. Extract again to rebuild the form without it.";
     }
     if (a === "prepare") {
       await save();
@@ -732,30 +975,6 @@ document.addEventListener("click", async (e) => {
       await pick(profile.id);
       message =
         "Organizer facts organized into reviewable suggestions. Missing details remain unspecified.";
-    }
-    if (a === "publish") {
-      await save();
-      const r = await api(
-        "/api/profiles/" + profile.id + "/publish",
-        "POST",
-        {},
-      );
-      message = `Published immutable version ${r.version}. Ready to start.`;
-      await refresh();
-      await pick(profile.id);
-    }
-    if (a === "generate") {
-      if (dirty) await save();
-      busy = true;
-      render();
-      const r = await api("/api/generate", "POST", {
-        description: formMemory.description,
-        profileId: profile?.id,
-      });
-      await refresh();
-      await pick(r.profile.id);
-      message = r.warning;
-      busy = false;
     }
     if (a === "launch") {
       if (dirty) await save();
@@ -881,21 +1100,15 @@ document.addEventListener("click", async (e) => {
       ["remove-objective", "obj"],
     ])
       if (a === action) profile[key].splice(Number(t.dataset.index), 1);
-    if (a === "review-all") {
-      profile.facts.forEach((f) => (f.reviewed = true));
-      profile.sources.forEach((s) => (s.reviewed = true));
-      profile.artifacts.forEach((a) => (a.reviewed = true));
-      message =
-        "Individual records marked reviewed. Complete the whole-profile acknowledgment before publishing.";
-    }
-    if (/^(add-|remove-)/.test(a) || ["review-all", "references"].includes(a)) {
+    if (/^(add-|remove-)/.test(a) || a === "references") {
       dirty = true;
       profile.reviewAcknowledged = false;
     }
     render();
   } catch (err) {
     busy = false;
-    message = err.message;
+    if (patientDialog) patientDialog.notice = err.message;
+    else message = err.message;
     render();
   }
 });

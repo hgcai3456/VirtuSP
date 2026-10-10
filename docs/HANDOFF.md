@@ -8,12 +8,18 @@ The reusable core is implemented: author/review/publish profiles, server-owned e
 
 Run `npm ci`, configure your own ignored `.env` via [SETUP.md](SETUP.md), run `npm run preflight`, then `npm start`. Open `/app.html`. Credentials are not shared through Git; teammates need their own event credentials and application bucket configuration.
 
+## Faculty authoring checkpoint
+
+New/Edit patient now opens a modal form with one unified upload area (up to two files), explicit document purposes, selectable PDF extraction, Bedrock form-filling preview, faculty correction and one whole-profile acknowledgment. Preview/cancel does not create a patient. Create & publish validates before adding the immutable first version. The permanent publication-error inventory and per-record approval controls have been removed; server publication validation remains. See [AUTHORING.md](AUTHORING.md) for input examples, policy terminology, extraction limits and the distinction between case briefs, chart reports and teaching references. OCR remains deferred.
+
+All 18 regressions pass. A live synthetic PDF correctly extracted Alex Rivera, age 42, concern and two-week symptom duration through Bedrock without creating a library entry; unspecified allergies remained unknown. DOM tests cover correction, acknowledgment invalidation, publication and immediate encounter reuse. Browser layout remains pending because no connected browser surface is available.
+
 ## Verified and unresolved findings
 
 - Follow-up fix: greetings and connection checks use exact server-approved conversational replies; they do not need or disclose clinical facts. Unknown wording is now natural rather than referring to an unspecified authored history. Clinical generation remains grounded.
 - Microphone dictation is continuous and accumulates fragments until **Stop & send** or **Send**. It preserves text across rerenders, bounded reconnects and cancellation; permission/network errors stay visible. Mock-recognizer DOM regressions pass; physical microphone/browser service verification is still pending because screen/native-browser access is unavailable.
 
-- 17 regression tests pass; the previous local 85/85 evaluation passed. These verify boundaries, not clinical quality. Targeted live checks confirm Omar/Denise greet, acknowledge connection checks, answer authored concerns and repeat them; invented doses remain unconfirmed.
+- 18 regression tests pass; the previous local 85/85 evaluation passed. These verify boundaries, not clinical quality. Targeted live checks confirm Omar/Denise greet, acknowledge connection checks, answer authored concerns and repeat them; invented doses remain unconfirmed.
 - Latest dialogue comparison: Sonnet 78/85, median 3532 ms, p95 5015 ms, 5 fallbacks; Nova 83/85, median 2522 ms, p95 3435 ms, 7 fallbacks. Read [BENCHMARKS.md](BENCHMARKS.md) before using figures in the pitch.
 - Early generated background details were unsupported despite model review. Generation now requires explicit support for everyday and clinical facts. Latest coding-agent inspection found no delivered unsupported clinical facts or leaks; broader faculty-reviewed testing remains necessary.
 - A fresh synthetic patient passed publish → real Bedrock dialogue → guarded disclosure → protected question-only report → actual review → unknown allergy → Bedrock assessment → faithful descriptive draft → private S3 readback, without engine/example changes.

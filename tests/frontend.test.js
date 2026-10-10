@@ -68,8 +68,139 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   try {
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => doc.querySelectorAll(".patient-card").length === 10);
+    assert.equal(doc.querySelector(".editor"), null);
+    click("new");
+    assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
+    assert.equal(
+      doc.querySelectorAll('.patient-dialog input[type="checkbox"]').length,
+      1,
+    );
+    assert.equal(
+      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      10,
+    );
+    click("close-patient");
+    assert.equal(doc.getElementById("patient-dialog"), null);
+    click("new");
+    click("submit-patient");
+    await wait(() =>
+      doc.querySelector(".form-notice").textContent.includes("name"),
+    );
+    assert.equal(
+      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      10,
+    );
+    const pdf = require("./pdf-fixture")([
+      "Synthetic faculty case",
+      "Name: Test New Patient",
+      "Age: 42",
+      "Patient concern: I feel tired.",
+    ]);
+    const input = doc.getElementById("patient-upload");
+    Object.defineProperty(input, "files", {
+      value: [
+        {
+          name: "Synthetic case.pdf",
+          type: "application/pdf",
+          arrayBuffer: async () => pdf,
+        },
+      ],
+    });
+    input.dispatchEvent(new window.Event("change", { bubbles: true }));
+    await wait(() =>
+      doc
+        .querySelector(".uploaded-document")
+        ?.textContent.includes("Text extracted"),
+    );
+    const cloud = require("../lib/cloud"),
+      oldDraft = cloud.draft;
+    process.env.AI_ENABLED = "true";
+    cloud.draft = async (description) => {
+      assert.ok(description.includes("Age: 42"));
+      const source = description.match(
+        /Patient document (upload-[a-z0-9-]+)/,
+      )[1];
+      return {
+        name: "Test New Patient",
+        age: 42,
+        facts: [
+          {
+            label: "Fatigue",
+            say: "I feel tired.",
+            topic: "Reason for visit",
+            kw: ["what brings", "tired"],
+            vis: "ask",
+            ehr: "hx",
+            src: source,
+          },
+        ],
+        objectives: [
+          {
+            title: "Explore fatigue",
+            factIndexes: [0],
+            tip: "Ask about the concern.",
+          },
+        ],
+        missing: [],
+      };
+    };
+    try {
+      click("parse-patient");
+      await wait(
+        () =>
+          doc.getElementById("field-name")?.value === "Test New Patient" &&
+          !doc.querySelector('[data-action="parse-patient"]').disabled,
+      );
+    } finally {
+      cloud.draft = oldDraft;
+      process.env.AI_ENABLED = "false";
+    }
+    assert.equal(doc.getElementById("field-age").value, "42");
+    assert.equal(
+      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      10,
+      "Extraction is only a preview",
+    );
+    assert.equal(
+      doc.querySelectorAll('.patient-dialog input[type="checkbox"]').length,
+      1,
+    );
     assert.ok(
-      doc.querySelector(".editor").textContent.includes("Omar Sinclair"),
+      !doc
+        .querySelector(".patient-dialog")
+        .textContent.includes("Publication checks"),
+    );
+    fill("field-reviewAcknowledged", true);
+    fill("field-age", 43);
+    assert.equal(doc.getElementById("field-reviewAcknowledged").checked, false);
+    fill("field-reviewAcknowledged", true);
+    click("submit-patient");
+    await wait(
+      () =>
+        !doc.getElementById("patient-dialog") &&
+        doc.querySelectorAll(".patient-card").length === 11,
+    );
+    const created = (
+      await (await fetch(base + "/api/profiles")).json()
+    ).profiles.find((p) => p.name === "Test New Patient");
+    assert.equal(created.version, 1);
+    click("launch", '[data-id="' + created.id + '"]');
+    await wait(() => !!doc.getElementById("question"));
+    fill("question", "What brings you in today?");
+    doc
+      .getElementById("question-form")
+      .dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await wait(
+      () =>
+        doc.querySelector(".bubble:last-child p")?.textContent ===
+        "I feel tired.",
+    );
+    click("nav", '[data-tab="studio"]');
+    click("pick", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
+    await wait(() =>
+      doc.querySelector(".editor")?.textContent.includes("Omar Sinclair"),
     );
     click("prepare");
     await wait(
@@ -84,14 +215,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(
       () => doc.querySelectorAll('[data-path$=".excerpt"]').length === 3,
     );
-    click("review-all");
     fill("field-reviewAcknowledged", true);
     fill("field-facts-0-say", wording);
-    assert.equal(doc.getElementById("field-facts-0-reviewed").checked, false);
     assert.equal(doc.getElementById("field-reviewAcknowledged").checked, false);
-    click("review-all");
     fill("field-reviewAcknowledged", true);
-    click("publish");
+    click("submit-patient");
     await wait(() =>
       doc.querySelector(
         '[data-action="launch"][data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]',
