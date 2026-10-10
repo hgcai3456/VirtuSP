@@ -1,0 +1,86 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Dominic Rivera",
+  "clinical_profile": {
+    "primary_diagnosis": "Poorly controlled Type 2 Diabetes Mellitus",
+    "secondary_diagnoses": [
+      "History of prediabetes (2 years)",
+      "Recent gunshot wound (recovering, 2 months ago)",
+      "Mild trauma-related stress"
+    ],
+    "medical_history": [
+      "Family history of Type 2 Diabetes (mother)",
+      "Recent emergency surgery for gunshot wound",
+      "History of weight fluctuation"
+    ],
+    "current_symptoms": [
+      "Frequent thirst and urination",
+      "Fatigue and low energy",
+      "Occasional cravings for sweet foods",
+      "Mild headache and blurred vision occasionally"
+    ],
+    "allergies": [
+      "No known allergies"
+    ],
+    "clinical_findings": [
+      "Recent HbA1c of 9.8% (target < 7.0%)",
+      "Elevated fasting blood glucose (180 mg/dL)",
+      "Slightly elevated lipid panel"
+    ],
+    "laboratory_data": [
+      "HbA1c: 9.8%",
+      "Fasting Glucose: 180 mg/dL",
+      "Total Cholesterol: 220 mg/dL"
+    ],
+    "vital_signs": [
+      "BP: 128/82 mmHg",
+      "HR: 78 bpm",
+      "Temp: 98.6°F",
+      "Respiratory Rate: 16 bpm"
+    ],
+    "anthropometrics": [
+      "Height: 5'9\"",
+      "Weight: 178 lbs",
+      "BMI: 27.8 (Overweight)",
+      "Recent weight gain: 5 lbs over 3 months"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Metformin",
+        "dose": "500 mg",
+        "frequency": "1 dose daily",
+        "purpose": "Improve insulin sensitivity and lower blood glucose",
+        "adherence": "Poor (takes it intermittently, sometimes forgets)",
+        "patient_concerns": "Experiences mild GI side effects; skeptical it will help; thinks diet alone can fix his sugar"
+      },
+      {
+        "name": "Lisinopril",
+        "dose": "10 mg",
+        "frequency": "1 dose daily",
+        "purpose": "Manage blood pressure",
+        "adherence": "Fair (takes it consistently if reminded)",
+        "patient_concerns": "None significant"
+      }
+    ],
+    "supplements_and_otc": [
+      "Vitamin C (occasional)",
+      "Coiflory root tea (as requested by his mother)"
+    ]
+  },
+  "hidden_information": [
+    "He has a history of eating disorders related to body image and family dynamics",
+    "He is struggling with PTSD symptoms that affect his sleep and eating",
+    "He has been using supplements to lower blood sugar but knows they are not proven",
+    "He has a strong cultural belief that he should be the provider for his family",
+    "He is financially strained and cannot afford healthy food consistently"
+  ]
+}

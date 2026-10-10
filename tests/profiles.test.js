@@ -131,10 +131,16 @@ test("Report dates can stay unspecified; explicit document dates are extracted w
   assert.equal(documentDate("Date: 2026-02-30"), "");
   assert.equal(documentDate("Date: 2026-10-10 Date: 2026-10-11"), "");
 });
-test("Measurement data requires units, context, date; weights and gates validated", () => {
+test("Missing measurement metadata warns without blocking; weights and gates stay validated", () => {
   const p = ready();
   p.facts[0].lab = true;
-  assert.ok(validate(p).some((i) => i.message.includes("measurements")));
+  assert.ok(
+    validate(p).some(
+      (i) => i.severity === "warning" && i.message.includes("measurement"),
+    ),
+  );
+  assert.equal(validate(p).filter((i) => i.severity === "error").length, 0);
+  assert.equal(p.facts[0].unit, undefined);
   p.facts[0].unit = "mmHg";
   p.facts[0].ref = "Faculty reference";
   p.facts[0].date = "2026-10-10";
@@ -143,5 +149,40 @@ test("Measurement data requires units, context, date; weights and gates validate
   p.facts[0].deflect = "Not yet.";
   p.obj[0].w = 0;
   assert.ok(validate(p).some((i) => i.message.includes("100")));
+});
+test("Sparse faculty cases publish without invented age, sources or objectives", async () => {
+  const p = ready();
+  p.age = null;
+  p.obj = [];
+  p.sources = [];
+  p.facts[0].lab = true;
+  p.artifacts = [
+    {
+      id: "lab",
+      title: "Undated result",
+      src: "Faculty authored",
+      sec: "labs",
+      facts: ["concern"],
+      rows: [{ name: "Supplied test", value: "123" }],
+    },
+  ];
+  assert.equal(validate(p).filter((i) => i.severity === "error").length, 0);
+  const engine = require("../lib/engine");
+  const enc = engine.create(p);
+  assert.match(
+    enc.p.facts.find((f) => f.id === "$identity").say,
+    /age hasn't been specified/,
+  );
+  const rubric = require("../lib/caseRubric");
+  assert.equal(rubric.forProfile(p), null);
+  await engine.complete(enc);
+  assert.equal(enc.assessment.coaching.objectivePercent, null);
+  assert.equal(enc.assessment.objectives.length, 0);
+  p.age = -1;
+  assert.ok(
+    validate(p).some(
+      (i) => i.severity === "error" && i.message.includes("Age"),
+    ),
+  );
 });
 module.exports = { ready };

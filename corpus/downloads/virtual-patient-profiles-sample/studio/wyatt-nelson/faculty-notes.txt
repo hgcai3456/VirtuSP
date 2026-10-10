@@ -1,0 +1,22 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "Patient has limited cooking skills and access to healthy food resources",
+    "Peer dynamics significantly influence dietary choices",
+    "Parents support healthy eating but may face barriers to meal preparation",
+    "Patient is experiencing ambivalence regarding changes in lifestyle"
+  ],
+  "optional_details": [
+    "Attends school full-time",
+    "Lives with his parents",
+    "Participates in a varsity soccer team",
+    "Enjoys video games and gaming communities"
+  ]
+}

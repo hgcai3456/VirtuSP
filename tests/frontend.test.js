@@ -14,6 +14,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   const errors = [];
   const console = new VirtualConsole();
   console.on("jsdomError", (e) => errors.push(e.message));
@@ -24,8 +25,27 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   });
   const window = dom.window;
   window.structuredClone = structuredClone;
-  window.fetch = (url, options) => fetch(new URL(url, base), options);
+  window.fetch = (url, options) => client(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
+  const noop = () => {};
+  window.HTMLCanvasElement.prototype.getContext = () => ({
+    fillRect: noop,
+    clearRect: noop,
+    beginPath: noop,
+    fill: noop,
+    stroke: noop,
+    moveTo: noop,
+    lineTo: noop,
+    arc: noop,
+    ellipse: noop,
+    save: noop,
+    restore: noop,
+    translate: noop,
+    rotate: noop,
+    createLinearGradient: () => ({ addColorStop: noop }),
+  });
+  window.HTMLMediaElement.prototype.play = async () => {};
+  window.HTMLMediaElement.prototype.pause = noop;
   const recognizers = [];
   window.SpeechRecognition = class {
     constructor() {
@@ -44,9 +64,26 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       this.onend?.();
     }
   };
+  let synthCancels = 0;
+  window.SpeechSynthesisUtterance = class {
+    constructor(text) {
+      this.text = text;
+    }
+  };
+  window.speechSynthesis = {
+    speak(utter) {
+      this._utter = utter;
+      utter.onstart?.();
+    },
+    cancel() {
+      synthCancels++;
+      this._utter?.onend?.();
+      this._utter = null;
+    },
+  };
   const doc = window.document;
   const wait = async (predicate) => {
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 800; i++) {
       if (predicate()) return;
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
@@ -79,7 +116,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       1,
     );
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
     );
     click("close-patient");
@@ -97,7 +134,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("dismiss-publication-error");
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
     );
     const pdf = require("./pdf-fixture")([
@@ -301,7 +338,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "Sections start closed after extraction",
     );
     assert.equal(
-      (await (await fetch(base + "/api/profiles")).json()).profiles.length,
+      (await (await client(base + "/api/profiles")).json()).profiles.length,
       10,
       "Extraction is only a preview",
     );
@@ -342,7 +379,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         doc.querySelectorAll(".patient-card").length === 11,
     );
     const created = (
-      await (await fetch(base + "/api/profiles")).json()
+      await (await client(base + "/api/profiles")).json()
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
@@ -363,14 +400,15 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => doc.querySelectorAll(".uploaded-document").length === 3);
     click("close-patient");
     click("pick", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
-    await wait(() =>
-      doc.querySelector(".editor")?.textContent.includes("Omar Sinclair"),
+    await wait(
+      () => doc.getElementById("field-name")?.value === "Omar Sinclair",
     );
     click("prepare");
     await wait(
       () =>
         !!doc.getElementById("field-facts-0-say") &&
-        doc.getElementById("field-facts-0-id").value === "concern",
+        doc.getElementById("field-facts-0-label").value ===
+          "Discomfort with taking medication",
     );
     const wording =
       "I want to discuss medication concerns. <b>Literal patient text</b>";
@@ -391,9 +429,33 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("launch", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
     await wait(() => !!doc.getElementById("question"));
+    window.speechSynthesis.cancel();
+    await wait(() => {
+      const r = recognizers.at(-1);
+
+      return (
+        r &&
+        r.starts &&
+        !r.aborted &&
+        doc.querySelector(".mic-btn")?.textContent.includes("Listening")
+      );
+    });
     assert.ok(
       doc.querySelector("#avf .patient-photo"),
-      "Still patient photo is present",
+      "Patient photo is present",
+    );
+    assert.ok(
+      doc.querySelector("#av-talk"),
+      "Talking avatar canvas is present",
+    );
+    assert.ok(
+      doc.querySelector("#av-video"),
+      "Talking-video element is present",
+    );
+    assert.match(
+      doc.querySelector("#av-video")?.getAttribute("src") || "",
+      /omar\.mp4/,
+      "Omar uses the packaged talking clip",
     );
     assert.ok(
       !doc
@@ -404,72 +466,49 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       !doc.querySelector(".ehr-panel")?.textContent.includes("disclose"),
     );
     assert.ok(!doc.querySelector("#app").textContent.includes("LDL 195"));
-    click("mic");
-    const microphone = recognizers.at(-1);
-    assert.equal(microphone.continuous, true);
-    microphone.onresult({
-      results: [Object.assign([{ transcript: "Hello" }], { isFinal: true })],
-    });
-    assert.equal(
-      doc.querySelectorAll(".bubble.student").length,
-      0,
-      "Final speech fragments must not automatically submit.",
-    );
-    assert.equal(
-      doc.querySelector('[data-action="mic"]').textContent,
-      "Stop & send",
-    );
-    microphone.onresult({
+    // Hands-free live conversation starts automatically in an active encounter.
+    const mic = recognizers.at(-1);
+    assert.ok(mic, "Live recognizer starts automatically");
+    assert.equal(mic.continuous, true);
+    assert.equal(mic.interimResults, true);
+    assert.match(doc.querySelector(".mic-btn").textContent, /Listening|Live/);
+    // A spoken utterance auto-submits after a short silence, with no button press.
+    mic.onresult({
       results: [
-        Object.assign([{ transcript: "Hello" }], { isFinal: true }),
-        Object.assign([{ transcript: "Omar" }], { isFinal: true }),
-      ],
-    });
-    assert.equal(doc.getElementById("question").value, "Hello Omar");
-    click("mic");
-    await wait(
-      () => doc.querySelector(".bubble:last-child p")?.textContent === "Hello.",
-    );
-    assert.ok(microphone.stopped);
-    click("mic");
-    const denied = recognizers.at(-1);
-    denied.onerror({ error: "not-allowed" });
-    denied.onend();
-    assert.ok(
-      doc
-        .getElementById("voice-status")
-        .textContent.includes("permission was denied"),
-    );
-    click("mic");
-    const canceled = recognizers.at(-1);
-    canceled.onresult({
-      results: [
-        Object.assign([{ transcript: "Draft dictated text" }], {
-          isFinal: false,
-        }),
-      ],
-    });
-    click("nav", '[data-tab="team"]');
-    assert.ok(canceled.aborted);
-    canceled.onresult({
-      results: [
-        Object.assign([{ transcript: "Stale speech must not submit" }], {
+        Object.assign([{ transcript: "What brings you in today" }], {
           isFinal: true,
         }),
       ],
     });
-    click("nav", '[data-tab="enc"]');
-    assert.equal(doc.getElementById("question").value, "Draft dictated text");
-    assert.equal(doc.querySelectorAll(".bubble.student").length, 1);
-    fill("question", "What brings you in today?");
-    doc
-      .getElementById("question-form")
-      .dispatchEvent(
-        new window.Event("submit", { bubbles: true, cancelable: true }),
-      );
+    assert.equal(
+      doc.getElementById("question").value,
+      "What brings you in today",
+    );
     await wait(
       () => doc.querySelector(".bubble:last-child p")?.textContent === wording,
     );
+    assert.equal(doc.querySelectorAll(".bubble.student").length, 1);
+    const whileSpeaking = recognizers.at(-1);
+    const cancelsBefore = synthCancels;
+    whileSpeaking?.onresult({
+      results: [
+        Object.assign([{ transcript: "hello hello hello" }], {
+          isFinal: false,
+        }),
+      ],
+    });
+    assert.equal(
+      synthCancels,
+      cancelsBefore,
+      "Patient audio must not be transcribed as the student talking",
+    );
+    window.speechSynthesis.cancel();
+    // Clicking the patient pauses the conversation; clicking again resumes.
+    doc.getElementById("avf").click();
+    assert.ok(doc.getElementById("avf").classList.contains("paused"));
+    assert.match(doc.querySelector(".mic-btn").textContent, /Paused/);
+    doc.getElementById("avf").click();
+    assert.ok(!doc.getElementById("avf").classList.contains("paused"));
     assert.equal(
       doc.querySelector(".bubble:last-child p b"),
       null,

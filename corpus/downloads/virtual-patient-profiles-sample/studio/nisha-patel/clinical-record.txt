@@ -1,0 +1,88 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Nisha Patel",
+  "clinical_profile": {
+    "primary_diagnosis": "Type 2 Diabetes Mellitus",
+    "secondary_diagnoses": [
+      "Metabolic Syndrome",
+      "Anxiety Disorder"
+    ],
+    "medical_history": [
+      "Recent first hospitalization for hyperglycemic state and symptomatic hyperglycemia",
+      "Family history of type 2 diabetes in mother and maternal grandmother"
+    ],
+    "current_symptoms": [
+      "Excessive thirst and frequent urination over 2 months",
+      "Persistent fatigue and difficulty concentrating at work",
+      "Weight loss of 8 pounds over 3 months",
+      "Blurred vision",
+      "Slowly healing cuticles"
+    ],
+    "allergies": [
+      "Penicillin: No reaction",
+      "Food allergies: None"
+    ],
+    "clinical_findings": [
+      "Blood pressure: 120/85 mmHg",
+      "Heart rate: 76 bpm"
+    ],
+    "laboratory_data": [
+      "HbA1c: 8.8% (Target: <7.0%)",
+      "Fasting blood glucose: 185 mg/dL (Target: <126 mg/dL)",
+      "Total cholesterol: 210 mg/dL",
+      "HDL cholesterol: 38 mg/dL",
+      "Triglycerides: 190 mg/dL",
+      "Urea nitrogen: 17 mg/dL",
+      "Creatinine: 0.9 mg/dL",
+      "Total bilirubin: 1.2 mg/dL"
+    ],
+    "vital_signs": [
+      "BP: 120/85 mmHg",
+      "HR: 76 bpm",
+      "RR: 12 breaths/min",
+      "Temp: 98.6 F",
+      "SpO2: 99% on room air"
+    ],
+    "anthropometrics": [
+      "Height: 5'2\" (157 cm)",
+      "Weight: 145 lbs (65.8 kg)",
+      "BMI: 26.1 kg/m2"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Metformin 500 mg",
+        "dose": "500 mg",
+        "frequency": "Twice daily with meals",
+        "purpose": "To improve insulin sensitivity and lower blood glucose levels",
+        "adherence": "Patient reports taking it but frequently forgets due to long work hours",
+        "patient_concerns": "Concerns about gastrointestinal side effects like nausea"
+      },
+      {
+        "name": "Insulin Glargine 10 units",
+        "dose": "10 units",
+        "frequency": "Once daily at bedtime",
+        "purpose": "To control blood sugar levels at night and reduce HbA1c",
+        "adherence": "Inconsistent adherence; reports feeling overwhelmed by the injection process and fear of hypoglycemia",
+        "patient_concerns": "Fear of hypoglycemia, concerns about the cost and complexity of daily insulin injections"
+      }
+    ],
+    "supplements_and_otc": [
+      "Multivitamin (once daily)",
+      "Magnesium gummies"
+    ]
+  },
+  "hidden_information": [
+    "She has been trying to count her carbohydrates but finds it mentally exhausting.",
+    "She fears that her doctor will impose overly restrictive diets or become dismissive of her concerns.",
+    "She has been secretly researching alternative supplements and treatments online to supplement her prescribed regimen."
+  ]
+}

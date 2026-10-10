@@ -1,0 +1,23 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "Medication history inferred based on standard treatments for hypertension and type 2 diabetes in this demographic.",
+    "Dietary patterns inferred based on cultural background and economic constraints.",
+    "Readiness to change inferred based on stated concerns and motivations.",
+    "Assumption that patient can communicate effectively in English without interpreter.",
+    "Assumption that patient has basic access to groceries and water. No assumption of food insecurity unless prompted."
+  ],
+  "optional_details": [
+    "Patient has a small garden she enjoys tending to.",
+    "She has a routine of drinking tea in the evening.",
+    "She has a pet dog she cares for.",
+    "She has a background of community involvement through local political groups."
+  ]
+}

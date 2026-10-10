@@ -1,0 +1,197 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Marcus Ramirez",
+    "age": 59,
+    "sex": "Male",
+    "description": "A 59-year-old Hispanic/Latino sales associate with a history of heart failure (NYHA Stage C) and newly diagnosed type 2 diabetes. He is cautious, stoic, and practical, presenting with early satiety and uncertainty about how diet affects his symptoms. He seeks clear, straightforward explanations about his conditions and the role of nutrition in managing them, though he is unsure of the connection between his heart and blood sugar issues.",
+    "keywords": [
+      "Type 2 Diabetes",
+      "Heart Failure",
+      "Medical Nutrition Therapy",
+      "Uncontrolled Glucose",
+      "Early Satiety",
+      "Hispanic/Latino",
+      "Motivational Interviewing",
+      "Nutrition Care Process",
+      "BMI 19",
+      "NYHA Stage C"
+    ]
+  },
+  "demographics": {
+    "occupation": "Sales associate at Westwood One",
+    "residence": "Urban apartment in the city, lives alone",
+    "ethnicity": "Hispanic/Latino",
+    "language": "English (fluent), Spanish (fluent)",
+    "marital_status": "Divorced",
+    "education_level": "High school diploma, some community college credits",
+    "insurance": "Medicaid/Medicare (qualifying through disability status)",
+    "cultural_context": "Values strong, simple explanations and practical advice; prefers Spanish when discussing food preferences and family topics; respects authority but values being treated as a capable adult in his own health decisions."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "Irregular meals, tends to skip breakfast and eats large, heavy dinner",
+    "food_preferences": [
+      "Enjoys spicy Latin dishes but avoids them due to fear of bloating",
+      "Prefers simple, familiar comfort foods",
+      "Avoids fruits due to fear of blood sugar spikes",
+      "Avoids dairy due to mild lactose intolerance symptoms"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "Eats a large dinner (4–5 hours after starting to eat) that often causes symptoms later",
+      "Skips breakfast, leading to low energy in the afternoon",
+      "Consumes only water or tea for hydration, rarely drinks enough fluid to prevent dehydration",
+      "Consumes only water or tea for hydration, rarely drinks enough fluid to prevent dehydration"
+    ],
+    "meal_pattern": "Irregular; breakfast skipped or minimal, lunch is small, dinner is large and late (often 8 PM or later)",
+    "hydration": "Inconsistent; drinks water only when thirsty, often dehydrated during the day",
+    "physical_activity": "Rarely active; limited mobility due to heart failure; feels too fatigued to walk more than a short distance"
+  },
+  "psychosocial_profile": {
+    "personality": "Cautious, stoic, practical; avoids emotional discussions; highly observant but reluctant to express vulnerability",
+    "communication_style": "Direct, literal, and concise; tends to use short sentences and factual statements; prefers practical solutions over emotional processing; may avoid asking clarifying questions unless explicitly prompted",
+    "goals": [
+      "Maintain stability in his symptoms",
+      "Improve daily energy levels",
+      "Avoid hospitalizations or need for more medications",
+      "Have simple, actionable steps he can follow consistently"
+    ],
+    "concerns": [
+      "Worries that diet changes will be too complicated or time-consuming",
+      "Concerned that early satiety is a permanent part of his life",
+      "Believes his symptoms are primarily medical and does not fully grasp how diet impacts them",
+      "Fears that weight loss will lead to more frailty",
+      "Uncertainty about how to manage symptoms without feeling burdened"
+    ],
+    "beliefs": [
+      "Diet matters, but he is unsure of the specifics",
+      "Medications are the main treatment; food is secondary",
+      "Spicy food causes bloating and is unhealthy",
+      "Fruit is too high in sugar for him",
+      "He understands basic health concepts but struggles with the connection between heart and diabetes",
+      "Heart disease and diabetes are separate problems that can be managed independently"
+    ],
+    "motivations": [
+      "Desire to avoid hospitalization and dependence on family",
+      "Goal to remain independent and active in daily tasks",
+      "Valuing simple, practical solutions over complex advice",
+      "Concern about not wanting to burden his family with extra care",
+      "Fear of worsening symptoms",
+      "Desire to be in control of his health"
+    ],
+    "fears": [
+      "Losing further independence",
+      "Hospitalization or hospitalizations or dependence on family",
+      "Becoming a burden to his son or daughters",
+      "Being overwhelmed by complex medical advice",
+      "That he will forget to take his medications or eat appropriately",
+      "That his symptoms will worsen despite efforts",
+      "Forgetting to take his medications or eat appropriately"
+    ],
+    "barriers": [
+      "Low health literacy regarding the role of nutrition in disease management",
+      "Limited financial resources for fresh produce or specialty diets",
+      "Inconsistent meal timing due to work shifts",
+      "Fatigue and low energy limiting preparation of complex meals",
+      "Difficulty understanding medical instructions due to low health literacy",
+      "Difficulty understanding medical instructions due to low health literacy",
+      "Difficulty understanding medical instructions due to low health literacy"
+    ],
+    "strengths": [
+      "Strong desire to avoid hospitalization and dependence on family",
+      "High self-efficacy in learning and adapting to new information when explained clearly",
+      "Strong social support from his family who is willing to help",
+      "Strong history of following medical advice when it is simple and clear",
+      "Willingness to follow medical advice when it is simple and clear",
+      "Willingness to follow medical advice when it is simple and clear"
+    ],
+    "support_system": "Lives alone but has a close relationship with his adult son, who lives in the same city and helps him with shopping and transportation when needed",
+    "readiness_to_change": "Precontemplation to early contemplation stage for lifestyle changes; motivated to try and motivated to try to improve his symptoms but is currently undecided on the specific steps to take"
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "He will likely mention his symptoms of early satiety, fatigue, and leg swelling when asked",
+      "He will state that he is taking Metformin and other medications for his conditions",
+      "He will mention that he has been diagnosed with Type 2 Diabetes and Heart Failure",
+      "He will state that he finds it difficult to maintain a regular meal schedule due to fatigue and work shifts"
+    ],
+    "discoverable_information": [
+      "When asked about his diet, he will describe his irregular meal pattern and preference for simple foods",
+      "When asked about his medications, he will mention that he takes them regularly but has concerns about their side effects",
+      "When asked about his sleep, he will mention that he has difficulty sleeping due to frequent urination at night",
+      "When asked about his stress, he will mention that he feels stress about his work and family but doesn't know how to manage it",
+      "When asked about his support system, he will mention his son but clarify that he prefers to manage his health independently"
+    ],
+    "reluctant_information": [
+      "He may hesitate to mention his financial limitations when asked about groceries or cooking costs",
+      "He may be reluctant to admit that he is struggling with low energy levels and fatigue",
+      "He may be reluctant to mention his concerns about weight loss and fear of frailty",
+      "He may be reluctant to admit that he is struggling with low energy levels and fatigue"
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Apply the Nutrition Care Process to develop a PES statement and comprehensive care plan",
+        "expected_discoveries": [
+          "The student will discover that the student will discover that the patient has a low BMI and weight loss due to early satiety and malnutrition",
+          "The student will discover that the patient has a significant weight gain over the last year due to heart failure, the patient has NYHA Stage C heart failure and diabetes",
+          "The student will discover that the patient has NYHA Stage C heart failure and diabetes",
+          "The student will discover that the patient has NYHA Stage C heart failure and diabetes"
+        ],
+        "possible_patient_reactions": [
+          "He may respond positively to clear, structured explanations of the Nutrition Care Process",
+          "He may feel overwhelmed if the terminology is too complex, leading to disengagement",
+          "He may ask clarifying questions to better understand the role of nutrition in his conditions"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care",
+        "expected_discoveries": [
+          "The student will discover that the patient is taking Metformin for diabetes and has concerns about its side effects",
+          "The student will discover that the patient has a history of heart failure and takes Lisinopril and Metoprolol",
+          "The student will discover that the patient has a history of heart failure and takes Lisinopril and Metoprolol",
+          "The student will discover that the patient has a history of heart failure and takes Lisinopril and Metoprolol"
+        ],
+        "possible_patient_reactions": [
+          "He may express concern about his medications and ask for clarification",
+          "He may appreciate being asked about his medications and feel more involved in his care",
+          "He may worry that his medications and his diet will conflict, leading to questions about adjustments"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing to address lifestyle and behavioral barriers",
+        "expected_discoveries": [
+          "The student will discover that the student will discover that the patient has a low BMI and weight loss due to early satiety and malnutrition",
+          "The student will discover that the patient has a significant weight gain over the last year due to heart failure, the patient has NYHA Stage C heart failure and diabetes",
+          "The student will discover that the patient has NYHA Stage C heart failure and diabetes",
+          "The student will discover that the patient has NYHA Stage C heart failure and diabetes"
+        ],
+        "possible_patient_reactions": [
+          "He may initially resist change, especially when asked about lifestyle modifications",
+          "He may express hesitation about the time and effort required for dietary changes",
+          "He may become more open to change when the student validates his feelings and asks open-ended questions"
+        ]
+      },
+      {
+        "learning_objective": "Address interprofessional and community resources",
+        "expected_discoveries": [
+          "The student will discover that the patient has a support system including his adult son",
+          "The student will discover that the patient lives alone but has access to transportation and help with shopping",
+          "The student will discover that the patient has a history of heart failure and takes Lisinopril and Metoprolol"
+        ],
+        "possible_patient_reactions": [
+          "He may appreciate suggestions to involve his son in his care, but may also feel protective of his independence",
+          "He may express interest in community resources like meal delivery or food banks",
+          "He may feel overwhelmed by suggestions to involve multiple providers or services"
+        ]
+      }
+    ]
+  }
+}

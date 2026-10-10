@@ -22,8 +22,16 @@ async function main() {
   const app = await createApp({ dataDir: directory });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const login = await fetch(base + "/api/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role: "faculty" }),
+  });
+  const cookie = login.headers.get("set-cookie").split(";")[0];
+  const client = (url, options = {}) =>
+    fetch(url, { ...options, headers: { ...options.headers, Cookie: cookie } });
   const request = async (url, method = "GET", payload) => {
-    const r = await fetch(base + url, {
+    const r = await client(base + url, {
       method,
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,
@@ -172,7 +180,7 @@ async function main() {
     });
     assert.equal(
       (
-        await fetch(
+        await client(
           base + `/api/encounters/${enc.id}/artifacts/intake-report/file`,
         )
       ).status,

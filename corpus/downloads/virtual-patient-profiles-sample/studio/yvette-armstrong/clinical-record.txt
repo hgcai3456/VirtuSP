@@ -1,0 +1,96 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Yvette Armstrong",
+  "clinical_profile": {
+    "primary_diagnosis": "Hypertension (Stage II)",
+    "secondary_diagnoses": [
+      "Uncontrolled Type 2 Diabetes",
+      "Obesity"
+    ],
+    "medical_history": [
+      "Hypertension (recently diagnosed)",
+      "Type 2 Diabetes (diagnosed 2 years ago, poorly controlled)",
+      "Occasional headaches",
+      "Frequent low back pain"
+    ],
+    "current_symptoms": [
+      "Persistent mild headaches",
+      "Fatigue",
+      "Frequent urination",
+      "Increased thirst",
+      "Swelling in ankles and feet",
+      "Blurred vision occasionally"
+    ],
+    "allergies": [
+      "Penicillin (rash)"
+    ],
+    "clinical_findings": [
+      "BP 155/110 mmHg on two readings",
+      "Biomass Index: 34 kg/m2",
+      "Bilateral pitting edema in ankles",
+      "Visible venous distension",
+      "Skin tags on neck and elbows"
+    ],
+    "laboratory_data": [
+      "HbA1c: 8.5%",
+      "Fasting Glucose: 145 mg/dL",
+      "Total Cholesterol: 230 mg/dL",
+      "LDL: 115 mg/dL",
+      "Triglycerides: 190 mg/dL",
+      "Sodium: 138 mEq/L",
+      "Potassium: 4.5 mEq/L",
+      "BUN: 16 mg/dL",
+      "Creatinine: 1.1 mg/dL"
+    ],
+    "vital_signs": [
+      "Temperature: 98.6°F",
+      "Heart Rate: 78 bpm",
+      "Respiratory Rate: 18 breaths/min",
+      "Pulse Ox: 99%",
+      "BP: 155/110 mmHg",
+      "Respiratory Status: Unlabored"
+    ],
+    "anthropometrics": [
+      "Height: 5'2\" (157.5 cm)",
+      "Weight: 178 lbs (80.7 kg)",
+      "BMI: 34.0 kg/m2",
+      "Recent weight change: +8 lbs over past 6 months"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Amlodipine",
+        "dose": "5 mg",
+        "frequency": "once daily",
+        "purpose": "Hypertension",
+        "adherence": "Take most days but occasionally forget",
+        "patient_concerns": "Worries about side effects like swelling in legs, sometimes skips to avoid discomfort."
+      },
+      {
+        "name": "Metformin",
+        "dose": "500 mg",
+        "frequency": "twice daily with meals",
+        "purpose": "Type 2 Diabetes",
+        "adherence": "Takes mostly but has had GI upset before, so reduced dose on her own without asking",
+        "patient_concerns": "Has upset in her stomach after taking it, doesn't want to feel sick, worries about long-term effects."
+      }
+    ],
+    "supplements_and_otc": [
+      "Multivitamin",
+      "Tylenol for headaches (as needed)"
+    ]
+  },
+  "hidden_information": [
+    "Her medical history indicates poor dietary intake from limited grocery options",
+    "Her medication history shows she self-adjusted dose",
+    "Her social context shows limited access to healthy food and safe walking areas"
+  ]
+}

@@ -1,0 +1,117 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Marcus Ramirez",
+  "clinical_profile": {
+    "primary_diagnosis": "Poorly controlled Type 2 Diabetes",
+    "secondary_diagnoses": [
+      "Heart Failure (NYHA Stage C)",
+      "Essential Hypertension",
+      "Metabolic Syndrome"
+    ],
+    "medical_history": [
+      "2 years with Heart Failure (NYHA Stage C)",
+      "Newly diagnosed Type 2 Diabetes 6 months ago",
+      "Prior coronary artery bypass graft (CABG) 10 years ago",
+      "History of smoking (pack-year history of 30, quit 15 years ago)",
+      "Multiple upper GI endoscopies with normal findings"
+    ],
+    "current_symptoms": [
+      "Early satiety after small meals",
+      "Persistent fatigue and low energy",
+      "Mild leg swelling, particularly in the right ankle",
+      "Random daytime thirst and frequent urination",
+      "Occasional heart palpitations, usually after eating",
+      "Difficulty initiating physical activity due to fatigue"
+    ],
+    "allergies": [
+      "No known allergies (NKDA)",
+      "Penicillin (mild rash in 2012)"
+    ],
+    "clinical_findings": [
+      "BMI of 19.0 (underweight/low weight for age)",
+      "Right-sided pitting edema in ankles and feet",
+      "Junctional crackles in right lung base",
+      "S1 heart murmur at apex",
+      "Lung exam: Decreased bowel sounds on right lower quadrant"
+    ],
+    "laboratory_data": [
+      "Hemoglobin A1c: 9.2%",
+      "Random blood glucose: 245 mg/dL",
+      "Lipid Panel: Total 210, HDL 38, LDL 110, Triglycerides 155",
+      "Renal Function: eGFR 67, Creatinine 1.3 mg/dL",
+      "Electrolytes: Sodium 138, Potassium 4.1",
+      "CBC: Hemoglobin 12.5 g/dL"
+    ],
+    "vital_signs": [
+      "Temperature: 98.6°F (37.0°C)",
+      "Pulse: 88 bpm (irregular)",
+      "Blood Pressure: 132/84 mmHg",
+      "Respiratory Rate: 18/min",
+      "SpO2: 97% on room air"
+    ],
+    "anthropometrics": [
+      "BMI: 19.0 (underweight/low weight for age)",
+      "Height: 5'11\"",
+      "Weight: 145 lbs (65.8 kg)",
+      "Weight change: Down 10 lbs over the last 6 months",
+      "BMI Category: 18.5–24.9 (Borderline low/underweight risk due to HF)",
+      "BMI Category: 18.5–24.9 (Borderline low/underweight risk due to HF)"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Lisinopril",
+        "dose": "10 mg",
+        "frequency": "Every morning",
+        "purpose": "Heart failure and blood pressure management",
+        "adherence": "High (takes daily without fail)",
+        "patient_concerns": "Fears dizziness when standing up"
+      },
+      {
+        "name": "Metoprolol succinate",
+        "dose": "25 mg",
+        "frequency": "Every morning",
+        "purpose": "Heart failure and rate control",
+        "adherence": "High",
+        "patient_concerns": "Worries about low energy levels and being 'too sluggish'"
+      },
+      {
+        "name": "Metformin",
+        "dose": "500 mg",
+        "frequency": "Once daily with dinner",
+        "purpose": "Blood sugar control",
+        "adherence": "Inconsistent (takes it when he remembers)",
+        "patient_concerns": "Fears stomach upset and doesn't see much difference in symptoms"
+      },
+      {
+        "name": "Carvedilol",
+        "dose": "8 mg",
+        "frequency": "Twice daily",
+        "purpose": "Heart failure management",
+        "adherence": "High",
+        "patient_concerns": "None stated"
+      }
+    ],
+    "supplements_and_otc": [
+      "Sageleaf Herbal Tea (drinks when feeling unwell)",
+      "Fish Oil (1 g/day, started on his own)",
+      "Multivitamin (once weekly)"
+    ]
+  },
+  "hidden_information": [
+    "His HbA1c is 9.2% (poorly controlled diabetes)",
+    "His BMI is 19.0 (underweight/low weight for age)",
+    "He has NYHA Stage C heart failure",
+    "He has an irregular heart rate and mild edema",
+    "He has not been diagnosed with dysphagia or GERD",
+    "He has not been diagnosed with dysphagia or GERD"
+  ]
+}
