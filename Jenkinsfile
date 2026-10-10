@@ -10,6 +10,10 @@
 // is checked. That agent also needs Docker, the AWS CLI, Terraform, and
 // credentials that can push to ECR and update ECS. infra/aws/scripts/deploy.sh
 // (or deploy.ps1 on Windows) reads the Terraform outputs and rolls the service.
+//
+// Live regression then opens the public load balancer in headless Chrome.
+// Set VIRTUSP_URL on the job to target a different address. The agent needs
+// outbound HTTP to that host.
 
 @NonCPS
 def isMainBranch() {
@@ -39,7 +43,7 @@ pipeline {
 
     options {
         timestamps()
-        timeout(time: 90, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
     }
@@ -136,6 +140,19 @@ pipeline {
                     } else {
                         bat 'powershell -NoProfile -ExecutionPolicy Bypass -File .\\infra\\aws\\scripts\\deploy.ps1'
                     }
+                }
+            }
+        }
+
+        stage('Live regression') {
+            options {
+                timeout(time: 25, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    runCmd('node -e "const binary=require(\'./tests/e2e/support/chrome\').chromeBinary(); if (!binary) { console.error(\'Install Google Chrome or Chromium, or set CHROME_PATH.\'); process.exit(1) } console.log(\'Chrome: \'+binary)"')
+                    // Runs after Deploy. A skipped deploy still reaches this stage, so it checks the service that is already public.
+                    runCmd('npm run test:live -- --attempts 2')
                 }
             }
         }

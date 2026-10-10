@@ -1,0 +1,20 @@
+[
+  {
+    "id": "nhlbi",
+    "title": "NHLBI: Blood cholesterol treatment",
+    "url": "https://www.nhlbi.nih.gov/health/blood-cholesterol/treatment",
+    "excerpt": "Selected teaching summary (paraphrase): Cholesterol treatment may include heart-healthy habits and medicines. Decisions should consider cholesterol levels, cardiovascular risk, other conditions, lifestyle, and the benefits and side effects of treatment. Patients and clinicians can work together on a suitable plan. Statins reduce cholesterol production in the liver and reduce heart attack and stroke risk in people with high LDL. Lifestyle advice includes limiting saturated fat and choosing whole grains, fruit and vegetables. This general teaching reference does not establish any particular patient's medication, understanding or treatment acceptance.",
+    "retrievedOn": "2026-10-10",
+    "kind": "selected teaching paraphrase",
+    "reviewed": false
+  },
+  {
+    "id": "aha",
+    "title": "AHA: Understanding blood pressure readings",
+    "url": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings",
+    "excerpt": "Selected teaching summary (paraphrase): Blood pressure is recorded as systolic pressure during the heartbeat and diastolic pressure between beats, in mm Hg. Stage 2 is systolic at least 140 or diastolic at least 90. A health professional confirms a diagnosis. The AHA describes medication and lifestyle changes for stage 2 hypertension. Readings above 180 systolic and/or 120 diastolic require prompt attention; associated chest pain, breathlessness, neurologic symptoms or other listed emergency symptoms warrant emergency care. These general thresholds do not supply missing patient measurements, symptoms, dates or medications.",
+    "retrievedOn": "2026-10-10",
+    "kind": "selected teaching paraphrase",
+    "reviewed": false
+  }
+]

@@ -1,4 +1,4 @@
-@regression
+@live @regression
 Feature: Regression
   Headless checks for the paths the visit scenarios do not finish:
   an unfinished interview, ignored blanks, reload, publishing, validation,
@@ -227,6 +227,7 @@ Feature: Regression
     Then the page shows "Publish blocked: fix errors and rerun validation."
     And the page shows "58 · v1"
 
+  @local-only
   Scenario: A repeated seed adds nothing, an ungrounded quote is rejected, and an unknown search is empty
     When the user opens the "Ground Truth" workspace
     And the faculty waits for the library to load

@@ -1,3 +1,4 @@
+@live
 Feature: Denise visit
   A student interviews Denise, opens the chart as facts are earned, reconciles the
   metformin discrepancy, hands off in SBAR, and reads an evidence-linked score.

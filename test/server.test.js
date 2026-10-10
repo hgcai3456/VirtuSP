@@ -8,17 +8,9 @@ const path = require('path');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'virtusp-server-'));
 process.env.VIRTUSP_DB = path.join(dir, 'app.sqlite');
 process.env.VIRTUSP_SHARDS = '1';
-process.env.PORT = '0';
 
-const originalCreate = http.createServer;
+const { createApp } = require('../server');
 let server;
-http.createServer = function create(handler) {
-  server = originalCreate.call(http, handler);
-
-  return server;
-};
-
-require('../server');
 
 function request(urlPath, headers) {
   const port = server.address().port;
@@ -41,10 +33,9 @@ describe('server', () => {
   const probe = path.join(__dirname, '..', 'public', 'unit-coverage-probe.bin');
 
   before(async () => {
-    await new Promise((resolve) => {
-      if (server.listening) resolve();
-      else server.once('listening', resolve);
-    });
+    const app = await createApp({ dataDir: dir });
+    server = app.server;
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     fs.writeFileSync(probe, 'probe');
   });
 
@@ -58,7 +49,6 @@ describe('server', () => {
         throw err;
       }
     }
-    http.createServer = originalCreate;
   });
 
   test('serves pages, static types, missing files, and the api', async () => {

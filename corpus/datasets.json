@@ -1,0 +1,18 @@
+[
+  {
+    "id": "virtual-patient-profiles-sample",
+    "repository": "joeljames270/virtual-patient-profiles-sample",
+    "revision": "ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70",
+    "purpose": "Organizer-linked synthetic patient profiles and disclosure/learning material",
+    "license": "CC-BY-4.0; attribute the VHS project at Rutgers University",
+    "formats": [".jsonl", ".md"]
+  },
+  {
+    "id": "patient-doctor",
+    "repository": "Postzeun/Patient-Doctor",
+    "revision": "9b42fa79e8e30a9e70410feca743e47dcf7f75ff",
+    "purpose": "Organizer-linked conversation reference corpus; not facts for unrelated patients",
+    "license": "No license or dataset card was declared at the inspected revision",
+    "formats": [".txt", ".md"]
+  }
+]

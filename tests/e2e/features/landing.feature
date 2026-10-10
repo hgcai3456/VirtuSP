@@ -1,3 +1,4 @@
+@live
 Feature: Landing page
   A visitor can understand VirtuSP and open the simulator without signing in.
 

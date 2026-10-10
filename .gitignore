@@ -2,6 +2,12 @@
 node_modules/
 .env
 .env.*
+!.env.example
+data/
+data-recovery-*/
+output/
+tmp/
+corpus/downloads/
 *.log
 .cursor/
 data/*.sqlite
@@ -25,5 +31,7 @@ infra/rds/node_modules/
 infra/aws/.terraform/
 infra/aws/*.tfstate
 infra/aws/*.tfstate.*
+infra/aws/*.tfplan
+infra/aws/tfplan
 infra/aws/crash.log
 infra/aws/terraform.tfvars

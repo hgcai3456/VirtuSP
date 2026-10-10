@@ -1,3 +1,4 @@
+@live
 Feature: Conversation controls
   Voice falls back to typing, unsafe clinical asks stay blocked, and unknown questions stay unknown.
 

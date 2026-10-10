@@ -118,9 +118,38 @@ resource "aws_lb_listener" "http_forward" {
   port              = 80
   protocol          = "HTTP"
 
+  # Browsers that still open the load balancer are sent to the CloudFront
+  # HTTPS address. CloudFront itself is exempted by the listener rule below.
   default_action {
+    type = "redirect"
+
+    redirect {
+      host        = one(aws_cloudfront_distribution.app[*].domain_name)
+      port        = "443"
+      protocol    = "HTTPS"
+      path        = "/#{path}"
+      query       = "#{query}"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "from_cloudfront" {
+  count = var.certificate_arn == "" ? 1 : 0
+
+  listener_arn = aws_lb_listener.http_forward[0].arn
+  priority     = 10
+
+  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
+  }
+
+  condition {
+    http_header {
+      http_header_name = "X-VirtuSP-Edge"
+      values           = [random_password.edge[0].result]
+    }
   }
 }
 
