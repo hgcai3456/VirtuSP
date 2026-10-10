@@ -9,13 +9,9 @@
 </head>
 <body>
   <header class="top">
-    <a class="logo" href="index.html">
-      <img src="favicon.svg" alt="" width="28" height="28">
-      VirtuSP
-    </a>
+    <a class="logo" href="index.html">VirtuSP</a>
     <nav>
       <a href="#how">How it works</a>
-      <a href="#safe">Clinical safety</a>
       <a class="cta" href="app.html">Open simulator</a>
     </nav>
   </header>
@@ -30,12 +26,41 @@
         <a class="ghost" href="#patients">Meet the patients</a>
       </div>
     </div>
-    <div class="card">
-      <p class="you">Student: Tell me how you take your metformin.</p>
-      <p class="pt">Denise: I take it every day, like I'm supposed to.</p>
-      <p class="chart">Chart note, 09-21: 45-day gap in metformin refills.</p>
-      <p class="you">Student: Some people find evening doses hard. What gets in the way?</p>
-      <p class="pt">Denise: ...Honestly, I skip the evening one a lot.</p>
+    <div class="product-shot" aria-hidden="true">
+      <div class="shot-chrome">
+        <div class="shot-brand">VirtuSP</div>
+        <div class="shot-nav">
+          <span class="on">Encounter</span>
+          <span>Chart</span>
+          <span>Assessment</span>
+        </div>
+      </div>
+      <div class="shot-body">
+        <section class="shot-talk">
+          <p class="shot-kicker">Student encounter</p>
+          <div class="shot-face listening">
+            <img src="img/dominic.jpg" alt="Dominic Rivera" style="object-position:center 16%">
+            <div class="shot-bars"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+          <h2>Dominic Rivera, 27</h2>
+          <p class="shot-status">Listening · speak or type</p>
+          <div class="shot-ask">
+            <span>Ask the patient</span>
+            <b>Send</b>
+          </div>
+        </section>
+        <section class="shot-chart">
+          <p class="shot-kicker">Dynamic clinical record</p>
+          <h3>Chart · Dominic Rivera</h3>
+          <div class="shot-tabs">
+            <span class="on">Overview</span>
+            <span>History</span>
+            <span>Meds</span>
+            <span>Labs</span>
+          </div>
+          <p class="shot-empty">Nothing in this section yet. Facts open as you earn them.</p>
+        </section>
+      </div>
     </div>
   </section>
 
@@ -62,7 +87,7 @@
   </section>
 
   <section id="patients" class="wrap">
-    <h2>Eight more patients, each with a conversation to watch</h2>
+    <h2>Six more patients, each with a conversation to watch</h2>
     <p class="lede">Synthetic cases. The portrait is the person you interview. Watch the sample visit, then start it yourself.</p>
     <div class="roster">
       <a class="person" href="app.html?watch=nisha">
@@ -73,17 +98,9 @@
         <img src="img/yvette.jpg" alt="" style="object-position:center 28%">
         <div class="meta"><h3>Yvette Armstrong, 74</h3><p>Heart failure. Watch the water-pill conversation.</p></div>
       </a>
-      <a class="person" href="app.html?watch=mramirez">
-        <img src="img/mramirez.jpg" alt="" style="object-position:center 24%">
-        <div class="meta"><h3>Marcus Ramirez, 48</h3><p>Hypertension. Watch the night-shift conversation.</p></div>
-      </a>
       <a class="person" href="app.html?watch=wyatt">
         <img src="img/wyatt.jpg" alt="" style="object-position:center 20%">
         <div class="meta"><h3>Wyatt Nelson, 23</h3><p>Sleep apnea. Watch the snoring conversation.</p></div>
-      </a>
-      <a class="person" href="app.html?watch=dominic">
-        <img src="img/dominic.jpg" alt="" style="object-position:center 16%">
-        <div class="meta"><h3>Dominic Rivera, 27</h3><p>Sickle cell pain. Watch the hydroxyurea conversation.</p></div>
       </a>
       <a class="person" href="app.html?watch=walter">
         <img src="img/walter.jpg" alt="" style="object-position:center 22%">
@@ -98,11 +115,6 @@
         <div class="meta"><h3>Omar Sinclair, 54</h3><p>Chest pressure. Watch the work-record conversation.</p></div>
       </a>
     </div>
-  </section>
-
-  <section id="safe" class="wrap">
-    <h2>Faculty facts guide the patient encounter</h2>
-    <p class="lede">Published profiles supply patient facts and disclosure rules. Generated replies are checked against permitted facts, with approved wording as a fallback. Missing data stays unspecified. All demo data is synthetic.</p>
   </section>
 
   <footer>VirtuSP · educational prototype · synthetic patients only</footer>

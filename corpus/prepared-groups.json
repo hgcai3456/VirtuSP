@@ -2,14 +2,15 @@
   "groups": [
     {
       "id": "omar-dyslipidemia-comparison",
-      "title": "Dyslipidemia: medication concerns",
-      "purpose": "Practice respectful information gathering and shared decisions across matched demographic cases.",
-      "profileIds": ["comparison-omar-demo", "comparison-alex-demo"],
-      "differences": "Name and self-described ethnicity: African-American / White American. Age, gender, clinical facts, character, language, objectives and disclosure rules are held constant.",
-      "provenance": "Omar Sinclair organizer CSV plus an explicitly team-authored identity variant.",
-      "limitations": "Two prototype trials cannot establish student bias. Repeated-case learning and model response variation remain confounds. Generic portrait and common voice selection are used.",
-      "sourceNote": "Preconfigured synthetic demo cases based on the organizer CSV. The second identity is team-authored. Unspecified medication, allergy, measurement units and dates remain unknown. This is a team-prepared demo release, not faculty clinical approval.",
-      "seedRevision": 2,
+      "title": "Practice patients",
+      "purpose": "Practice interviews with published landing-page patients.",
+      "profileIds": ["nisha", "yvette"],
+      "kind": "practice",
+      "differences": "",
+      "provenance": "Published roster cases from the landing page. Alex Morgan is retired.",
+      "limitations": "These are synthetic teaching cases, not clinical validation.",
+      "sourceNote": "Team-prepared synthetic roster cases. Denise Carter, Marcus Lee and Alex Morgan are retired from this demo.",
+      "seedRevision": 3,
       "availableToAll": true
     }
   ],

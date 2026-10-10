@@ -9,6 +9,7 @@ const {
   importCsv,
   csvRows,
   validate,
+  documentAwarenessFacts,
 } = require("../lib/profiles");
 function ready() {
   const p = blank();
@@ -184,5 +185,34 @@ test("Sparse faculty cases publish without invented age, sources or objectives",
       (i) => i.severity === "error" && i.message.includes("Age"),
     ),
   );
+});
+test("Document awareness names the attached record without copying result values", () => {
+  const [diary] = documentAwarenessFacts([
+    {
+      id: "vb-lab",
+      kind: "lab",
+      title: "Headache diary summary",
+      date: "2026-09-28",
+      sec: "labs",
+      src: "Note N-0928",
+      rows: [{ name: "Headache days", value: "26" }],
+    },
+  ]);
+  assert.match(diary.say, /headache diary/i);
+  assert.match(diary.say, /September 28/);
+  assert.doesNotMatch(diary.say, /26/);
+  assert.ok(diary.kw.includes("journal"));
+  const [labs] = documentAwarenessFacts([
+    {
+      id: "np-lab",
+      kind: "lab",
+      title: "Respiratory check RT-1008",
+      date: "2026-10-08",
+      sec: "labs",
+      rows: [{ name: "Peak flow", value: "210" }],
+    },
+  ]);
+  assert.match(labs.say, /respiratory check/i);
+  assert.doesNotMatch(labs.say, /210|journal/i);
 });
 module.exports = { ready };

@@ -81,7 +81,9 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     await wait(() => !!d.getElementById("demo-student"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
-    await wait(() => d.querySelectorAll(".patient-card").length === 10);
+    await wait(() => d.querySelectorAll(".patient-card").length === 7);
+    assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
+    assert.ok(!d.querySelector("#app").textContent.includes("Marcus Ramirez"));
     assert.ok(d.getElementById("studio-group"));
     assert.match(
       d.querySelector(".studio-group-panel").textContent,
@@ -101,8 +103,10 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     d.querySelector(".group-builder").open = true;
     fill("group-title", "Available practice");
     fill("group-available", true);
-    for (const checkbox of d.querySelectorAll('[name="group-patient"]'))
-      checkbox.checked = true;
+    const boxes = [...d.querySelectorAll('[name="group-patient"]')];
+    boxes.slice(0, 2).forEach((box) => {
+      box.checked = true;
+    });
     click("create-group");
     await wait(
       () => d.querySelector(".toast")?.textContent === "Patient group created.",
@@ -144,7 +148,7 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     click("nav", '[data-tab="open-assessments"]');
     await wait(() => d.querySelectorAll(".simulation-choice").length === 2);
     click("nav", '[data-tab="studio"]');
-    assert.equal(d.querySelectorAll(".patient-card").length, 2);
+    assert.equal(d.querySelectorAll(".patient-card").length, 7);
     assert.equal(d.querySelector('[data-action="pick"]'), null);
     click("nav", '[data-tab="student-home"]');
     await wait(() => !!d.querySelector(".student-assignments"));

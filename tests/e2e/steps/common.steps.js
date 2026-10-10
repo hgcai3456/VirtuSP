@@ -16,6 +16,15 @@ When('the user follows the brand home', async function () {
   await ui.waitForText('Practice the difficult conversation');
 });
 
+Given('the faculty workspace is open', async function () {
+  await ui.driver().get(runtime.baseUrl() + '/app.html');
+  await ui.driver().executeScript('localStorage.clear(); sessionStorage.clear();');
+  await ui.driver().navigate().refresh();
+  await ui.waitForText('Choose your workspace');
+  await ui.clickButton('Enter faculty workspace');
+  await ui.waitForText('Patient Studio');
+});
+
 When('the user opens the {string} workspace', async function (name) {
   await ui.clickButton(name);
 });
@@ -89,7 +98,7 @@ When('the faculty clicks the sample backdrop', async function () {
 });
 
 When('the user opens a sample for an unknown patient', async function () {
-  await ui.driver().get(runtime.baseUrl() + '/app.html?watch=nobody');
+  await ui.driver().get(runtime.baseUrl() + '/?watch=nobody');
   await ui.waitForText('Patient Studio');
 });
 
@@ -114,6 +123,11 @@ Then('the page shows {string}', async function (text) {
 
 Then('the page does not show {string}', async function (text) {
   ui.assert.equal((await ui.bodyText()).includes(text), false, 'Page unexpectedly showed ' + text);
+});
+
+Then('the address ends at the site root', async function () {
+  const path = new URL(await ui.driver().getCurrentUrl()).pathname;
+  ui.assert.match(path, /^\/(index\.html)?$/);
 });
 
 Then('the address contains {string}', async function (fragment) {

@@ -86,8 +86,19 @@ Before(async function () {
       "var node = document.querySelector('#app h1'); return node ? node.textContent : ''"
     );
 
-    return heading.includes('Patient Studio');
+    return (
+      heading.includes('Patient Studio') ||
+      heading.includes('Choose your workspace')
+    );
   }, 15000);
+  const heading = await driver.executeScript(
+    "var node = document.querySelector('#app h1'); return node ? node.textContent : ''"
+  );
+  if (heading.includes('Choose your workspace')) {
+    const ui = require('./ui');
+    await ui.clickButton('Enter faculty workspace');
+    await ui.waitForText('Patient Studio');
+  }
 });
 
 After(async function (scenario) {

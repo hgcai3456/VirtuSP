@@ -36,7 +36,7 @@ npm run preflight
 npm start
 ```
 
-Open [the simulator](http://localhost:3000/app.html). The header says **configured**, not verified quality. Actual patient turns display their provider; a failed model request uses approved wording and records the reason. Storage status distinguishes local saves from pending, failed and successful S3 copies.
+Open [the landing page](http://localhost:3000/) or [the simulator](http://localhost:3000/app.html). The header says **configured**, not verified quality. Actual patient turns display their provider; a failed model request uses approved wording and records the reason. Storage status distinguishes local saves from pending, failed and successful S3 copies.
 
 Choose **Faculty** to author/review patients and assign prepared groups, or **Student** with a demo alias to practice. Prepare the comparison cases once before rehearsal using [DEMO-GROUPS.md](DEMO-GROUPS.md). Faculty results and bias integration are documented there and in [BIAS-INTEGRATION.md](BIAS-INTEGRATION.md).
 

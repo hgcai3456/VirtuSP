@@ -88,7 +88,7 @@ let list = [],
   faceAnchors = null,
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const wordingTried = new Set();
-const SILENCE_MS = 3000;
+const SILENCE_MS = 2000;
 let draftRecognition = null,
   draftDictating = false;
 const liveSupported = () =>
@@ -170,7 +170,7 @@ function micCopy() {
   if (listening)
     return {
       label: "Listening",
-      hint: "Pause 3 seconds when you are done",
+      hint: "Speak, then pause when you finish",
     };
 
   return { label: "Live", hint: "Tap to start the conversation" };
@@ -241,6 +241,10 @@ function storageText() {
         : "Local recovery storage";
 }
 async function refresh() {
+  if (!demoSession) {
+    health = await api("/api/health");
+    return;
+  }
   const [patients, past, status, people, catalog, tasks] = await Promise.all([
     api("/api/profiles"),
     api("/api/encounters"),
@@ -257,7 +261,7 @@ async function refresh() {
   assignments = tasks.assignments;
   selectedStudent ||= students[0]?.id || "";
   selectedGroup ||= groups[0]?.id || "";
-  if (demoSession.role === "faculty")
+  if (demoSession?.role === "faculty")
     facultyResults = (await api("/api/faculty-results")).students;
 }
 async function pick(id) {
@@ -275,7 +279,7 @@ async function save() {
   await refresh();
 }
 function card(p, faculty = true) {
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"} · ${esc(p.origin || "")}</p><span class="chip">${p.version ? "Published v" + p.version : "Faculty draft"}</span><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
 }
 function studio() {
   if (demoSession?.role === "student")
@@ -295,8 +299,8 @@ function studio() {
             : 0),
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
- ${studioGroups()}
  <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ ${studioGroups()}
  </div>`;
 }
 function studioGroups() {
@@ -1253,7 +1257,7 @@ function past() {
   return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
 }
 function rolePicker() {
-  return `<div class="pn role-picker"><div class="panel-kicker">VirtuSP demo</div><h1>Choose your workspace</h1><p>Faculty prepares patients and reviews student results. Students practice and complete assigned tests.</p><div class="role-grid"><section><h2>Faculty</h2>${button("Enter Faculty", "choose-role", 'data-role="faculty"', "pri")}</section><section><h2>Student</h2><label for="demo-student">Demo student</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter Student", "choose-role", 'data-role="student"', "pri")}</section></div><p class="muted">Local demonstration identities; no passwords.</p></div>`;
+  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
 }
 function assignmentCards(items) {
   return items
@@ -1287,20 +1291,29 @@ function studentGroups() {
       .join("") || "<p>No open group assessments are available yet.</p>"
   }</div>`;
 }
+function publishedForGroups() {
+  const retired = /^(denise carter|marcus lee|marcus ramirez|alex morgan)$/i;
+
+  return list
+    .filter((p) => p.version && !retired.test(p.name || ""))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 function groupBuilder() {
-  return `<details class="group-builder"><summary>Create a patient group</summary><p class="muted">Select published cases. Practice groups can combine different conditions; demographic comparisons require matching clinical settings.</p><label for="group-title">Group name</label><input id="group-title" maxlength="120"><label for="group-purpose">Purpose (optional)</label><input id="group-purpose" maxlength="1000"><label for="group-kind">Group type</label><select id="group-kind"><option value="practice">Practice</option><option value="comparison">Demographic comparison</option></select><fieldset><legend>Patients (select at least two)</legend>${list
-    .filter((p) => p.version)
-    .map(
-      (p) =>
-        `<label><input type="checkbox" name="group-patient" value="${esc(p.id)}"> ${esc(p.name)}</label>`,
-    )
-    .join(
-      "",
-    )}</fieldset><label><input id="group-available" type="checkbox"> Include in open assessments</label>${button("Create group", "create-group", "", "pri")}</details>`;
+  const patients = publishedForGroups();
+
+  return `<details class="group-builder" open><summary>Create a patient group</summary><p class="muted">Choose at least two published patients. Practice groups can mix conditions; demographic comparisons need matching clinical settings.</p><div class="group-fields"><label for="group-title">Group name</label><input id="group-title" maxlength="120" placeholder="e.g. Morning clinic set"><label for="group-purpose">Purpose (optional)</label><input id="group-purpose" maxlength="1000" placeholder="What should students practice?"><label for="group-kind">Group type</label><select id="group-kind"><option value="practice">Practice</option><option value="comparison">Demographic comparison</option></select></div><fieldset class="group-patient-picker"><legend>Patients · select at least two</legend><div class="group-patient-grid">${
+    patients
+      .map(
+        (p) =>
+          `<label class="group-patient-choice"><input type="checkbox" name="group-patient" value="${esc(p.id)}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt=""></span><span><b>${esc(p.name)}</b><small>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</small></span></label>`,
+      )
+      .join("") ||
+    "<p class=\"muted\">Publish patients in Patient Studio before creating a group.</p>"
+  }</div></fieldset><label class="group-open-toggle"><input id="group-available" type="checkbox"> Include in open assessments</label>${button("Create group", "create-group", "", "pri")}</details>`;
 }
 function testCatalog() {
   if (demoSession.role === "student") return studentGroups();
-  return `<div class="pn"><h1>Assign a patient group</h1><p class="muted">Choose a student, then assign a prepared assessment.</p><div class="row assignment-target"><label for="assign-student">Student</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card faculty-group"><div class="workspace-heading"><div><h2>${esc(g.title)}</h2><p class="muted">${g.trialCount} patient trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Cases need matching clinical settings" : "Publish the selected cases first"}</p></div>${button("Assign group", "assign-group", `data-id="${esc(g.id)}" ${g.preparationStatus !== "ready" ? 'disabled title="Publish matching cases before assigning"' : ""}`, "pri")}</div><p>${esc(g.purpose)}</p><details class="group-details"><summary>Group details and settings</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><label class="open-assessment-setting"><input type="checkbox" data-group-open="${esc(g.id)}" ${g.availableToAll ? "checked" : ""}> Include in open assessments</label><p class="muted">Students can choose this group without a faculty assignment.</p><div class="row">${g.cases.map((c) => button(`Edit ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}</div><p class="muted">${esc(g.limitations)}</p><p class="muted">${esc(g.sourceNote)}</p></details></article>`).join("")}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
+  return `<div class="pn groups-page"><div class="panel-kicker">Faculty workspace</div><h1>Assign a patient group</h1><p class="lede">Choose a student, then assign a prepared set of visits.</p><div class="row assignment-target"><label for="assign-student">Student</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card faculty-group"><div class="workspace-heading"><div><h2>${esc(g.title)}</h2><p class="muted">${g.trialCount} patient trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Cases need matching clinical settings" : "Publish the selected cases first"}</p></div>${button("Assign group", "assign-group", `data-id="${esc(g.id)}" ${g.preparationStatus !== "ready" ? 'disabled title="Publish matching cases before assigning"' : ""}`, "pri")}</div><p>${esc(g.purpose)}</p><details class="group-details"><summary>Group details and settings</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><label class="open-assessment-setting"><input type="checkbox" data-group-open="${esc(g.id)}" ${g.availableToAll ? "checked" : ""}> Include in open assessments</label><p class="muted">Students can choose this group without a faculty assignment.</p><div class="row">${g.cases.map((c) => button(`Edit ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}</div><p class="muted">${esc(g.limitations)}</p><p class="muted">${esc(g.sourceNote)}</p></details></article>`).join("")}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
     assignments
       .filter((a) => a.origin !== "open")
       .map(
@@ -1350,7 +1363,6 @@ function resultsPage() {
 function render() {
   if (!demoSession) {
     $("#nav").innerHTML = "";
-    $("#mode").textContent = "Local demo";
     $("#app").innerHTML = rolePicker();
     return;
   }
@@ -1362,7 +1374,6 @@ function render() {
       (tab === "open-assessments"
         ? button("My assignments", "nav", 'data-tab="student-home"')
         : "") + button("Switch workspace", "switch-role");
-    $("#mode").textContent = "Student";
     $("#app").innerHTML =
       `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
       (tab === "student-home" ? studentHome() : openAssessments());
@@ -1408,10 +1419,6 @@ function render() {
         : `${students.find((s) => s.id === demoSession.studentId)?.alias || "Student"} · switch`,
       "switch-role",
     );
-  $("#mode").textContent =
-    health.dialogue === "local"
-      ? "Local fallback"
-      : `Bedrock configured · ${health.region}`;
   $("#themeBtn").textContent = "Theme";
   $("#app").innerHTML =
     `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
@@ -2000,7 +2007,7 @@ function startLive() {
     if (live())
       voiceState(
         "listening",
-        "Listening… I'll answer after you pause 3 seconds.",
+        "Listening…",
       );
   };
   rec.onresult = (e) => {
@@ -2771,6 +2778,7 @@ async function boot() {
     students = (await api("/api/students")).students;
     demoSession = (await api("/api/session")).session;
     if (!demoSession) {
+      await refresh();
       render();
       return;
     }

@@ -67,7 +67,7 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
   };
   try {
     w.eval(await fs.readFile("public/js/app.js", "utf8"));
-    await wait(() => doc.querySelectorAll(".patient-card").length === 10);
+    await wait(() => doc.querySelectorAll(".patient-card").length === 7);
     click("new-ai");
     assert.ok(doc.querySelector(".ai-patient-dialog"));
     assert.equal(

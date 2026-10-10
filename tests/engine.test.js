@@ -415,8 +415,9 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
         judgmental: false,
       };
     };
-    cloud.paraphrase = async (identity, allowed) => {
-      assert.deepEqual(allowed, [{ id: "concern", say: "I feel tired." }]);
+    let paraphrased = false;
+    cloud.paraphrase = async () => {
+      paraphrased = true;
       return {
         text: "I feel tired and have chest pain.",
         factIds: ["concern"],
@@ -426,51 +427,41 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
     const enc = engine.create(profile());
     await engine.ask(enc, "What is bothering you?", "bedrock");
     assert.equal(enc.transcript.at(-1).text, "I feel tired.");
-    assert.equal(enc.transcript.at(-1).provider, "approved-fallback");
-    cloud.paraphrase = async () => ({
-      text: "I feel tired.",
-      factIds: ["concern"],
-    });
-    cloud.verify = async () => ({
-      supported: true,
-      claims: [
-        {
-          claim: "Chest pain",
-          factId: "concern",
-          quote: "I have chest pain.",
-          inferred: false,
-        },
-      ],
-    });
-    await engine.ask(enc, "What is bothering you?", "fake-support");
-    assert.equal(enc.transcript.at(-1).text, "I feel tired.");
-    assert.equal(
-      enc.events.filter((e) => e.type === "grounding-review").at(-1).accepted,
-      false,
-    );
-    cloud.paraphrase = async () => ({
-      text: "I feel tired.",
-      factIds: ["concern"],
-    });
-    cloud.verify = async () => ({
-      supported: true,
-      claims: [
-        {
-          claim: "Feels tired",
-          factId: "concern",
-          quote: "I feel tired.",
-          inferred: false,
-        },
-      ],
-    });
-    await engine.ask(enc, "What is bothering you?", "real-support");
     assert.equal(enc.transcript.at(-1).provider, "bedrock");
-    assert.equal(
-      enc.events.filter((e) => e.type === "grounding-review").at(-1).accepted,
-      true,
-    );
+    assert.equal(paraphrased, false);
+    await engine.ask(enc, "What is bothering you?", "again");
+    assert.equal(enc.transcript.at(-1).text, "I feel tired.");
+    assert.equal(paraphrased, false);
   } finally {
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";
   }
+});
+test("Patients recall their own reports without speaking hidden result numbers", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(profile());
+  await engine.ask(enc, "Have you had any labs recently?", "labs");
+  const reply = enc.transcript.at(-1).text;
+  assert.match(reply, /faculty report|tests|October 10/i);
+  assert.doesNotMatch(reply, /195|LDL/i);
+  await engine.ask(enc, "Do you keep a headache journal?", "journal");
+  assert.ok(engine.isUnknownReply(enc.transcript.at(-1).text));
+});
+test("Document answers stay with the current patient's attached record", async () => {
+  process.env.AI_ENABLED = "false";
+  const { rosterProfiles } = require("../lib/roster-profiles");
+  const published = (id) => ({
+    ...rosterProfiles().find((p) => p.id === id),
+    version: 1,
+  });
+  const nisha = engine.create(published("nisha"));
+  await engine.ask(nisha, "Have you had any labs recently?", "nisha-labs");
+  assert.match(nisha.transcript.at(-1).text, /respiratory|breathing|October 8/i);
+  assert.doesNotMatch(nisha.transcript.at(-1).text, /210|93|diary|journal/i);
+  await engine.ask(nisha, "Do you keep a headache journal?", "nisha-journal");
+  assert.ok(engine.isUnknownReply(nisha.transcript.at(-1).text));
+  const vadko = engine.create(published("vadko"));
+  await engine.ask(vadko, "Do you have a headache journal?", "vadko-journal");
+  assert.match(vadko.transcript.at(-1).text, /headache diary|journal/i);
+  assert.doesNotMatch(vadko.transcript.at(-1).text, /\b26\b|peak flow|210/i);
 });

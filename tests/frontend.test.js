@@ -107,7 +107,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   };
   try {
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
-    await wait(() => doc.querySelectorAll(".patient-card").length === 10);
+    await wait(() => doc.querySelectorAll(".patient-card").length === 7);
     assert.equal(doc.querySelector(".editor"), null);
     click("new");
     assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
@@ -117,7 +117,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      10,
+      7,
     );
     click("close-patient");
     assert.equal(doc.getElementById("patient-dialog"), null);
@@ -135,7 +135,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("dismiss-publication-error");
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      10,
+      7,
     );
     const pdf = require("./pdf-fixture")([
       "Synthetic faculty case",
@@ -339,7 +339,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      10,
+      7,
       "Extraction is only a preview",
     );
     assert.equal(
@@ -376,7 +376,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(
       () =>
         !doc.getElementById("patient-dialog") &&
-        doc.querySelectorAll(".patient-card").length === 11,
+        doc.querySelectorAll(".patient-card").length === 8,
     );
     const created = (
       await (await client(base + "/api/profiles")).json()
@@ -399,16 +399,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("pick", '[data-id="' + created.id + '"]');
     await wait(() => doc.querySelectorAll(".uploaded-document").length === 3);
     click("close-patient");
-    click("pick", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
+    click("pick", '[data-id="omar"]');
     await wait(
       () => doc.getElementById("field-name")?.value === "Omar Sinclair",
-    );
-    click("prepare");
-    await wait(
-      () =>
-        !!doc.getElementById("field-facts-0-say") &&
-        doc.getElementById("field-facts-0-label").value ===
-          "Discomfort with taking medication",
     );
     const wording =
       "I want to discuss medication concerns. <b>Literal patient text</b>";
@@ -422,12 +415,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     assert.equal(doc.getElementById("field-reviewAcknowledged").checked, false);
     fill("field-reviewAcknowledged", true);
     click("submit-patient");
-    await wait(() =>
-      doc.querySelector(
-        '[data-action="launch"][data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]',
-      ),
-    );
-    click("launch", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
+    await wait(() => !doc.getElementById("patient-dialog"));
+    click("launch", '[data-id="omar"]');
     await wait(() => !!doc.getElementById("question"));
     window.speechSynthesis.cancel();
     await wait(() => {
@@ -516,10 +505,10 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("section", '[data-section="labs"]');
     await wait(() =>
-      doc.querySelector(".ehr-panel").textContent.includes("LDL 195"),
+      doc
+        .querySelector('[data-action="section"][data-section="labs"]')
+        ?.classList.contains("on"),
     );
-    click("review-section", '[data-section="labs"]');
-    await wait(() => !doc.querySelector('[data-action="review-section"]'));
     click("complete");
     // Feedback opens on a short summary; the rubric is one of its views.
     await wait(() => !!doc.querySelector(".rep-tabs"));

@@ -1,9 +1,9 @@
-(function () {
+(function (root) {
   const F = (id, label, k, o) => Object.assign({
     id, label, k, type: 'reported', src: 'Approved case', role: 'Patient', vis: 'ask', kw: [], ehr: 'hx', gate: 0
   }, o);
 
-  window.ROSTER = [{
+  const roster = [{
     id: 'nisha',
     name: 'Nisha Patel',
     age: 29,
@@ -451,4 +451,8 @@
     ],
     mm: { a: 'os2', b: 'os6', fu: 'os3', kw: ['chest', 'pressure', 'stairs', 'note', 'discrep'] }
   }];
-})();
+  root.ROSTER = roster;
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = roster;
+  }
+})(typeof window !== "undefined" ? window : globalThis);

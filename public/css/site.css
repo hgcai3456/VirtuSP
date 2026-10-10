@@ -154,24 +154,179 @@ a {
   box-shadow: 0 16px 40px rgba(16, 39, 42, 0.06);
 }
 
-.card p {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-}
-
-.you {
+.product-shot {
   background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(16, 39, 42, 0.08);
 }
 
-.pt {
-  border-left: 3px solid var(--ac);
+.shot-chrome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--pn);
+  border-bottom: 1px solid var(--bd);
+  font-size: 13px;
 }
 
-.chart {
-  border: 1px dashed var(--wr);
-  color: var(--wr);
-  font-size: 15px;
+.shot-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 15px Georgia, "Iowan Old Style", serif;
+  color: var(--tx);
+}
+
+.shot-brand img {
+  border-radius: 4px;
+}
+
+.shot-nav {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.shot-nav span,
+.shot-tabs span,
+.shot-chip {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--mu);
+}
+
+.shot-nav .on,
+.shot-tabs .on {
+  background: var(--ac);
+  color: #fff;
+}
+
+.shot-chip {
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  font-size: 12px;
+}
+
+.shot-body {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+.shot-talk,
+.shot-chart {
+  background: var(--pn);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.shot-kicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ac);
+  font-weight: 600;
+}
+
+.shot-face {
+  position: relative;
+  width: 100%;
+  height: 168px;
+  margin: 8px 0 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(16, 39, 42, 0.1);
+}
+
+.shot-face.listening {
+  box-shadow: 0 0 0 3px var(--ac);
+}
+
+.shot-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+
+.shot-bars {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+
+.shot-bars i {
+  width: 3px;
+  height: 40%;
+  background: #fff;
+  border-radius: 2px;
+}
+
+.shot-talk h2,
+.shot-chart h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.shot-status {
+  margin: 0 0 12px;
+  color: var(--mu);
+  font-size: 14px;
+}
+
+.shot-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  color: var(--mu);
+  font-size: 13px;
+}
+
+.shot-ask b {
+  background: var(--ac);
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.shot-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+  font-size: 12px;
+}
+
+.shot-empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--bd);
+  border-radius: 10px;
+  color: var(--mu);
+  font-size: 14px;
+}
+
+@media (max-width: 800px) {
+  .shot-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wrap {
@@ -217,9 +372,15 @@ a {
 
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 22px;
+}
+
+@media (max-width: 720px) {
+  .roster {
+    grid-template-columns: 1fr;
+  }
 }
 
 .roster a.person {
@@ -234,8 +395,9 @@ a {
 
 .roster img {
   width: 100%;
-  height: 240px;
-  object-fit: cover;
+  height: 280px;
+  object-fit: contain;
+  object-position: center;
   display: block;
   background: #d5dfde;
 }
