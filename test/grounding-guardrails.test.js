@@ -11,7 +11,8 @@ const {
   gate,
   loadLibrary,
   scoreAgainstLibrary,
-  screenRequest
+  screenRequest,
+  matchCase
 } = require('../lib/grounding-gate');
 const { IngestAgent, extractFacts, includesQuote } = require('../lib/ingest-agent');
 const { answer } = require('../lib/patient-service');
@@ -108,6 +109,12 @@ function scriptedDb(journals, facts, counts) {
           if (text.includes('FROM medical_data')) {
             return { n: counts.medical_data };
           }
+          if (text.includes('FROM conversations')) {
+            return { n: counts.conversations || 0 };
+          }
+          if (text.includes('FROM conversation_turns')) {
+            return { n: counts.conversation_turns || 0 };
+          }
           throw new Error('Unexpected SQL: ' + text);
         }
       };
@@ -192,8 +199,9 @@ describe('scoreAgainstLibrary', () => {
       paper({ claim: 'nothing relevant appears in this claim', quote })
     ]);
 
+    assert.equal(hits[0].contained, false);
     assert.equal(hits[0].strong, true);
-    assert.equal(hits[0].score, 5);
+    assert.equal(hits[0].score, 6);
   });
 
   test('is strong from three shared words without a containment bonus', () => {
@@ -206,7 +214,7 @@ describe('scoreAgainstLibrary', () => {
   });
 
   test('is strong from topic substrings when whole tokens do not overlap', () => {
-    const text = 'prediabetes dosage stomachache inhaleruse smokingextra';
+    const text = 'prediabetes microdose stomachache inhaleruse smokingextra';
     const hits = scoreAgainstLibrary(text, [
       paper({
         claim: 'diabetes dose stomach inhaler smoking',
@@ -217,7 +225,7 @@ describe('scoreAgainstLibrary', () => {
     assert.equal(hits.length, 1);
     assert.equal(hits[0].strong, true);
     assert.equal(hits[0].score, 5);
-    assert.deepEqual(hits[0].shared, ['diabetes', 'dose', 'stomach', 'inhaler', 'smoking']);
+    assert.deepEqual(hits[0].shared, ['diabetes', 'stomach', 'inhaler', 'smoking', 'dose']);
   });
 
   test('keeps a topic hit once when it is also a token', () => {
@@ -256,6 +264,36 @@ describe('scoreAgainstLibrary', () => {
   });
 });
 
+describe('matchCase', () => {
+  test('returns null for an empty line and a case with no text', () => {
+    assert.equal(matchCase('', { facts: [{ id: 'a', say: 'Hello there friend' }] }), null);
+    assert.equal(matchCase('   ', null), null);
+    assert.equal(matchCase('Hello there friend', { facts: [{ id: 'blank' }] }), null);
+    assert.equal(matchCase('hello there friend', { facts: [{ say: 'Hi' }] }), null);
+  });
+
+  test('matches a reply that contains the approved say or the approved deflect', () => {
+    const bySay = matchCase('note The patient drinks sweet tea daily please', {
+      facts: [{
+        id: 's',
+        say: 'The patient drinks sweet tea daily',
+        deflect: 'Ask about something else entirely please',
+        label: 'Diet'
+      }]
+    });
+    const byDeflect = matchCase('I would rather not discuss money today', {
+      facts: [{
+        id: 'd',
+        say: 'The long approved sentence is about thirst and fatigue.',
+        deflect: 'I would rather not discuss money'
+      }]
+    });
+
+    assert.equal(bySay.id, 's');
+    assert.equal(byDeflect.id, 'd');
+  });
+});
+
 describe('checkRequest', () => {
   test('blocks empty and whitespace requests', () => {
     for (const value of ['', '   ', null, undefined]) {
@@ -280,6 +318,9 @@ describe('checkRequest', () => {
       ['Give insulin units now', 'generation'],
       ['Use 2 mg/kg tonight', 'generation'],
       ['Read me the guideline', 'generation'],
+      ['Please prescribe metformin now', 'generation'],
+      ['Should I prescribe metformin?', 'generation'],
+      ['Is this contraindicated?', 'generation'],
       ['You should take double', 'claim'],
       ['You should stop the pills', 'claim'],
       ['You should start insulin', 'claim'],
@@ -318,9 +359,6 @@ describe('checkRequest', () => {
       'What brings you in today?',
       'Tell me how you take your metformin.',
       'The patient was nevertheless tired.',
-      'Please prescribe metformin now',
-      'Should I prescribe metformin?',
-      'Is this contraindicated?',
       'I recommended rest'
     ];
 
@@ -394,7 +432,7 @@ describe('checkResponse', () => {
 
     assert.equal(result.allow, true);
     assert.equal(result.reason, 'Unknown fallback is allowed.');
-    assert.equal(result.text, '  ' + UNKNOWN.toUpperCase() + '  ');
+    assert.equal(result.text, UNKNOWN.toUpperCase());
     assert.deepEqual(result.matches, []);
     assert.equal(collapsed.allow, true);
     assert.equal(collapsed.reason, 'Unknown fallback is allowed.');
@@ -515,8 +553,8 @@ describe('checkResponse', () => {
     const result = checkResponse('You should take the tablet. Weather balloons float over the harbor.', [], {
       facts: [{
         id: 'f1',
-        say: 'You should take the tablet.',
-        label: 'alpha bravo charlie delta extra'
+        say: 'Hi.',
+        label: 'You should take the tablet.'
       }]
     });
 
@@ -529,8 +567,8 @@ describe('checkResponse', () => {
     const result = checkResponse('Start her on insulin. Weather balloons float over the harbor.', [], {
       facts: [{
         id: 'f2',
-        say: 'Start her on insulin.',
-        label: 'alpha bravo charlie delta extra'
+        say: 'Hi.',
+        label: 'Start her on insulin.'
       }]
     });
 
@@ -639,7 +677,12 @@ describe('gate and loadLibrary', () => {
     assert.equal(result.allow, true);
     assert.equal(result.send, true);
     assert.equal(result.response, null);
-    assert.deepEqual(result.library, { journals: 0, medical_data: 0 });
+    assert.deepEqual(result.library, {
+      journals: 0,
+      medical_data: 0,
+      conversations: 0,
+      conversation_turns: 0
+    });
   });
 
   test('does not score a reply when the request is blocked', () => {
@@ -998,6 +1041,11 @@ describe('ingest ground truth', () => {
       assert.equal(prescribe.request.kind, 'generation');
     });
   });
+});
+
+test('blank case text does not match a fact', () => {
+  assert.equal(matchCase('   ', { facts: [{ say: 'I have been thirsty and tired lately' }] }), null);
+  assert.equal(matchCase('', null), null);
 });
 
 describe('patient reply guardrail', () => {

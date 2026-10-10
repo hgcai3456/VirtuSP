@@ -3,6 +3,7 @@ const path = require('path');
 const { Builder } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const { After, AfterAll, Before, BeforeAll, Status, setDefaultTimeout } = require('@cucumber/cucumber');
+const { chromeBinary } = require('./chrome');
 const runtime = require('./runtime');
 
 setDefaultTimeout(120000);
@@ -28,13 +29,30 @@ async function resetWindow() {
   await driver.manage().window().setRect({ width: 1440, height: 1200, x: 0, y: 0 });
 }
 
+async function pinLocale(driver) {
+  const timezone = process.env.E2E_TIMEZONE || 'UTC';
+  const locale = process.env.E2E_LOCALE || 'en-US';
+  await driver.sendDevToolsCommand('Emulation.setTimezoneOverride', { timezoneId: timezone });
+  try {
+    await driver.sendDevToolsCommand('Emulation.setLocaleOverride', { locale });
+  } catch (err) {
+    // Chrome still starts with --lang when this command is unavailable.
+  }
+}
+
 BeforeAll(async function () {
   fs.mkdirSync(path.join(runtime.root, 'tests', 'e2e', 'reports'), { recursive: true });
   await runtime.startServer();
 
   const options = new chrome.Options();
-  options.setChromeBinaryPath('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
+  const binary = chromeBinary();
+  if (binary) {
+    options.setChromeBinaryPath(binary);
+  }
+  options.setUserPreferences({ intl: { accept_languages: 'en-US,en' } });
   const args = [
+    '--lang=en-US',
+    '--accept-lang=en-US,en',
     '--window-size=1440,1200',
     '--disable-gpu',
     '--mute-audio',
@@ -52,11 +70,13 @@ BeforeAll(async function () {
   const driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
   runtime.setDriver(driver);
   await driver.manage().setTimeouts({ implicit: 0, pageLoad: 30000, script: 30000 });
+  await pinLocale(driver);
   await driver.sendDevToolsCommand('Page.addScriptToEvaluateOnNewDocument', { source: PRELOAD });
 });
 
 Before(async function () {
   const driver = runtime.getDriver();
+  await pinLocale(driver);
   await resetWindow();
   await driver.get(runtime.baseUrl() + '/app.html');
   await driver.executeScript('localStorage.clear(); sessionStorage.clear();');

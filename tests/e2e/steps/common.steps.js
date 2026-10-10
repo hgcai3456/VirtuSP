@@ -61,6 +61,53 @@ When('the faculty picks {string}', async function (name) {
   await ui.pickPatient(name);
 });
 
+When('the sample video fails', async function () {
+  await ui.driver().executeScript(`
+    var vid = document.querySelector('#theater video');
+    if (vid) vid.dispatchEvent(new Event('error'));
+  `);
+});
+
+When('the visitor watches {string}', async function (name) {
+  await ui.watchFromRoster(name);
+});
+
+When('the faculty watches {string}', async function (name) {
+  await ui.watchFromStudio(name);
+});
+
+When('the faculty closes the sample conversation', async function () {
+  await ui.clickButton('Close');
+});
+
+When('the faculty presses Escape', async function () {
+  await ui.driver().actions().sendKeys(ui.Key.ESCAPE).perform();
+});
+
+When('the faculty clicks the sample backdrop', async function () {
+  await ui.driver().actions().move({ x: 8, y: 8, origin: 'viewport' }).click().perform();
+});
+
+When('the user opens a sample for an unknown patient', async function () {
+  await ui.driver().get(runtime.baseUrl() + '/app.html?watch=nobody');
+  await ui.waitForText('Patient Studio');
+});
+
+Then('{string} can be watched', async function (name) {
+  ui.assert.match(await (await ui.card(name)).getText(), /Watch conversation/);
+});
+
+Then('{string} cannot be watched', async function (name) {
+  ui.assert.equal((await (await ui.card(name)).getText()).includes('Watch conversation'), false);
+});
+
+Then('the sample conversation is closed', async function () {
+  await ui.driver().wait(async () => ui.driver().executeScript(`
+    var root = document.getElementById('theater');
+    return !root || root.hidden || !root.textContent.trim();
+  `), 5000);
+});
+
 Then('the page shows {string}', async function (text) {
   await ui.waitForText(text);
 });

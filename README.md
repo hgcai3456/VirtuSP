@@ -80,7 +80,12 @@ NIH / PubMed ingest walks every illness in `data/seed/illnesses.json` in chunks.
 ```bash
 npm run ingest:nih
 npm run ingest:nih:2
+npm run ingest:orchestrate
 ```
+
+`npm run ingest:orchestrate` is the safe way to run both NIH shards and conversation ingest together. Jobs that share a file stay in one lane, so NIH shard 0 finishes before conversation ingest writes `data/virtusp.sqlite`. NIH shard 1 writes `data/virtusp-2.sqlite` at the same time. Each insert also takes a short writer lock, so a report upload waits for that insert instead of failing with a database lock.
+
+`npm run orchestrate` runs the unit tests in parallel without sharing a database file. Each worker gets its own SQLite file and port. A shard that is already locked is skipped. A test that fails because the database or the port is busy is retried on a new shard.
 
 Progress is written to `data/ingest-checkpoint.json` and `data/ingest-checkpoint-1.json`. Abstracts only — that is what the grounding gate can quote. A full dump of every PubMed record is not done in one shot; the first pass takes up to 200 papers per illness. `npm run ingest:nih:all` keeps paging until PubMed has no more abstracts.
 

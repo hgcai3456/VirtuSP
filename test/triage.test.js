@@ -93,7 +93,7 @@ describe('triage', () => {
     assert.equal(thin.confidence, 'insufficient');
     assert.match(thin.assessment, /would not name a problem/);
     assert.match(thin.library.warning, /^$/);
-    assert.match(thin.assessment, /did not use a publication/);
+    assert.equal(thin.library.papers_cited, 0);
 
     const hf = triage(quietDb(), { complaint: 'orthopnea and headache' });
     assert.equal(hf.confidence, 'low');

@@ -97,8 +97,13 @@ describe('api', { concurrency: false }, () => {
       request: 'What brings you in today?',
       response: 'Hello there'
     }));
+    const gateBody = parsed(gated);
     assert.equal(gated.statusCode, 200);
-    assert.equal(parsed(gated).allow, true);
+    assert.equal(gateBody.allow, false);
+    assert.equal(gateBody.send, true);
+    assert.equal(gateBody.interceptor.replaced, true);
+    assert.match(gateBody.response.text, /not sure/);
+    assert.match(gateBody.response.reason, /faculty case fact/);
 
     const broken = mockRes();
     await handleApi(mockReq({

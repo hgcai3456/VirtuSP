@@ -11,6 +11,8 @@ const {
   nowIso,
   listJournals,
   listMedicalData,
+  listConversations,
+  listConversationTurns,
   counts,
   writeDb
 } = require('../lib/db');
@@ -23,6 +25,8 @@ describe('db', { concurrency: false }, () => {
   beforeEach(() => {
     env.VIRTUSP_DB = process.env.VIRTUSP_DB;
     env.VIRTUSP_SHARDS = process.env.VIRTUSP_SHARDS;
+    env.VIRTUSP_SQLITE_JOURNAL = process.env.VIRTUSP_SQLITE_JOURNAL;
+    delete process.env.VIRTUSP_SQLITE_JOURNAL;
     box = tempDb();
   });
 
@@ -32,6 +36,8 @@ describe('db', { concurrency: false }, () => {
     else process.env.VIRTUSP_DB = env.VIRTUSP_DB;
     if (env.VIRTUSP_SHARDS == null) delete process.env.VIRTUSP_SHARDS;
     else process.env.VIRTUSP_SHARDS = env.VIRTUSP_SHARDS;
+    if (env.VIRTUSP_SQLITE_JOURNAL == null) delete process.env.VIRTUSP_SQLITE_JOURNAL;
+    else process.env.VIRTUSP_SQLITE_JOURNAL = env.VIRTUSP_SQLITE_JOURNAL;
   });
 
   test('shard paths follow the env and the default file', () => {
@@ -48,6 +54,19 @@ describe('db', { concurrency: false }, () => {
     process.env.VIRTUSP_DB = box.dbPath;
     assert.equal(shardPath(0), box.dbPath);
     assert.match(shardPath(2), /virtusp-3\.sqlite$/);
+  });
+
+  test('DELETE journal mode locks the file for the shared cloud volume', () => {
+    process.env.VIRTUSP_SQLITE_JOURNAL = 'delete';
+    const opened = openDb(box.dbPath + '-delete.sqlite');
+    assert.equal(opened.prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+    assert.equal(opened.prepare('PRAGMA locking_mode').get().locking_mode, 'exclusive');
+    opened.close();
+
+    process.env.VIRTUSP_SQLITE_JOURNAL = 'MEMORY';
+    const wal = openDb(box.dbPath + '-wal.sqlite');
+    assert.equal(wal.prepare('PRAGMA journal_mode').get().journal_mode, 'wal');
+    wal.close();
   });
 
   test('openShards uses the requested count or the env count', () => {
@@ -119,24 +138,87 @@ describe('db', { concurrency: false }, () => {
 
       const journals = listJournals([box.db, other.db]);
       assert.equal(journals.length, 2);
-      assert.equal(journals[0].shard, 1);
-      assert.equal(journals[0].title, 'Beta 100% match');
+      assert.equal(journals[0].shard, 0);
+      assert.equal(journals[0].title, 'Alpha thirst study');
       assert.equal(journals[0].fact_count, 1);
-      assert.deepEqual(counts([box.db, other.db]), { journals: 2, medical_data: 2 });
-      assert.deepEqual(counts(null), { journals: 0, medical_data: 0 });
+      assert.deepEqual(counts([box.db, other.db]), {
+        journals: 2,
+        medical_data: 2,
+        conversations: 0,
+        conversation_turns: 0
+      });
+      assert.deepEqual(counts(null), {
+        journals: 0,
+        medical_data: 0,
+        conversations: 0,
+        conversation_turns: 0
+      });
 
       const all = listMedicalData([box.db, other.db]);
       assert.equal(all.length, 2);
-      assert.equal(all[0].journal_title, 'Beta 100% match');
+      assert.equal(all[0].journal_title, 'Alpha thirst study');
 
-      const filtered = listMedicalData(box.db, { q: '100% thirst', journalId: first, limit: 100 });
+      const filtered = listMedicalData(box.db, { q: '%thirst%', journalId: first, limit: 100 });
       assert.equal(filtered.length, 1);
       assert.equal(filtered[0].shard, 0);
       assert.equal(listMedicalData(box.db, { limit: 0 }).length, 1);
       assert.equal(listMedicalData(box.db, { limit: 'nope', q: 'thirst' }).length, 1);
-      assert.equal(listMedicalData([box.db, other.db], { journalId: first, shard: 1 }).length, 0);
+      assert.equal(listMedicalData([box.db, other.db], { journalId: first, shard: 2 }).length, 0);
       assert.equal(listMedicalData([box.db, other.db], { journalId: second, shard: 1 }).length, 1);
       assert.equal(listMedicalData(box.db, { q: 'not-present' }).length, 0);
+    } finally {
+      other.cleanup();
+    }
+  });
+
+  test('lists and filters conversations across shards', () => {
+    const { ConversationAgent } = require('../lib/conversation-agent');
+    const other = tempDb();
+    try {
+      assert.deepEqual(listConversations(null), []);
+      assert.deepEqual(listConversationTurns(null), []);
+
+      const alpha = new ConversationAgent(box.db).ingestConversation({
+        source_key: 'alpha',
+        title: 'Alpha talk',
+        topic: 'greeting',
+        setting: 'clinic',
+        turns: [
+          { speaker: 'Patient', text: 'Yeah.', move: 'ACK' },
+          { speaker: 'clinician', text: 'Hello there.', move: 'ask' },
+          { speaker: 'patient', text: '100 percent note', move: 'share' }
+        ]
+      });
+      const beta = new ConversationAgent(other.db).ingestConversation({
+        sourceKey: 'beta',
+        title: 'Beta talk',
+        topic: 'closing',
+        turns: [{ speaker: 'patient', text: 'Thanks.', move: 'close' }]
+      });
+
+      const conversations = listConversations([box.db, other.db]);
+      assert.equal(conversations.length, 2);
+      assert.deepEqual(conversations.map((row) => row.shard).sort(), [0, 1]);
+      assert.equal(conversations.find((row) => row.shard === 0).turn_count, 3);
+      assert.equal(conversations.find((row) => row.shard === 0).title, 'Alpha talk');
+      assert.equal(counts([box.db, other.db]).conversations, 2);
+      assert.equal(counts([box.db, other.db]).conversation_turns, 4);
+
+      const turns = listConversationTurns([box.db, other.db]);
+      assert.equal(turns.length, 4);
+      assert.equal(listConversationTurns(box.db, { speaker: 'Patient', move: 'ACK', topic: 'greeting' }).length, 1);
+      assert.equal(listConversationTurns(box.db, { q: '100% percent' }).length, 1);
+      assert.equal(listConversationTurns(box.db, { q: 'not-present' }).length, 0);
+      assert.equal(listConversationTurns(box.db, { topic: 'closing' }).length, 0);
+      assert.equal(listConversationTurns(box.db, { conversationId: alpha.conversation_id, limit: 1 }).length, 1);
+      assert.equal(listConversationTurns(box.db, { conversationId: alpha.conversation_id, limit: 1000 }).length, 3);
+      assert.equal(listConversationTurns(box.db, { conversationId: alpha.conversation_id, limit: 'nope' }).length, 3);
+      assert.equal(listConversationTurns(box.db, { limit: 0 }).length, 3);
+      assert.equal(listConversationTurns([box.db, other.db], { conversationId: 999, shard: 1 }).length, 0);
+      assert.equal(listConversationTurns([box.db, other.db], { conversationId: alpha.conversation_id, shard: 0 }).length, 3);
+      assert.equal(listConversationTurns(other.db, { conversationId: beta.conversation_id }).length, 1);
+      assert.equal(listConversationTurns([box.db, other.db], { conversationId: 999 }).length, 0);
+      assert.equal(listConversationTurns([box.db, other.db], { shard: 1 }).length, 4);
     } finally {
       other.cleanup();
     }

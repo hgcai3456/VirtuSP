@@ -20,11 +20,11 @@ http.createServer = function create(handler) {
 
 require('../server');
 
-function request(urlPath) {
+function request(urlPath, headers) {
   const port = server.address().port;
 
   return new Promise((resolve, reject) => {
-    const req = http.get({ port, path: urlPath }, (res) => {
+    const req = http.get({ port, path: urlPath, headers: headers || {} }, (res) => {
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => resolve({
@@ -51,7 +51,13 @@ describe('server', () => {
   after(async () => {
     fs.rmSync(probe, { force: true });
     await new Promise((resolve) => server.close(resolve));
-    fs.rmSync(dir, { recursive: true, force: true });
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch (err) {
+      if (err.code !== 'EPERM' && err.code !== 'EBUSY') {
+        throw err;
+      }
+    }
     http.createServer = originalCreate;
   });
 
@@ -87,8 +93,47 @@ describe('server', () => {
     assert.equal(escaped.status, 403);
     assert.equal(escaped.body.toString('utf8'), 'Forbidden');
 
+    const sibling = await request('/../public-extra/secret.txt');
+    assert.equal(sibling.status, 403);
+
+    const encoded = await request('/%');
+    assert.equal(encoded.status, 400);
+
+    const folderFile = await request('/css');
+    assert.equal(folderFile.status, 404);
+    assert.equal(home.headers['x-content-type-options'], 'nosniff');
+
     const health = await request('/api/health');
     assert.equal(health.status, 200);
     assert.equal(JSON.parse(health.body.toString('utf8')).ok, true);
+  });
+
+  test('serves a media byte range and rejects a bad one', async () => {
+    const video = await request('/video/nisha.mp4', { Range: 'bytes=0-15' });
+    assert.equal(video.status, 206);
+    assert.match(video.headers['content-type'], /video\/mp4/);
+    assert.equal(video.headers['content-length'], '16');
+    assert.match(video.headers['content-range'], /^bytes 0-15\/\d+$/);
+    assert.equal(video.body.length, 16);
+
+    const whole = await request('/video/nisha.mp4');
+    assert.equal(whole.status, 200);
+    assert.match(whole.headers['content-type'], /video\/mp4/);
+    assert.equal(Number(whole.headers['content-length']), whole.body.length);
+
+    const backwards = await request('/video/nisha.mp4', { Range: 'bytes=20-10' });
+    assert.equal(backwards.status, 416);
+    assert.match(backwards.headers['content-range'], /^bytes \*\/\d+$/);
+
+    const open = await request('/video/nisha.mp4', { Range: 'bytes=-' });
+    assert.equal(open.status, 416);
+
+    const ignored = await request('/unit-coverage-probe.bin', { Range: 'bytes=0-0' });
+    assert.equal(ignored.status, 200);
+    assert.equal(ignored.body.toString('utf8'), 'probe');
+
+    const slash = await request('/%5Csecret.txt');
+    assert.equal(slash.status, 400);
+    assert.equal(slash.body.toString('utf8'), 'Bad request');
   });
 });

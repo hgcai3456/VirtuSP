@@ -21,11 +21,18 @@ async function bodyText() {
   return driver().findElement(By.css('body')).getText();
 }
 
+async function pageText() {
+  const rendered = await bodyText();
+  const source = await driver().executeScript('return document.body ? document.body.textContent : ""');
+
+  return rendered + '\n' + source;
+}
+
 async function waitForText(text, timeout = 15000) {
   try {
-    await driver().wait(async () => (await bodyText()).includes(text), timeout);
+    await driver().wait(async () => (await pageText()).includes(text), timeout);
   } catch (err) {
-    const textOnPage = await bodyText().catch(() => '');
+    const textOnPage = await pageText().catch(() => '');
     throw new Error(
       'Timed out waiting for ' + JSON.stringify(text) + '\n' + textOnPage.slice(0, 1800)
     );
@@ -77,10 +84,13 @@ async function findField(label) {
 async function setField(label, value) {
   const el = await findField(label);
   await clickElement(el);
-  await el.clear();
-  if (value) {
-    await el.sendKeys(value);
-  }
+  await driver().executeScript(
+    "arguments[0].focus(); arguments[0].value = arguments[1];" +
+    "arguments[0].dispatchEvent(new Event('input', { bubbles: true }));" +
+    "arguments[0].dispatchEvent(new Event('change', { bubbles: true }));",
+    el,
+    value == null ? '' : String(value)
+  );
 }
 
 async function fieldValue(label) {
@@ -96,6 +106,29 @@ async function launchPatient(name) {
   await waitForText(name + ',');
   await waitForText('Chart ·');
   assert.match(await bodyText(), /ENC-[A-Z0-9]+ · v\d+/);
+}
+
+async function card(name) {
+  return driver().findElement(By.xpath(
+    '//div[contains(@class,"patient-card")][.//b[normalize-space()=' + xpathLiteral(name) + ']]'
+  ));
+}
+
+async function watchFromRoster(name) {
+  const link = await driver().findElement(By.xpath(
+    '//a[contains(@class,"person")][contains(normalize-space(.), ' + xpathLiteral(name) + ')]'
+  ));
+  await clickElement(link);
+  await waitForText('Sample teaching conversation');
+}
+
+async function watchFromStudio(name) {
+  const button = await driver().findElement(By.xpath(
+    '//div[contains(@class,"patient-card")][.//b[normalize-space()=' + xpathLiteral(name) + ']]' +
+    '//button[normalize-space()="Watch conversation"]'
+  ));
+  await clickElement(button);
+  await waitForText('Sample teaching conversation');
 }
 
 async function pickPatient(name) {
@@ -197,6 +230,9 @@ module.exports = {
   fieldValue,
   launchPatient,
   pickPatient,
+  card,
+  watchFromRoster,
+  watchFromStudio,
   openChart,
   askPatient,
   acceptReset

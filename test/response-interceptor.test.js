@@ -6,7 +6,13 @@ const {
   acceptedDocuments,
   intercept,
   publicDecision,
-  scopeOf
+  scopeOf,
+  matchCase,
+  matchDocuments,
+  lookupQuotes,
+  relevantTo,
+  timelyFor,
+  cite
 } = require('../lib/response-interceptor');
 const { insertFact, insertJournal, tempDb } = require('./helpers');
 
@@ -51,6 +57,8 @@ describe('accepted documents', () => {
   test('keeps patient and faculty text and drops everything else', () => {
     const docs = acceptedDocuments(null).concat(acceptedDocuments({ id: 'nope' })).concat(acceptedDocuments([
       { source: 'patient', text: 'short' },
+      { text: 'long enough text without a source' },
+      { source: 'patient' },
       { source: 'stranger', text: 'long enough text' },
       { source: 'doctor', text: 'faculty note is long enough', title: '  Note  ', date: '2020-01-01' },
       { source: 'clinician', id: '', text: 'clinic note is long enough' },
@@ -126,6 +134,7 @@ describe('request scope', () => {
 
   test('allows history, publications, documents, and a provided fact', () => {
     assert.equal(scopeOf('What brings you in today?').kind, 'medicine');
+    assert.equal(scopeOf('What is the problem?').kind, 'medicine');
     assert.equal(scopeOf('Which pmid supports that statement?').kind, 'medicine');
     assert.equal(scopeOf('Please open the ecg').kind, 'medicine');
     assert.equal(scopeOf('zephyrword', {
@@ -158,12 +167,14 @@ describe('intercept', () => {
   test('accepts no reply, a blank reply, and the unknown line', () => {
     const open = run({ request: 'What brings you in today?' });
     const blank = run({ request: 'I have chest pain', proposed: '   ' });
+    const empty = run({ request: 'I have chest pain', proposed: '' });
     const unknown = run({ request: 'I have chest pain', proposed: '  ' + UNKNOWN.toUpperCase() + '  ' });
 
     assert.equal(open.allow, true);
     assert.equal(open.text, null);
     assert.match(open.reason, /No response was offered/);
     assert.equal(blank.text, UNKNOWN);
+    assert.equal(empty.text, UNKNOWN);
     assert.equal(unknown.allow, true);
     assert.equal(unknown.grounded.allow, true);
   });
@@ -280,21 +291,34 @@ describe('intercept', () => {
   });
 
   test('rejects a future document, a year that was added, and accepts a date that is not in the future', () => {
-    const body = 'The laboratory value was recorded in the morning report today.';
+    const body = 'The laboratory value was recorded in the morning report today overall';
     const dated = (date, proposed) => run({
       request: 'What did the lab report show?',
       proposed: proposed || 'The laboratory value was recorded',
       documents: [{ source: 'faculty', title: 'Lab', date, text: body }]
     });
 
+    assert.ok(body.length >= 40);
     assert.equal(dated('2027-01-01').allow, false);
     assert.match(dated('2027-01-01').reason, /later than today/);
     assert.equal(dated('2026-10-10').allow, true);
     assert.equal(dated('2020-05-01').allow, true);
     assert.equal(dated('not-a-date').allow, true);
-    assert.equal(dated('', body + ' in 1999').allow, false);
-    assert.match(dated('', body + ' in 1999').reason, /year/);
-    assert.equal(dated('1999-05-01', body + ' in 1999').allow, true);
+    assert.equal(dated('', body + ' 1999').allow, false);
+    assert.match(dated('', body + ' 1999').reason, /year/);
+    assert.equal(dated('1999-05-01', body + ' 1999').allow, true);
+
+    const faculty = {
+      grounded: true,
+      kind: 'document',
+      source: 'faculty',
+      text: body,
+      date: '2026-10-11'
+    };
+    assert.equal(timelyFor('The laboratory value was recorded', faculty, NOW).allow, true);
+    assert.equal(timelyFor('The laboratory value was recorded', Object.assign({}, faculty, {
+      date: '2026-10-12'
+    }), NOW).allow, false);
   });
 
   test('uses a publication quote only inside the current window', () => {
@@ -324,6 +348,27 @@ describe('intercept', () => {
     assert.equal(stale.allow, false);
     assert.match(stale.reason, /window/);
     assert.equal(future.allow, false);
+    const quoted = {
+      grounded: true,
+      kind: 'publication',
+      text: QUOTE,
+      year: 2027
+    };
+    assert.equal(timelyFor(QUOTE, quoted, new Date('2026-12-31T12:00:00Z')).allow, true);
+    assert.equal(timelyFor(QUOTE, Object.assign({}, quoted, { year: 2010 }), new Date('2026-01-01T02:00:00Z')).allow, true);
+    const fromLibrary = run({
+      request: 'Is adherence to oral hypoglycaemic medication a documented problem?',
+      proposed: QUOTE + ' A second sentence is not in the paper.',
+      library: [paper({ year: 2017 })]
+    });
+    const quotedTwice = run({
+      request: 'Is adherence to oral hypoglycaemic medication a documented problem?',
+      proposed: QUOTE + ' ' + QUOTE,
+      library: [paper({ year: 2017 })]
+    });
+    assert.equal(fromLibrary.allow, false);
+    assert.equal(quotedTwice.allow, true);
+    assert.equal(quotedTwice.grounded.matches[0].source, 'publication');
     assert.equal(undated.allow, false);
     assert.match(undated.reason, /window/);
     assert.equal(added.allow, false);
@@ -341,7 +386,7 @@ describe('intercept', () => {
     });
     const byAbstract = run({
       request: 'What did the smoking cessation abstract report?',
-      proposed: 'Spirometry values fell after the smoking cessation attempt failed badly.',
+      proposed: 'Spirometry values fell after the smoking cessation attempt failed badly',
       library: [{
         id: 8,
         year: 2019,
@@ -455,6 +500,101 @@ describe('intercept', () => {
     }
   });
 
+  test('keyword length and phrase keys decide whether a request touches a fact', () => {
+    const shortKey = scopeOf('zzzz qqqq', {
+      facts: [{ id: 'a', say: '', kw: ['ab', ''] }]
+    });
+    const phrase = scopeOf('sweet tea tonight', {
+      facts: [{ id: 'b', say: '', label: '', kw: ['sweet tea'] }]
+    });
+    const stem = scopeOf('metforminx please', {
+      facts: [{ id: 'c', say: '', kw: ['metform'] }]
+    });
+    const exact = scopeOf('zebra widget', {
+      facts: [{ id: 'd', say: '', kw: ['zebra'] }]
+    });
+    const missedPhrase = scopeOf('zzzz qqqq', {
+      facts: [{ id: 'e', say: '', kw: ['blood sugar'] }]
+    });
+
+    assert.equal(shortKey.allow, false);
+    assert.equal(missedPhrase.allow, false);
+    assert.equal(phrase.allow, true);
+    assert.equal(phrase.kind, 'medicine');
+    assert.equal(stem.allow, true);
+    assert.equal(exact.allow, true);
+  });
+
+  test('empty and short lines do not count as a source', () => {
+    assert.equal(matchCase('   ', { facts: [{ say: SAY }] }), null);
+    assert.equal(matchDocuments('   ', [{ text: SAY, title: 'Note' }]), null);
+    assert.equal(lookupQuotes(null, SAY), null);
+    assert.equal(lookupQuotes({ prepare() { return { all() { return []; } }; } }, '   '), null);
+    assert.equal(lookupQuotes({
+      prepare() {
+        return { all() { return []; } };
+      }
+    }, 'Hi. This sentence is long enough to be checked against the library today.'), null);
+
+    const ungrounded = { grounded: false, kind: '', fact: null };
+    assert.match(relevantTo('Hello', SAY, null, { kind: 'courtesy' }).reason, /not tied/);
+    assert.match(relevantTo('Hello', SAY, ungrounded, { kind: 'courtesy' }).reason, /not tied/);
+    assert.deepEqual(cite(null), []);
+    assert.deepEqual(cite(ungrounded), []);
+
+    const futureSource = timelyFor(SAY, {
+      grounded: true,
+      kind: 'document',
+      source: 'lab',
+      text: SAY,
+      date: ''
+    }, NOW);
+    assert.match(futureSource.reason, /Only patient and faculty/);
+    const none = timelyFor(SAY, { grounded: true, kind: 'note', text: SAY }, NOW);
+    assert.match(none.reason, /no timely source/);
+
+    const styles = new Set(['i hear you.']);
+    const led = 'I hear you. ' + SAY;
+    const fact = { id: 'led', say: SAY, deflect: 'Not this line.' };
+    assert.equal(matchCase(led, { facts: [fact] }, styles).id, 'led');
+    assert.equal(matchCase(led, { facts: [{ id: 'blank', say: '', deflect: '' }, fact] }, styles).id, 'led');
+    assert.equal(matchCase('I hear you ' + SAY, { facts: [fact] }, styles).id, 'led');
+    assert.equal(matchCase(led, {
+      facts: [{ id: 'def', say: 'A different approved sentence for this patient.', deflect: SAY }]
+    }, styles).id, 'def');
+    assert.equal(matchCase('Well now. ' + SAY, { facts: [fact] }, styles), null);
+    assert.equal(matchCase(led, { facts: [fact] }, new Set()), null);
+    assert.equal(matchCase('Held line for later.', {
+      facts: [{ id: 'd', say: SAY, deflect: 'Held line for later.' }]
+    }, new Set()).id, 'd');
+  });
+
+  test('reviews a fact that has no id or keywords, and ignores a paper that does not contain the line', () => {
+    const bare = run({
+      request: 'thirsty and tired for months',
+      proposed: SAY,
+      caseFacts: {
+        facts: [{ say: SAY, label: 'Chief complaint', deflect: 'I would rather not say.' }]
+      }
+    });
+    assert.equal(bare.allow, true);
+    assert.equal(bare.grounded.matches[0].id, '');
+    const touched = relevantTo('thirsty and tired for months', SAY, {
+      grounded: true,
+      kind: 'case',
+      id: 'a',
+      fact: { label: 'Chief complaint', say: SAY, deflect: '' }
+    }, { kind: 'medicine', allow: true });
+    assert.equal(touched.allow, true);
+
+    const missed = run({
+      request: 'What did the adherence study find about medication?',
+      proposed: 'Patients described a completely different outcome in this sentence.',
+      library: [paper()]
+    });
+    assert.equal(missed.allow, false);
+  });
+
   test('uses the clock when no review date is supplied', () => {
     const decision = intercept({
       request: 'Is adherence to oral hypoglycaemic medication a documented problem?',
@@ -463,5 +603,74 @@ describe('intercept', () => {
     });
 
     assert.equal(decision.allow, true);
+  });
+
+  test('a prescribing question may quote a paper, and a nameless document still cites', () => {
+    const prescribed = run({
+      request: 'What dose of oral hypoglycaemic medication relates to adherence?',
+      proposed: QUOTE,
+      library: [paper({ year: 2018 })]
+    });
+    const nameless = run({
+      request: 'What did the lab report show?',
+      proposed: 'HbA1c 8.4 percent was recorded on the morning draw',
+      documents: [{
+        source: 'faculty',
+        text: 'HbA1c 8.4 percent was recorded on the morning draw and filed.'
+      }]
+    });
+    const loose = scopeOf('sweet tea', { facts: 'nope', intro: '' });
+
+    assert.equal(prescribed.allow, true);
+    assert.equal(prescribed.grounded.matches[0].source, 'publication');
+    assert.equal(nameless.allow, true);
+    assert.equal(nameless.grounded.matches[0].title, 'Uploaded document');
+    assert.equal(loose.kind, 'out_of_scope');
+  });
+
+  test('covers a missing fact id, a fact without keywords, and a paper line that is not in the source', () => {
+    const unnamed = scopeOf('bicycle helmet storage', {
+      facts: [{ say: 'store the bicycle helmet' }]
+    });
+    const byOverlap = relevantTo('metformin tablets', 'the patient takes metformin tablets daily', {
+      grounded: true,
+      kind: 'case',
+      id: 'x',
+      fact: { label: 'Meds', say: 'the patient takes metformin tablets daily', deflect: '' }
+    }, { kind: 'medicine' });
+    const byKeywordGap = relevantTo('???', 'the patient takes metformin tablets daily', {
+      grounded: true,
+      kind: 'case',
+      id: 'y',
+      fact: { label: '', say: 'the patient takes metformin tablets daily', deflect: '' }
+    }, { kind: 'medicine' });
+    const invented = run({
+      request: 'What did the cohort study report about medication?',
+      proposed: QUOTE + ' Coffee always fixes this problem.',
+      library: [paper()]
+    });
+
+    assert.equal(unnamed.kind, 'medicine');
+    assert.equal(byOverlap.allow, true);
+    assert.match(byKeywordGap.reason, /does not address/);
+    assert.equal(invented.allow, false);
+    assert.match(invented.reason, /not in a faculty case fact/);
+    const quiet = run({
+      request: 'Hello',
+      proposed: 'I would rather not say.',
+      caseFacts: { facts: [{ id: 'quiet', say: '', deflect: 'I would rather not say.' }] }
+    });
+    assert.equal(matchDocuments(SAY, null), null);
+    assert.equal(matchDocuments(null, []), null);
+    assert.equal(timelyFor('', { grounded: true, kind: 'case', text: '', date: '' }, NOW).allow, true);
+    assert.equal(timelyFor('Noted in 1999.', {
+      grounded: true,
+      kind: 'document',
+      source: 'faculty',
+      text: '',
+      date: '1999-01-01'
+    }, NOW).allow, true);
+    assert.equal(quiet.allow, false);
+    assert.match(quiet.reason, /greeting/i);
   });
 });

@@ -474,6 +474,116 @@ th {
   display: block;
 }
 
+.patient-card .btn {
+  width: 100%;
+}
+
+#theater[hidden] {
+  display: none;
+}
+
+#theater {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.theater-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 16, 18, 0.72);
+}
+
+.theater-card {
+  position: relative;
+  width: min(960px, 100%);
+  background: var(--pn);
+  color: var(--tx);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.theater-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 16px 8px;
+}
+
+.theater-head h2 {
+  margin-bottom: 4px;
+}
+
+.theater-card video {
+  display: block;
+  width: 100%;
+  max-height: 72vh;
+  background: #102226;
+}
+
+.theater-stage {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 360px;
+  background: #102226;
+}
+
+.theater-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.theater-lines {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.theater-lines p {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #e7f4f2;
+  background: #1a3034;
+}
+
+.theater-lines .you {
+  background: #243c40;
+}
+
+.theater-lines .pt {
+  border-left: 3px solid #4fd1c5;
+}
+
+.theater-lines .chart {
+  border: 1px dashed #f6ad55;
+  color: #f6ad55;
+  background: transparent;
+}
+
+.theater-lines .on {
+  outline: 1px solid rgba(79, 209, 197, 0.45);
+}
+
+@media (max-width: 720px) {
+  .theater-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .theater-stage img {
+    height: 220px;
+  }
+}
+
 .compact-edit {
   margin-top: 16px;
   padding-top: 12px;

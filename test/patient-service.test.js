@@ -9,6 +9,7 @@ const {
 } = require('../lib/patient-service');
 const { UNKNOWN } = require('../lib/grounding-gate');
 const { tempDb, insertJournal, insertFact } = require('./helpers');
+const { ConversationAgent } = require('../lib/conversation-agent');
 
 function fact(id, label, kw, extra) {
   return Object.assign({
@@ -312,5 +313,51 @@ describe('patient service', { concurrency: false }, () => {
     answer(wrapped, body);
     assert.ok(reads > afterFirst);
     Date.now = realNow;
+  });
+
+  test('keeps the approved line and adds a spoken lead from ingested conversations', () => {
+    const spoken = tempDb();
+    try {
+      new ConversationAgent(spoken.db).ingestConversation({
+        source_key: 'ack-1',
+        title: 'Acknowledging',
+        topic: 'acknowledgement',
+        setting: 'clinic',
+        turns: [
+          { speaker: 'clinician', text: 'Does that sound right?', move: 'ask' },
+          { speaker: 'patient', text: 'Yeah.', move: 'ack' },
+          { speaker: 'patient', text: 'I got here a few minutes early.', move: 'share' }
+        ]
+      });
+      const meds = answer(spoken.db, {
+        request: 'Tell me how you take your metformin.',
+        trust: 0,
+        case_facts: {
+          facts: [fact('d3', 'Metformin: patient says she takes it every day', ['metformin'], {
+            say: "I take my metformin every day, like I'm supposed to."
+          })]
+        }
+      });
+      assert.equal(meds.certain, true);
+      assert.equal(meds.fact_id, 'd3');
+      assert.equal(meds.reply, "Yeah. I take my metformin every day, like I'm supposed to.");
+
+      const held = answer(spoken.db, {
+        request: 'What gets in the way of every dose?',
+        trust: 0,
+        case_facts: {
+          facts: [fact('d4', 'Skips evening dose', ['every dose'], {
+            gate: 1,
+            deflect: 'I take it. Like I said.',
+            say: 'Okay, honestly I skip the evening one a lot.'
+          })]
+        }
+      });
+      assert.equal(held.certain, true);
+      assert.equal(held.trust_hold, true);
+      assert.equal(held.reply, 'Yeah. I take it. Like I said.');
+    } finally {
+      spoken.cleanup();
+    }
   });
 });

@@ -129,7 +129,7 @@ const SEED = [{
   patientSays: 'I quit smoking years ago.',
   chartSays: 'Current smoker, 0.5 packs per day, 30 pack-years',
   objText: 'Uncover true smoking status\nAssess inhaler technique\nReconcile smoking discrepancy'
-}];
+}].concat(window.ROSTER || []);
 
 function templateGeneral() {
   return {
@@ -253,8 +253,19 @@ function bootStorage() {
     return;
   }
 
-  drafts = stored.drafts || drafts;
+  const savedDrafts = stored.drafts || {};
+  SEED.forEach((p) => {
+    if (!savedDrafts[p.id]) {
+      savedDrafts[p.id] = drafts[p.id] || JSON.stringify(p, null, 2);
+    }
+  });
+  drafts = savedDrafts;
   rel = stored.rel || [];
+  SEED.forEach((p) => {
+    if (!rel.some((item) => item.p && item.p.id === p.id)) {
+      rel.push({ p: Object.assign(JSON.parse(JSON.stringify(p)), { version: 1 }), at: now() });
+    }
+  });
   if (stored.sel && drafts[stored.sel]) {
     sel = stored.sel;
   }
@@ -279,12 +290,15 @@ function writeProfile(p) {
   save();
 }
 
-function setStudio(field, value) {
+function setStudio(field, value, el) {
   const p = currentProfile();
   if (!p) {
     return;
   }
   p[field] = field === 'age' ? (Number(value) || 0) : value;
+  if (field === 'age' && el && el.value === '') {
+    el.value = String(p.age);
+  }
   writeProfile(p);
 }
 
@@ -914,17 +928,20 @@ let mouthTimer;
 let recActive = null;
 
 function photoSet(p) {
+  if (p && p.photo) {
+    return { still: p.photo, talk: p.photo, pos: p.photoPos || 'center 22%' };
+  }
   const known = { denise: true, marcus: true };
   const base = p && known[p.id] ? p.id : 'patient';
 
-  return { still: 'img/' + base + '.jpg', talk: 'img/' + base + '-talk.jpg' };
+  return { still: 'img/' + base + '.jpg', talk: 'img/' + base + '-talk.jpg', pos: 'center 20%' };
 }
 
 function avatarHtml(p) {
   const pics = photoSet(p);
 
   return `<div class="av-frame" id="avf">
-    <img class="av-still" src="${pics.still}" alt="${esc(p.name)}">
+    <img class="av-still" src="${pics.still}" alt="${esc(p.name)}" style="object-position:${esc(pics.pos)}">
   </div>`;
 }
 
@@ -1442,10 +1459,11 @@ function vStudio() {
 
     return `<div class="patient-card ${isOn ? 'on' : ''}">
       <button class="patient-pick" type="button" onclick="pickPatient('${r.p.id}')">
-        <img src="${pics.still}" alt="">
+        <img src="${pics.still}" alt="" style="object-position:${esc(pics.pos)}">
         <b>${esc(r.p.name)}</b>
         <span class="chip">${r.p.age} · v${r.p.version}</span>
       </button>
+      ${(r.p.video || (r.p.preview || []).length) ? `<button class="btn" type="button" onclick="openTheater('${r.p.id}')">Watch conversation</button>` : ''}
       <button class="btn pri" type="button" onclick="launch('${r.p.id}',${r.p.version})">Start visit</button>
     </div>`;
   }).join('');
@@ -1473,7 +1491,7 @@ function vStudio() {
     <div class="compact-edit">
       <div class="fields">
         <div><label>Name</label><input value="${esc(p.name || '')}" oninput="setStudio('name', this.value)"></div>
-        <div><label>Age</label><input type="number" value="${esc(p.age || '')}" oninput="setStudio('age', this.value)"></div>
+        <div><label>Age</label><input type="number" value="${esc(p.age == null || p.age === '' ? '' : p.age)}" oninput="setStudio('age', this.value, this)"></div>
         <div><label>Opening line</label><input value="${esc(p.intro || '')}" oninput="setStudio('intro', this.value)"></div>
       </div>
       <div class="fields">
@@ -1520,10 +1538,11 @@ function vEnc() {
 
         return `<div class="patient-card">
           <button class="patient-pick" type="button" onclick="launch('${r.p.id}',${r.p.version})">
-            <img src="${pics.still}" alt="">
+            <img src="${pics.still}" alt="" style="object-position:${esc(pics.pos)}">
             <b>${esc(r.p.name)}</b>
             <span class="chip">${r.p.age} · v${r.p.version}</span>
           </button>
+          ${(r.p.video || (r.p.preview || []).length) ? `<button class="btn" type="button" onclick="openTheater('${r.p.id}')">Watch conversation</button>` : ''}
           <button class="btn pri" type="button" onclick="launch('${r.p.id}',${r.p.version})">Start visit</button>
         </div>`;
       }).join('')}</div>
@@ -2059,9 +2078,120 @@ function render(keep) {
   }
 }
 
+function findReleased(id) {
+  const hit = [...rel].reverse().find((item) => item.p && item.p.id === id);
+
+  return (hit && hit.p) || SEED.find((p) => p.id === id) || null;
+}
+
+function closeTheater() {
+  const root = document.getElementById('theater');
+  if (!root) {
+    return;
+  }
+  const vid = root.querySelector('video');
+  if (vid) {
+    vid.pause();
+  }
+  window.speechSynthesis && speechSynthesis.cancel();
+  root.hidden = true;
+  root.innerHTML = '';
+  document.removeEventListener('keydown', theaterKey);
+}
+
+function theaterKey(event) {
+  if (event.key === 'Escape') {
+    closeTheater();
+  }
+}
+
+function openTheater(id) {
+  const p = findReleased(id);
+  const root = document.getElementById('theater');
+  if (!p || !root) {
+    return;
+  }
+  const pics = photoSet(p);
+  closeTheater();
+  root.hidden = false;
+  root.innerHTML = `<div class="theater-backdrop" onclick="closeTheater()"></div>
+    <div class="theater-card" role="dialog" aria-modal="true" aria-label="Sample conversation with ${esc(p.name)}">
+      <div class="theater-head">
+        <div>
+          <div class="panel-kicker">Sample teaching conversation</div>
+          <h2>${esc(p.name)}, ${esc(p.age)}</h2>
+          <p class="muted">${esc(p.diagnosis || '')}. Synthetic case. The first ask gets the careful answer. Warmth, then the same question, opens the rest.</p>
+        </div>
+        <button class="btn" type="button" onclick="closeTheater()">Close</button>
+      </div>
+      <video src="${esc(p.video || ('video/' + p.id + '.mp4'))}" poster="${esc(pics.still)}" controls playsinline autoplay></video>
+    </div>`;
+  const vid = root.querySelector('video');
+  if (vid) {
+    const fallback = () => playScript(p);
+    vid.addEventListener('error', fallback);
+    if (vid.error) {
+      fallback();
+    }
+  }
+  document.addEventListener('keydown', theaterKey);
+}
+
+function playScript(p) {
+  const root = document.getElementById('theater');
+  const pics = photoSet(p);
+  const lines = p.preview || [];
+  if (!root || !lines.length) {
+    return;
+  }
+  let index = 0;
+  const draw = () => {
+    const shown = lines.slice(0, index + 1).slice(-4);
+    root.innerHTML = `<div class="theater-backdrop" onclick="closeTheater()"></div>
+      <div class="theater-card" role="dialog" aria-modal="true" aria-label="Sample conversation with ${esc(p.name)}">
+        <div class="theater-head">
+          <div>
+            <div class="panel-kicker">Sample teaching conversation</div>
+            <h2>${esc(p.name)}, ${esc(p.age)}</h2>
+          </div>
+          <button class="btn" type="button" onclick="closeTheater()">Close</button>
+        </div>
+        <div class="theater-stage">
+          <img src="${esc(pics.still)}" alt="" style="object-position:${esc(pics.pos)}">
+          <div class="theater-lines">
+            ${shown.map((line, i) => `<p class="tl ${line.w === 'Student' ? 'you' : line.w === 'Chart' ? 'chart' : 'pt'}${i === shown.length - 1 ? ' on' : ''}"><b>${esc(line.w)}</b> ${esc(line.t)}</p>`).join('')}
+          </div>
+        </div>
+      </div>`;
+  };
+  const step = () => {
+    if (root.hidden || index >= lines.length) {
+      return;
+    }
+    draw();
+    const line = lines[index];
+    index += 1;
+    const wait = line.w === 'Chart' ? 2400 : Math.min(7000, 1200 + line.t.length * 45);
+    if (line.w !== 'Chart' && 'speechSynthesis' in window && !window.__mute) {
+      const utter = new SpeechSynthesisUtterance(line.t);
+      utter.onend = () => setTimeout(step, 350);
+      utter.onerror = () => setTimeout(step, wait);
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utter);
+    } else {
+      setTimeout(step, wait);
+    }
+  };
+  step();
+}
+
 applyTheme();
 bootStorage();
 render();
+const watchId = new URLSearchParams(location.search).get('watch');
+if (watchId) {
+  openTheater(watchId);
+}
 if (tab === 'truth') {
   loadTruth();
 }

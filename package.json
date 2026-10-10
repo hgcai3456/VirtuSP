@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --experimental-test-module-mocks --test --test-isolation=process --test-concurrency=1 --experimental-test-coverage --test-coverage-include=lib/grounding-gate.js --test-coverage-include=lib/response-interceptor.js --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100",
+    "test:integration": "node --test --test-concurrency=1 --test-timeout=60000 tests/integration/live-stack.js",
+    "prepare": "node scripts/install-git-hooks.js",
     "test:e2e": "cucumber-js --config tests/e2e/cucumber.js",
+    "test:regression": "node agents/regression.js",
+    "orchestrate": "node agents/orchestrator.js --tests",
     "ingest": "node agents/ingest.js",
     "ingest:seed": "node agents/ingest.js --seed",
     "ingest:nih": "node agents/ingest.js --nih --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
@@ -14,7 +18,11 @@
     "ingest:nih:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
     "ingest:nih:2:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
     "ingest:nih:all": "node agents/ingest.js --nih --all --resume --shards 2 --shard 0 --chunk 20 --delay 800",
-    "ingest:status": "node agents/ingest.js --status"
+    "ingest:status": "node agents/ingest.js --status",
+    "ingest:conversations": "node agents/conversations.js --chunk 10 --delay 800",
+    "ingest:conversations:resume": "node agents/conversations.js --resume --chunk 10 --delay 800",
+    "ingest:conversations:status": "node agents/conversations.js --status",
+    "ingest:orchestrate": "node agents/orchestrator.js"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.3.0",

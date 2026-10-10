@@ -215,6 +215,46 @@ a {
   font-size: 18px;
 }
 
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.roster a.person {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--pn);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.roster img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+  background: #d5dfde;
+}
+
+.roster .meta {
+  padding: 12px 14px 16px;
+}
+
+.roster h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.roster p {
+  margin: 0;
+  color: var(--mu);
+  font-size: 15px;
+}
+
 pre {
   background: var(--ink);
   color: #d6f5ef;

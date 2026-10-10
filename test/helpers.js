@@ -19,7 +19,24 @@ function tempDb() {
       } catch (err) {
         // already closed
       }
-      fs.rmSync(dir, { recursive: true, force: true });
+      let lastErr;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        try {
+          fs.rmSync(dir, { recursive: true, force: true });
+
+          return;
+        } catch (err) {
+          lastErr = err;
+          if (err.code !== 'EPERM' && err.code !== 'EBUSY' && err.code !== 'ENOTEMPTY') {
+            throw err;
+          }
+          const wait = Date.now() + 40 * (attempt + 1);
+          while (Date.now() < wait) {
+            // Windows can keep a SQLite handle for a moment after close.
+          }
+        }
+      }
+      throw lastErr;
     }
   };
 }

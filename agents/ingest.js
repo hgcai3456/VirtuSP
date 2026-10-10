@@ -80,6 +80,7 @@ async function main() {
     console.log('  node agents/ingest.js --nih --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200');
     console.log('  node agents/ingest.js --nih --all --resume --shards 2 --shard 0');
     console.log('  node agents/ingest.js --status');
+    console.log('  node agents/orchestrator.js');
     db.close();
     process.exit(0);
   }

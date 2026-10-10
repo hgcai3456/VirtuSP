@@ -77,8 +77,8 @@ describe('reports', { concurrency: false }, () => {
 
   test('saves, lists, opens, and deletes a PDF', () => {
     assert.deepEqual(KINDS, ['bloodwork', 'exam', 'test']);
-    assert.equal(listReports(box.db, '../etc'), []);
-    assert.equal(listReports(box.db, ''), []);
+    assert.deepEqual(listReports(box.db, '../etc'), []);
+    assert.deepEqual(listReports(box.db, ''), []);
 
     const report = saveReport(box.db, {
       patient_id: '  patient-1 ',
@@ -238,13 +238,19 @@ describe('reports', { concurrency: false }, () => {
     } finally {
       fs.unlinkSync = originalUnlink;
     }
+    const missingFile = saveReport(box.db, {
+      patient_id: 'p',
+      kind: 'exam',
+      uploaded_by: 'patient',
+      title: 'already gone'
+    }, { filename: 'gone-again.pdf', body: pdf('g2') });
     fs.unlinkSync = () => {
       const err = new Error('missing');
       err.code = 'ENOENT';
       throw err;
     };
     try {
-      assert.equal(deleteReport(box.db, kept.id), true);
+      assert.equal(deleteReport(box.db, missingFile.id), true);
     } finally {
       fs.unlinkSync = originalUnlink;
     }
