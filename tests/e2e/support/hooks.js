@@ -83,7 +83,7 @@ Before(async function () {
   await driver.navigate().refresh();
   await driver.wait(async () => {
     const heading = await driver.executeScript(
-      "var node = document.querySelector('#app h2'); return node ? node.textContent : ''"
+      "var node = document.querySelector('#app h1'); return node ? node.textContent : ''"
     );
 
     return heading.includes('Patient Studio');

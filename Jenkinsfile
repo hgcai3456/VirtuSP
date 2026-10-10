@@ -10,6 +10,16 @@
 // is checked. That agent also needs Docker, the AWS CLI, Terraform, and
 // credentials that can push to ECR and update ECS. infra/aws/scripts/deploy.sh
 // (or deploy.ps1 on Windows) reads the Terraform outputs and rolls the service.
+//
+// Live regression then opens the public load balancer in headless Chrome.
+// Set VIRTUSP_URL on the job to target a different address. The agent needs
+// outbound HTTP to that host.
+//
+// Performance runs the JMeter plans in perf/jmeter against the loopback server.
+// The agent needs Java and PowerShell. The stage fails unless a read-only
+// session and the local visit both pass. Larger thread counts, up to 100000,
+// run only when the agent can allocate them. The plans stay on 127.0.0.1 and
+// do not call Bedrock.
 
 @NonCPS
 def isMainBranch() {
@@ -39,7 +49,7 @@ pipeline {
 
     options {
         timestamps()
-        timeout(time: 90, unit: 'MINUTES')
+        timeout(time: 120, unit: 'MINUTES')
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '10'))
     }
@@ -87,6 +97,18 @@ pipeline {
                 script {
                     runCmd('node -e "require(\'fs\').mkdirSync(\'reports/junit\',{recursive:true})"')
                     runCmd('npm run test:integration -- --test-reporter=spec --test-reporter=junit --test-reporter-destination=stdout --test-reporter-destination=reports/junit/integration.xml')
+                }
+            }
+        }
+
+        stage('Performance tests') {
+            options {
+                timeout(time: 30, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    // Local engine only. The runner refuses any host other than loopback.
+                    runCmd('npm run perf:ci')
                 }
             }
         }
@@ -139,12 +161,25 @@ pipeline {
                 }
             }
         }
+
+        stage('Live regression') {
+            options {
+                timeout(time: 25, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    runCmd('node -e "const binary=require(\'./tests/e2e/support/chrome\').chromeBinary(); if (!binary) { console.error(\'Install Google Chrome or Chromium, or set CHROME_PATH.\'); process.exit(1) } console.log(\'Chrome: \'+binary)"')
+                    // Runs after Deploy. A skipped deploy still reaches this stage, so it checks the service that is already public.
+                    runCmd('npm run test:live -- --attempts 2')
+                }
+            }
+        }
     }
 
     post {
         always {
             junit testResults: 'reports/junit/*.xml', allowEmptyResults: true
-            archiveArtifacts artifacts: 'reports/junit/*.xml,reports/coverage/lcov.info,tests/e2e/reports/**,data/prompts-tested.csv,data/e2e-server.log', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'reports/junit/*.xml,reports/coverage/lcov.info,reports/perf/**,tests/e2e/reports/**,data/prompts-tested.csv,data/e2e-server.log', allowEmptyArchive: true
         }
     }
 }

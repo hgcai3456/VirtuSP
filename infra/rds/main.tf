@@ -17,8 +17,16 @@ data "aws_rds_engine_version" "postgres" {
   latest  = var.engine_version == ""
 }
 
+data "http" "my_ip" {
+  count = var.publicly_accessible && length(var.allowed_cidrs) == 0 ? 1 : 0
+  url   = "https://checkip.amazonaws.com"
+}
+
 locals {
   azs = slice(data.aws_availability_zones.available.names, 0, 2)
+  allowed_cidrs = length(var.allowed_cidrs) > 0 ? var.allowed_cidrs : (
+    var.publicly_accessible ? ["${chomp(data.http.my_ip[0].response_body)}/32"] : []
+  )
 }
 
 resource "aws_vpc" "this" {
@@ -118,14 +126,14 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "cidrs" {
-  count = var.publicly_accessible ? length(var.allowed_cidrs) : 0
+  count = var.publicly_accessible ? length(local.allowed_cidrs) : 0
 
   security_group_id = aws_security_group.rds.id
   description       = "PostgreSQL from an approved network"
   ip_protocol       = "tcp"
   from_port         = 5432
   to_port           = 5432
-  cidr_ipv4         = var.allowed_cidrs[count.index]
+  cidr_ipv4         = local.allowed_cidrs[count.index]
 }
 
 resource "aws_vpc_security_group_ingress_rule" "clients" {
@@ -221,7 +229,7 @@ resource "aws_db_instance" "this" {
     }
 
     precondition {
-      condition     = var.publicly_accessible == false || length(var.allowed_cidrs) > 0
+      condition     = var.publicly_accessible == false || length(local.allowed_cidrs) > 0
       error_message = "Set allowed_cidrs before giving the database a public address."
     }
 
@@ -239,6 +247,11 @@ resource "aws_db_instance" "this" {
 
 resource "null_resource" "sql" {
   count = var.load_sql ? 1 : 0
+
+  depends_on = [
+    aws_vpc_security_group_ingress_rule.cidrs,
+    aws_route_table_association.public
+  ]
 
   triggers = {
     schema = filesha256("${path.module}/sql/001_schema.sql")

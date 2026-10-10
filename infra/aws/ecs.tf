@@ -45,6 +45,7 @@ resource "aws_ecs_task_definition" "app" {
       name      = local.container_name
       image     = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
       essential = true
+      command   = ["sh", "-c", local.shared_sqlite_boot]
       user      = "1000:1000"
       portMappings = [
         {
@@ -57,9 +58,14 @@ resource "aws_ecs_task_definition" "app" {
         { name = "PORT", value = tostring(var.container_port) },
         { name = "NODE_ENV", value = "production" },
         { name = "HOME", value = "/tmp" },
+        { name = "HOST", value = "0.0.0.0" },
         { name = "VIRTUSP_SHARDS", value = "1" },
         { name = "VIRTUSP_DB", value = "/app/data/virtusp.sqlite" },
         { name = "VIRTUSP_SQLITE_JOURNAL", value = "DELETE" },
+        { name = "VIRTUSP_SQLITE_EXCLUSIVE", value = "0" },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "AI_ENABLED", value = "true" },
+        { name = "BEDROCK_MODEL_ID", value = var.bedrock_model_id },
         { name = "PGHOST", value = aws_db_instance.this.address },
         { name = "PGPORT", value = tostring(aws_db_instance.this.port) },
         { name = "PGDATABASE", value = var.db_name }
@@ -147,7 +153,7 @@ resource "aws_ecs_service" "app" {
   name                               = var.name
   cluster                            = aws_ecs_cluster.this.id
   task_definition                    = aws_ecs_task_definition.app.arn
-  desired_count                      = 1
+  desired_count                      = var.autoscaling_min_capacity
   launch_type                        = "FARGATE"
   platform_version                   = "LATEST"
   enable_execute_command             = true
@@ -156,8 +162,8 @@ resource "aws_ecs_service" "app" {
   deployment_maximum_percent         = 100
   propagate_tags                     = "SERVICE"
 
-  # Stop the running task before starting the next one. The SQLite file
-  # on EFS has a single writer.
+  # Replace the running task before starting the next revision. Two revisions
+  # must not open the EFS database during a rollout.
   deployment_circuit_breaker {
     enable   = true
     rollback = true
@@ -181,4 +187,10 @@ resource "aws_ecs_service" "app" {
     aws_lb_listener.https,
     aws_efs_mount_target.data
   ]
+
+  # Application Auto Scaling changes the running count. Terraform must not
+  # reset it on the next apply.
+  lifecycle {
+    ignore_changes = [desired_count]
+  }
 }

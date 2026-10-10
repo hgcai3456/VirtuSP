@@ -9,12 +9,16 @@ const cloud = require("./lib/cloud");
 if (require.main === module)
   createApp()
     .then(({ server }) => {
-      const port = Number(process.env.PORT) || 3000;
-      server.listen(port, process.env.HOST || "127.0.0.1", () =>
+      const host = process.env.HOST || "127.0.0.1";
+      const requested = process.env.PORT;
+      const port =
+        requested == null || requested === "" ? 3000 : Number(requested);
+      server.listen(port, host, () => {
+        const bound = server.address();
         console.log(
-          `VirtuSP at http://localhost:${port} (${cloud.enabled() ? "Bedrock configured" : "local fallback"})`,
-        ),
-      );
+          `VirtuSP running at http://${host}:${bound.port} (${cloud.enabled() ? "Bedrock configured" : "local fallback"})`,
+        );
+      });
     })
     .catch((error) => {
       console.error(error.message);

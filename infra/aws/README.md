@@ -1,12 +1,14 @@
 # VirtuSP on AWS
 
-This stack runs the Node server on ECS Fargate behind an Application Load Balancer. SQLite stays the live database and is stored on EFS, one task at a time. PostgreSQL runs in private subnets. RDS generates the password and stores it in Secrets Manager. The server does not query PostgreSQL yet. `PGHOST`, `PGUSER`, and `PGPASSWORD` are on the task for that follow-up.
+This stack runs the Node server on ECS Fargate behind an Application Load Balancer. SQLite stays the live database and is stored on EFS. The service can run more than one task; those tasks share that file. PostgreSQL runs in private subnets. RDS generates the password and stores it in Secrets Manager. The server does not query PostgreSQL yet. `PGHOST`, `PGUSER`, and `PGPASSWORD` are on the task for that follow-up.
 
 What Terraform creates:
 
 - A VPC with two public subnets and two private subnets
 - An internet-facing load balancer and an S3 bucket for its access logs
+- A private S3 bucket for the patient PDFs in `data/reports`
 - An ECS cluster, one Fargate service, and a one-off schema task
+- CPU and memory target-tracking policies for that service
 - An encrypted EFS volume mounted at `/app/data`
 - An ECR repository
 - A private PostgreSQL 16 instance
@@ -52,9 +54,23 @@ Open the `url` output when the service is stable.
 
 The SQLite file is created on first boot and starts empty. Local `data/*.sqlite` files are left out of the image. Run ingest from the task, or copy a database onto the EFS volume, when you want the ground-truth library filled. The schema task loads the PostgreSQL seed in `infra/rds/sql`.
 
+## Autoscaling
+
+Application Auto Scaling tracks both average CPU (70%) and average memory (75%). A scale-out starts when either metric stays above its target. A scale-in starts only when both stay below their targets. Scale-out waits 60 seconds and scale-in waits 300 seconds before changing the count again.
+
+`autoscaling_min_capacity` defaults to 1 and `autoscaling_max_capacity` defaults to 4. Tasks share the SQLite file on EFS with a busy timeout. The service sets `VIRTUSP_SQLITE_EXCLUSIVE=0` so one task does not hold the file for its whole life. A deployment still stops the running task before starting the next revision.
+
+RDS storage autoscaling is already on: the database starts at 20 GiB and can grow to 100 GiB. The same bounds are set in `infra/rds`.
+
+## Bedrock
+
+The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID`. Patient replies and encounter turns call that model with the task role. There is no model API key to store. The role may invoke the configured inference profile and the foundation models that profile routes to. A reply is sent only when it keeps the server-approved patient line.
+
 ## HTTPS
 
-Set `certificate_arn` to an ACM certificate in this region, then apply again. Port 80 redirects to 443. Point the certificate's DNS name at `alb_dns_name`.
+With no `certificate_arn`, the public site is a CloudFront address (`https://….cloudfront.net`) that uses Amazon's trusted certificate. Port 80 on the load balancer redirects there. CloudFront reaches the app with a private header, so opening the load balancer name directly does not skip TLS. The HTTPS page is a secure context, and the response allows microphone access with `Permissions-Policy: microphone=(self)`.
+
+Set `certificate_arn` to an ACM certificate in this region when you have a DNS name of your own, then apply again. Port 80 redirects to 443 on the load balancer, and CloudFront is not created. Point the certificate's DNS name at `alb_dns_name`.
 
 ## Tear down
 

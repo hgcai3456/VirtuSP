@@ -1,6 +1,9 @@
 output "url" {
-  description = "Public address of the load balancer."
-  value       = var.certificate_arn == "" ? "http://${aws_lb.this.dns_name}" : "https://${aws_lb.this.dns_name}"
+  description = "Public HTTPS address. CloudFront when no load-balancer certificate is set."
+  value = coalesce(
+    one([for domain in aws_cloudfront_distribution.app[*].domain_name : "https://${domain}"]),
+    "https://${aws_lb.this.dns_name}"
+  )
 }
 
 output "alb_dns_name" {
@@ -71,4 +74,29 @@ output "rds_port" {
 output "rds_secret_arn" {
   description = "Secrets Manager ARN for the generated database password."
   value       = local.db_secret_arn
+}
+
+output "reports_bucket" {
+  description = "Private bucket that stores the patient PDF reports."
+  value       = aws_s3_bucket.reports.id
+}
+
+output "reports_object_count" {
+  description = "Number of PDFs uploaded from data/reports."
+  value       = length(local.report_pdfs)
+}
+
+output "autoscaling_min_capacity" {
+  description = "Minimum Fargate task count."
+  value       = aws_appautoscaling_target.ecs.min_capacity
+}
+
+output "autoscaling_max_capacity" {
+  description = "Maximum Fargate task count."
+  value       = aws_appautoscaling_target.ecs.max_capacity
+}
+
+output "autoscaling_policies" {
+  description = "CPU and memory target-tracking policies on the ECS service."
+  value       = [aws_appautoscaling_policy.cpu.name, aws_appautoscaling_policy.memory.name]
 }

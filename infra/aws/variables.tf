@@ -58,7 +58,7 @@ variable "task_memory" {
 
 variable "certificate_arn" {
   type        = string
-  description = "ACM certificate in this region. Leave empty to serve HTTP on port 80. When set, port 80 redirects to HTTPS."
+  description = "ACM certificate in this region for the load balancer. Leave empty to publish HTTPS on a CloudFront address with Amazon's trusted certificate. When set, port 80 redirects to HTTPS on the load balancer instead."
   default     = ""
 }
 
@@ -120,4 +120,54 @@ variable "efs_backup" {
   type        = bool
   description = "Turn on the automatic EFS backup. Leave this off so terraform destroy can remove the volume without leftover recovery points."
   default     = false
+}
+
+variable "autoscaling_min_capacity" {
+  type        = number
+  description = "Minimum number of Fargate tasks."
+  default     = 1
+
+  validation {
+    condition     = var.autoscaling_min_capacity >= 1 && var.autoscaling_min_capacity <= 10
+    error_message = "autoscaling_min_capacity must be from 1 to 10."
+  }
+}
+
+variable "autoscaling_max_capacity" {
+  type        = number
+  description = "Maximum number of Fargate tasks. CPU or memory above target scales the service up to this count."
+  default     = 4
+
+  validation {
+    condition     = var.autoscaling_max_capacity >= 1 && var.autoscaling_max_capacity <= 10
+    error_message = "autoscaling_max_capacity must be from 1 to 10."
+  }
+}
+
+variable "autoscaling_cpu_target" {
+  type        = number
+  description = "Target average CPU utilization for the ECS service, as a percent."
+  default     = 70
+
+  validation {
+    condition     = var.autoscaling_cpu_target >= 10 && var.autoscaling_cpu_target <= 90
+    error_message = "autoscaling_cpu_target must be from 10 to 90."
+  }
+}
+
+variable "bedrock_model_id" {
+  type        = string
+  description = "Bedrock inference profile the task calls for patient replies. The task role is used; there is no model API key."
+  default     = "us.anthropic.claude-sonnet-4-6"
+}
+
+variable "autoscaling_memory_target" {
+  type        = number
+  description = "Target average memory utilization for the ECS service, as a percent."
+  default     = 75
+
+  validation {
+    condition     = var.autoscaling_memory_target >= 10 && var.autoscaling_memory_target <= 90
+    error_message = "autoscaling_memory_target must be from 10 to 90."
+  }
 }

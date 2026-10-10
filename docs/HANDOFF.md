@@ -43,6 +43,18 @@ The reusable core is implemented: author/review/publish profiles, server-owned e
 
 Run `npm ci`, configure your own ignored `.env` via [SETUP.md](SETUP.md), run `npm run preflight`, then `npm start`. Open `/app.html`. Credentials are not shared through Git; teammates need their own event credentials and application bucket configuration.
 
+## Merge checkpoint (2026-10-10)
+
+The ground-truth branch now includes the educational app from `origin` and the local AWS deployment commit. The shared server still serves ground-truth routes (library health counts, ingest, triage, gate, journals, reports, and patient replies) alongside patient profiles and encounters. With `AI_ENABLED=true`, `/api/patient` and encounter turns call Bedrock with the AWS credential chain. The server still chooses the one approved line; a model reply is kept only when it repeats that line, optionally after an approved conversational lead. The ECS task role can invoke the configured model, so the deployed service does not use a model API key. Static errors stay plain text, and video range requests still return a byte slice. The earlier regression and integration checks passed 161 unit cases and 5 integration cases. `npm test` now passes 45 cases, including the Bedrock patient-request checks. The browser regression feature still looks for the previous studio markup (`#q`, `#tb`, and a `div` card with a `b` name), so those Cucumber scenarios do not pass against the merged page. These are engineering checks, not clinical validation.
+
+## HTTPS
+
+The public site is [https://d18g7r2mfy8mll.cloudfront.net](https://d18g7r2mfy8mll.cloudfront.net). ACM cannot certify the `elb.amazonaws.com` name, so CloudFront serves Amazon's trusted certificate for `*.cloudfront.net`. The old load balancer address redirects there. Responses allow the microphone with `Permissions-Policy: microphone=(self)` and send HSTS, `nosniff`, `SAMEORIGIN`, and a strict referrer policy. A live check confirmed a trusted certificate, a secure browsing context, and microphone permission allowed.
+
+## AWS autoscaling
+
+`infra/aws/autoscaling.tf` defines both Application Auto Scaling target-tracking policies: average CPU at 70% and average memory at 75%. Scale-out follows either metric; scale-in waits until both are under target. The service scales from 1 to 4 tasks. Tasks set `VIRTUSP_SQLITE_EXCLUSIVE=0` so they share the EFS SQLite file instead of holding an exclusive lock. Applied in us-west-2 on 2026-10-10. A check with desired count 2 showed both tasks healthy, one in each public subnet. RDS storage autoscaling remains 20 GiB to 100 GiB on both database definitions.
+
 ## Voice integration ownership
 
 The user assigned ElevenLabs integration to another teammate, who will choose voices from patient information. Faculty no longer enter voice IDs or portrait S3 URIs in Patient Studio. Existing profile metadata and speech adapters remain available to that integration; automatic voice selection has not been implemented by this UI change.
@@ -114,6 +126,7 @@ This checkpoint changes the feedback (Assessment) side only. Dialogue, authoring
 - Corrected strict Sonnet schemas produce seven domains, the correct N/A denominators and a safety flag for the weaker transcript. Classifier tags are excluded from grading evidence.
 - **Assessment remains a faculty-reviewed draft.** Inspection found speculative confusion, unfair question-relevance penalties, and feedback describing a question as following a deflection when it preceded it. Prompts were tightened and failed runs retained; model review is not an independent clinical gold standard. Review every claim, event order and coaching recommendation before showing feedback.
 - No browser surface is connected to the coding session. DOM workflow tests pass; real layout, microphone, audio and recording checks remain outstanding.
+- Local JMeter check, 2026-10-10: `npm run perf` runs `perf/jmeter/student-session.jmx` and `perf/jmeter/visit-turn.jmx` against loopback with the local engine and S3 off. On this 8 GB machine, 5, 25 and 50 concurrent read-only sessions passed (50 users: 10,175 samples, 0 errors, about 607 requests/s, p95 7 ms). 100 users was not started because only about 470 MB was available. Stages from 20,000 through 100,000 were not started: one Windows client has 16,384 ephemeral TCP ports, and each JMeter thread holds its own connection. A 10-user local visit passed with 0 errors and p95 102 ms. This is a single-process capacity check, not a distributed load test and not clinical validation. Do not point the plans at Bedrock or a shared host.
 
 ## Remaining steps and suggested ownership
 
@@ -135,7 +148,7 @@ This is the remaining part of the roughly 24-hour project budget, not a new 24-h
 | Authoring/UI | `public/js/app.js`, `public/css/app.css`, `lib/profiles.js`      | Published schema; no patient-specific engine branches |
 | Dialogue     | `lib/cloud.js`, `lib/engine.js`, `lib/schemas.js`, `evaluation/` | Permitted context and disclosure gates                |
 | Assessment   | `lib/assessment.js`, schemas, reference transcripts              | Direct evidence, supplied rubric, semantic review     |
-| Storage/AWS  | `lib/store.js`, `scripts/storage.js`                             | Local recovery first, server credentials              |
+| Storage/AWS  | `lib/store.js`, `scripts/storage.js`, `infra/aws`                | Local recovery first, server credentials              |
 | Presentation | `docs/DEMO.md`, landing page                                     | Verified results and reviewed recorded feedback       |
 
 Run `npm test` after consequential changes. Local/cloud evaluation and assessment-only regression commands are in [EVALUATION.md](EVALUATION.md). `node scripts/cloud-smoke.js` exercises Bedrock/S3 with isolated synthetic data and a separate S3 prefix; it fails if assessment is provisional. Cloud commands incur event-account inference/storage usage.

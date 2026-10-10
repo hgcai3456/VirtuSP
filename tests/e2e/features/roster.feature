@@ -1,3 +1,4 @@
+@live
 Feature: Patient roster
   Eight more published patients can be watched as a sample conversation and then interviewed.
 

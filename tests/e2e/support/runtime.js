@@ -1,5 +1,4 @@
 const fs = require('fs');
-const http = require('http');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -12,8 +11,12 @@ let tmpDir = '';
 let serverLog = '';
 let boundPort = '';
 
+function remoteBase() {
+  return String(process.env.E2E_BASE_URL || '').replace(/\/+$/, '');
+}
+
 function baseUrl() {
-  return 'http://127.0.0.1:' + boundPort;
+  return remoteBase() || ('http://127.0.0.1:' + boundPort);
 }
 
 function getDriver() {
@@ -34,16 +37,23 @@ function waitForHealth(timeoutMs) {
 
   return new Promise((resolve, reject) => {
     const tick = () => {
-      const req = http.get(url, (res) => {
-        res.resume();
-        if (res.statusCode === 200) {
-          resolve();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      fetch(url, { signal: controller.signal })
+        .then((res) => {
+          clearTimeout(timer);
+          if (res.body && typeof res.body.cancel === 'function') res.body.cancel();
+          if (res.status === 200) {
+            resolve();
 
-          return;
-        }
-        retry();
-      });
-      req.on('error', retry);
+            return;
+          }
+          retry();
+        })
+        .catch(() => {
+          clearTimeout(timer);
+          retry();
+        });
     };
 
     function retry() {
@@ -62,6 +72,11 @@ function waitForHealth(timeoutMs) {
 }
 
 async function startServer() {
+  if (remoteBase()) {
+    await waitForHealth(30000);
+
+    return;
+  }
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'virtusp-e2e-'));
   const dbPath = path.join(tmpDir, 'virtusp.sqlite');
   const logPath = path.join(root, 'data', 'e2e-server.log');
@@ -116,6 +131,9 @@ async function startServer() {
 }
 
 async function stopServer() {
+  if (remoteBase()) {
+    return;
+  }
   if (server && !server.killed) {
     server.kill();
     await new Promise((resolve) => {

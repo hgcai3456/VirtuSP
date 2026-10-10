@@ -1,3 +1,4 @@
+@live
 Feature: Simulator workspace
   Faculty and students can reach every workspace, and the theme choice is remembered.
 

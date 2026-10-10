@@ -2,8 +2,18 @@ aws_region   = "us-east-1"
 name         = "virtusp"
 image_tag    = "latest"
 
-# ACM certificate in the same region. Leave unset for HTTP.
+# ACM certificate in the same region. Leave unset to serve trusted HTTPS
+# from CloudFront. Microphone access requires that HTTPS address.
 # certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+
+# Patient and encounter requests use this Bedrock profile through the task role.
+# bedrock_model_id = "us.anthropic.claude-sonnet-4-6"
 
 db_instance_class = "db.t4g.micro"
 deletion_protection = false
+
+# Both policies are created. The service scales from 1 to 4 tasks.
+# autoscaling_min_capacity  = 1
+# autoscaling_max_capacity  = 4
+# autoscaling_cpu_target    = 70
+# autoscaling_memory_target = 75

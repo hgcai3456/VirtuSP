@@ -1,3 +1,4 @@
+@live
 Feature: Patient Studio
   Faculty author a case in the browser. Only a published profile can be interviewed.
 

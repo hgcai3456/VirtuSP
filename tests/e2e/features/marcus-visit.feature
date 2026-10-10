@@ -1,3 +1,4 @@
+@live
 Feature: Marcus visit
   The same interview, chart, handoff, and scoring engine runs Marcus without a code change.
 

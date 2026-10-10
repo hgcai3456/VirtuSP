@@ -68,7 +68,7 @@ Then('the transcript shows {string}', async function (text) {
     const transcript = await ui.driver().findElement(ui.By.css('#tr')).getText();
 
     return transcript.includes(text);
-  }, 10000);
+  }, Number(process.env.E2E_REPLY_TIMEOUT_MS) || 10000);
 });
 
 Then('the objective score is {string}', async function (score) {

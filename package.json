@@ -12,7 +12,27 @@
     "evaluate:local": "node scripts/evaluate.js --local",
     "setup:aws": "node scripts/storage.js configure",
     "backup": "node scripts/storage.js backup",
-    "restore": "node scripts/storage.js restore"
+    "restore": "node scripts/storage.js restore",
+    "test:e2e": "cucumber-js --config tests/e2e/cucumber.js",
+    "test:integration": "node --test --test-concurrency=1 --test-timeout=60000 tests/integration/live-stack.js",
+    "test:regression": "node agents/regression.js",
+    "test:live": "node agents/live-regression.js",
+    "perf": "powershell -NoProfile -ExecutionPolicy Bypass -File perf/run-jmeter.ps1",
+    "perf:ci": "node perf/ci.js",
+    "prepare": "node scripts/install-git-hooks.js",
+    "orchestrate": "node agents/orchestrator.js --tests",
+    "ingest": "node agents/ingest.js",
+    "ingest:seed": "node agents/ingest.js --seed",
+    "ingest:nih": "node agents/ingest.js --nih --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:2": "node agents/ingest.js --nih --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:2:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:all": "node agents/ingest.js --nih --all --resume --shards 2 --shard 0 --chunk 20 --delay 800",
+    "ingest:status": "node agents/ingest.js --status",
+    "ingest:conversations": "node agents/conversations.js --chunk 10 --delay 800",
+    "ingest:conversations:resume": "node agents/conversations.js --resume --chunk 10 --delay 800",
+    "ingest:conversations:status": "node agents/conversations.js --status",
+    "ingest:orchestrate": "node agents/orchestrator.js"
   },
   "engines": {
     "node": ">=22.17.0"
@@ -23,7 +43,9 @@
     "pdfjs-dist": "^6.2.108"
   },
   "devDependencies": {
+    "@cucumber/cucumber": "^11.3.0",
     "jsdom": "^29.1.1",
-    "prettier": "^3.9.10"
+    "prettier": "^3.9.10",
+    "selenium-webdriver": "^4.35.0"
   }
 }

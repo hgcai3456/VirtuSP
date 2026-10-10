@@ -26,7 +26,9 @@ describe('db', { concurrency: false }, () => {
     env.VIRTUSP_DB = process.env.VIRTUSP_DB;
     env.VIRTUSP_SHARDS = process.env.VIRTUSP_SHARDS;
     env.VIRTUSP_SQLITE_JOURNAL = process.env.VIRTUSP_SQLITE_JOURNAL;
+    env.VIRTUSP_SQLITE_EXCLUSIVE = process.env.VIRTUSP_SQLITE_EXCLUSIVE;
     delete process.env.VIRTUSP_SQLITE_JOURNAL;
+    delete process.env.VIRTUSP_SQLITE_EXCLUSIVE;
     box = tempDb();
   });
 
@@ -38,6 +40,8 @@ describe('db', { concurrency: false }, () => {
     else process.env.VIRTUSP_SHARDS = env.VIRTUSP_SHARDS;
     if (env.VIRTUSP_SQLITE_JOURNAL == null) delete process.env.VIRTUSP_SQLITE_JOURNAL;
     else process.env.VIRTUSP_SQLITE_JOURNAL = env.VIRTUSP_SQLITE_JOURNAL;
+    if (env.VIRTUSP_SQLITE_EXCLUSIVE == null) delete process.env.VIRTUSP_SQLITE_EXCLUSIVE;
+    else process.env.VIRTUSP_SQLITE_EXCLUSIVE = env.VIRTUSP_SQLITE_EXCLUSIVE;
   });
 
   test('shard paths follow the env and the default file', () => {
@@ -67,6 +71,15 @@ describe('db', { concurrency: false }, () => {
     const wal = openDb(box.dbPath + '-wal.sqlite');
     assert.equal(wal.prepare('PRAGMA journal_mode').get().journal_mode, 'wal');
     wal.close();
+  });
+
+  test('DELETE journal can stay shared when exclusive locking is turned off', () => {
+    process.env.VIRTUSP_SQLITE_JOURNAL = 'delete';
+    process.env.VIRTUSP_SQLITE_EXCLUSIVE = '0';
+    const opened = openDb(box.dbPath + '-shared.sqlite');
+    assert.equal(opened.prepare('PRAGMA journal_mode').get().journal_mode, 'delete');
+    assert.equal(opened.prepare('PRAGMA locking_mode').get().locking_mode, 'normal');
+    opened.close();
   });
 
   test('openShards uses the requested count or the env count', () => {
