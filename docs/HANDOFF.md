@@ -10,7 +10,10 @@ Run `npm ci`, configure your own ignored `.env` via [SETUP.md](SETUP.md), run `n
 
 ## Verified and unresolved findings
 
-- 16 regression tests and local 85/85 evaluation pass. These verify boundaries, not clinical quality.
+- Follow-up fix: greetings and connection checks use exact server-approved conversational replies; they do not need or disclose clinical facts. Unknown wording is now natural rather than referring to an unspecified authored history. Clinical generation remains grounded.
+- Microphone dictation is continuous and accumulates fragments until **Stop & send** or **Send**. It preserves text across rerenders, bounded reconnects and cancellation; permission/network errors stay visible. Mock-recognizer DOM regressions pass; physical microphone/browser service verification is still pending because screen/native-browser access is unavailable.
+
+- 17 regression tests pass; the previous local 85/85 evaluation passed. These verify boundaries, not clinical quality. Targeted live checks confirm Omar/Denise greet, acknowledge connection checks, answer authored concerns and repeat them; invented doses remain unconfirmed.
 - Latest dialogue comparison: Sonnet 78/85, median 3532 ms, p95 5015 ms, 5 fallbacks; Nova 83/85, median 2522 ms, p95 3435 ms, 7 fallbacks. Read [BENCHMARKS.md](BENCHMARKS.md) before using figures in the pitch.
 - Early generated background details were unsupported despite model review. Generation now requires explicit support for everyday and clinical facts. Latest coding-agent inspection found no delivered unsupported clinical facts or leaks; broader faculty-reviewed testing remains necessary.
 - A fresh synthetic patient passed publish → real Bedrock dialogue → guarded disclosure → protected question-only report → actual review → unknown allergy → Bedrock assessment → faithful descriptive draft → private S3 readback, without engine/example changes.

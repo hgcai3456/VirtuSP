@@ -13,6 +13,7 @@ const revision = createHash("sha256")
     [
       "lib/cloud.js",
       "lib/schemas.js",
+      "lib/conversation.js",
       "lib/engine.js",
       "lib/assessment.js",
       "evaluation/cases.js",

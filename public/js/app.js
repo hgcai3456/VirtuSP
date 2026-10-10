@@ -42,8 +42,17 @@ let list = [],
   recognition = null,
   audio = null,
   audioUrl = null,
-  speechGeneration = 0;
-const formMemory = { description: "", handoff: "", careplan: "", note: "" };
+  speechGeneration = 0,
+  listening = false,
+  micRestartTimer = null,
+  voiceDisplay = { state: "ready", text: "Ready for your question" };
+const formMemory = {
+  description: "",
+  handoff: "",
+  careplan: "",
+  note: "",
+  question: "",
+};
 async function api(url, method = "GET", body) {
   const r = await fetch(url, {
     method,
@@ -304,11 +313,23 @@ function render() {
   $("#app").innerHTML =
     `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
     { studio, enc: encounter, team, rep: assessment, history: past }[tab]();
+  if ($("#question")) {
+    $("#question").value = formMemory.question;
+    $("#question").dataset.memory = "question";
+  }
   if (tab === "enc") $("#transcript")?.scrollTo(0, 1e9);
+  voiceState(voiceDisplay.state, voiceDisplay.text);
+  updateMicButton();
 }
 function stopAudio() {
   speechGeneration++;
-  recognition?.abort();
+  listening = false;
+  clearTimeout(micRestartTimer);
+  try {
+    recognition?.abort();
+  } catch {
+    /* A disconnected recognizer is already stopped. */
+  }
   recognition = null;
   if (audio) {
     audio.pause();
@@ -320,8 +341,16 @@ function stopAudio() {
   }
   window.speechSynthesis?.cancel();
   $("#avf")?.classList.remove("speaking", "listening");
+  voiceState(
+    "ready",
+    enc?.status === "complete"
+      ? "Encounter complete"
+      : "Ready for your question",
+  );
+  updateMicButton();
 }
 function voiceState(state, text) {
+  voiceDisplay = { state, text };
   $("#avf")?.classList.toggle("speaking", state === "speaking");
   $("#avf")?.classList.toggle("listening", state === "listening");
   if ($("#voice-status")) $("#voice-status").textContent = text;
@@ -381,6 +410,7 @@ async function question(text) {
   let delivered = false;
   try {
     await mutate("turn", { question: text, requestId: crypto.randomUUID() });
+    formMemory.question = "";
     delivered = true;
   } catch (e) {
     message = e.message;
@@ -391,7 +421,33 @@ async function question(text) {
   if (delivered && enc?.transcript.at(-1)?.role === "patient")
     speak(enc.transcript.at(-1));
 }
+function updateMicButton() {
+  const button = $('[data-action="mic"]');
+  if (!button) return;
+  button.textContent = recognition?.sendOnEnd
+    ? "Finishing…"
+    : listening
+      ? "Stop & send"
+      : "Tap to talk";
+  button.setAttribute("aria-pressed", String(listening));
+  button.disabled =
+    busy || !!recognition?.sendOnEnd || enc?.status !== "active";
+}
 function mic() {
+  if (busy || enc?.status !== "active") return;
+  if (listening && recognition) {
+    listening = false;
+    recognition.sendOnEnd = true;
+    clearTimeout(micRestartTimer);
+    updateMicButton();
+    voiceState("thinking", "Finishing your question…");
+    try {
+      recognition.stop();
+    } catch {
+      recognition.onend();
+    }
+    return;
+  }
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!Rec) {
     message = "Microphone recognition is unavailable. Type your question.";
@@ -400,38 +456,103 @@ function mic() {
   }
   stopAudio();
   const generation = speechGeneration;
-  recognition = new Rec();
-  recognition.lang = "en-US";
-  recognition.interimResults = true;
-  voiceState("listening", "Listening…");
-  recognition.onresult = (e) => {
+  const rec = new Rec();
+  recognition = rec;
+  listening = true;
+  let prefix = formMemory.question.trim(),
+    restarts = 0,
+    fatalError = false;
+  const current = () =>
+    generation === speechGeneration &&
+    tab === "enc" &&
+    enc?.status === "active" &&
+    recognition === rec;
+  const fail = (error) => {
+    fatalError = true;
+    listening = false;
+    rec.sendOnEnd = false;
+    updateMicButton();
+    const reason =
+      error === "not-allowed" || error === "service-not-allowed"
+        ? "Microphone permission was denied. Allow microphone access for this site in your browser, then tap again."
+        : `Microphone unavailable (${error}). Your text is kept; type or try again.`;
+    message = reason;
+    voiceState("ready", reason);
+  };
+  rec.lang = "en-US";
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onstart = () => {
+    if (current())
+      voiceState("listening", "Listening… Tap Stop & send when finished.");
+  };
+  rec.onresult = (e) => {
     if (
       generation !== speechGeneration ||
       tab !== "enc" ||
-      enc?.status !== "active"
+      enc?.status !== "active" ||
+      recognition !== rec
     )
       return;
-    const result = e.results[e.results.length - 1];
-    if ($("#question")) $("#question").value = result[0].transcript;
-    if (result.isFinal) {
-      const text = result[0].transcript;
-      recognition?.stop();
-      recognition = null;
-      question(text);
-    }
+    const text = Array.from(e.results)
+      .map((r) => r[0].transcript)
+      .join(" ")
+      .trim();
+    formMemory.question = [prefix, text].filter(Boolean).join(" ");
+    if ($("#question")) $("#question").value = formMemory.question;
+    restarts = 0;
   };
-  recognition.onerror = (e) => {
-    if (generation !== speechGeneration) return;
+  rec.onerror = (e) => {
+    if (!current()) return;
+    if (e.error !== "no-speech") fail(e.error);
+  };
+  rec.onend = () => {
+    if (!current()) return;
+    if (fatalError) {
+      recognition = null;
+      return;
+    }
+    if (rec.sendOnEnd) {
+      recognition = null;
+      updateMicButton();
+      const text = formMemory.question.trim();
+      if (text) question(text);
+      else
+        voiceState(
+          "ready",
+          "No speech captured. Tap to talk again or type your question.",
+        );
+      return;
+    }
+    if (listening && restarts++ < 3) {
+      prefix = formMemory.question.trim();
+      micRestartTimer = setTimeout(() => {
+        if (!current() || !listening) return;
+        try {
+          rec.start();
+        } catch (e) {
+          fail(e.name || "start failed");
+          recognition = null;
+        }
+      }, 250);
+      return;
+    }
+    listening = false;
+    recognition = null;
+    updateMicButton();
     voiceState(
       "ready",
-      "Microphone unavailable: " + e.error + ". Type your question.",
+      "Microphone paused after silence. Your text is kept; tap again or Send.",
     );
   };
-  recognition.onend = () => {
-    if (generation === speechGeneration)
-      voiceState("ready", "Ready for your question");
-  };
-  recognition.start();
+  updateMicButton();
+  voiceState("listening", "Starting microphone…");
+  try {
+    rec.start();
+  } catch (e) {
+    fail(e.name || "start failed");
+    recognition = null;
+  }
 }
 async function upload(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Upload files up to 5 MB.");
@@ -639,6 +760,7 @@ document.addEventListener("click", async (e) => {
     if (a === "launch") {
       if (dirty) await save();
       stopAudio();
+      formMemory.question = "";
       const r = await api("/api/encounters", "POST", {
         profileId: t.dataset.id,
         version: Number(t.dataset.version),
@@ -653,6 +775,7 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "resume") {
       stopAudio();
+      formMemory.question = "";
       enc = (await api("/api/encounters/" + t.dataset.id)).encounter;
       localStorage.setItem("virtusp-active-v2", enc.id);
       tab = enc.status === "complete" ? "rep" : "enc";

@@ -25,6 +25,24 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   const window = dom.window;
   window.fetch = (url, options) => fetch(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
+  const recognizers = [];
+  window.SpeechRecognition = class {
+    constructor() {
+      recognizers.push(this);
+    }
+    start() {
+      this.starts = (this.starts || 0) + 1;
+      this.onstart?.();
+    }
+    stop() {
+      this.stopped = true;
+      this.onend?.();
+    }
+    abort() {
+      this.aborted = true;
+      this.onend?.();
+    }
+  };
   const doc = window.document;
   const wait = async (predicate) => {
     for (let i = 0; i < 200; i++) {
@@ -82,6 +100,63 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("launch", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
     await wait(() => !!doc.getElementById("question"));
     assert.ok(!doc.querySelector("#app").textContent.includes("LDL 195"));
+    click("mic");
+    const microphone = recognizers.at(-1);
+    assert.equal(microphone.continuous, true);
+    microphone.onresult({
+      results: [Object.assign([{ transcript: "Hello" }], { isFinal: true })],
+    });
+    assert.equal(
+      doc.querySelectorAll(".bubble.student").length,
+      0,
+      "Final speech fragments must not automatically submit.",
+    );
+    assert.equal(
+      doc.querySelector('[data-action="mic"]').textContent,
+      "Stop & send",
+    );
+    microphone.onresult({
+      results: [
+        Object.assign([{ transcript: "Hello" }], { isFinal: true }),
+        Object.assign([{ transcript: "Omar" }], { isFinal: true }),
+      ],
+    });
+    assert.equal(doc.getElementById("question").value, "Hello Omar");
+    click("mic");
+    await wait(
+      () => doc.querySelector(".bubble:last-child p")?.textContent === "Hello.",
+    );
+    assert.ok(microphone.stopped);
+    click("mic");
+    const denied = recognizers.at(-1);
+    denied.onerror({ error: "not-allowed" });
+    denied.onend();
+    assert.ok(
+      doc
+        .getElementById("voice-status")
+        .textContent.includes("permission was denied"),
+    );
+    click("mic");
+    const canceled = recognizers.at(-1);
+    canceled.onresult({
+      results: [
+        Object.assign([{ transcript: "Draft dictated text" }], {
+          isFinal: false,
+        }),
+      ],
+    });
+    click("nav", '[data-tab="team"]');
+    assert.ok(canceled.aborted);
+    canceled.onresult({
+      results: [
+        Object.assign([{ transcript: "Stale speech must not submit" }], {
+          isFinal: true,
+        }),
+      ],
+    });
+    click("nav", '[data-tab="enc"]');
+    assert.equal(doc.getElementById("question").value, "Draft dictated text");
+    assert.equal(doc.querySelectorAll(".bubble.student").length, 1);
     fill("question", "What brings you in today?");
     doc
       .getElementById("question-form")

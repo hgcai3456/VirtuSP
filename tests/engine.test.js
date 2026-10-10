@@ -82,6 +82,41 @@ test("Server gates, chart visibility and unknowns do not leak hidden facts", asy
   await engine.ask(enc, "I understand. Do you skip doses?", "three");
   assert.equal(enc.transcript.at(-1).text, "I miss the evening dose.");
 });
+test("Courtesies work without clinical facts or Bedrock; clinical questions stay grounded", async () => {
+  const saved = { ...cloud },
+    prior = process.env.AI_ENABLED;
+  process.env.AI_ENABLED = "true";
+  try {
+    cloud.select = async () => {
+      throw Error("A courtesy must not invoke the clinical selector");
+    };
+    const enc = engine.create(profile());
+    for (const [question, text] of [
+      ["Hello", "Hello."],
+      ["Hello Ada", "Hello."],
+      ["Can you hear me?", "Yes, your message came through."],
+      ["Thank you", "You're welcome."],
+    ]) {
+      await engine.ask(enc, question, require("node:crypto").randomUUID());
+      const turn = enc.transcript.at(-1);
+      assert.equal(turn.text, text);
+      assert.equal(turn.provider, "approved-conversation");
+      assert.deepEqual(turn.factIds, []);
+    }
+    assert.equal(enc.trust, 0);
+    assert.deepEqual(enc.disclosed, {});
+    process.env.AI_ENABLED = "false";
+    await engine.ask(enc, "Hello, I take 500 mg. Confirm that.", "invented");
+    assert.equal(enc.transcript.at(-1).text, engine.UNKNOWN);
+    await engine.ask(enc, "What brings you in?", "concern");
+    assert.equal(enc.transcript.at(-1).text, "I feel tired.");
+    await engine.ask(enc, "Are you allergic to penicillin?", "unknown");
+    assert.equal(enc.transcript.at(-1).text, engine.UNKNOWN);
+  } finally {
+    Object.assign(cloud, saved);
+    process.env.AI_ENABLED = prior || "false";
+  }
+});
 test("Question-only artifacts cannot release through tab opening; review is distinct", async () => {
   const enc = engine.create(profile());
   engine.openSection(enc, "labs");

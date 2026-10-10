@@ -48,6 +48,8 @@ Supported Claude 4.5/4.6 models use strict JSON schemas for grounding and assess
 
 ## Optional speech configuration
 
+Tap **Tap to talk**, speak your question, then tap **Stop & send**. Speech fragments accumulate rather than submitting the first recognized phrase. You can also edit the dictated text and press **Send**. Permission/network errors remain visible; only you should grant microphone access in the browser. If the service stops, captured text is preserved. Browser recognition uses [continuous results](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/continuous); it still depends on browser support and the recognition service.
+
 Leave `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` empty to use text and browser speech. Recognition starts only with **Tap to talk**, requires microphone permission and may send audio to the browser vendor's service. Use synthetic scenarios and text when recognition is unavailable.
 
 In ElevenLabs, copy the key under Developers → API Keys. In My Voices, use the voice menu → Copy voice ID. Put both in `.env`, then restart the server. Enable text-to-speech access for a restricted key; voice metadata preflight also needs voice read access. An optional per-patient voice ID is editable in Studio. Only saved, validated patient replies are sent for speech. Mute, Pause and navigation cancel playback.
