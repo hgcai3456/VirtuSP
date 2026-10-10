@@ -14,5 +14,11 @@ module.exports = {
     paths: ['tests/e2e/features/riley-text.feature'],
     format: ['progress', 'html:tests/e2e/reports/riley.html'],
     tags: '@riley'
+  },
+  session: {
+    ...shared,
+    paths: ['tests/e2e/features/session.feature'],
+    format: ['progress', 'html:tests/e2e/reports/session.html'],
+    tags: '@session'
   }
 };

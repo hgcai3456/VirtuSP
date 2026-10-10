@@ -1407,7 +1407,9 @@ function resultsPage() {
 function render() {
   if (!demoSession) {
     $("#nav").innerHTML = "";
-    $("#app").innerHTML = rolePicker();
+    $("#app").innerHTML =
+      `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+      rolePicker();
     return;
   }
   if (

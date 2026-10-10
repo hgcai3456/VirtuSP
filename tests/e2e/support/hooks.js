@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Builder } = require('selenium-webdriver');
+const { Builder, logging } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const { After, AfterAll, Before, BeforeAll, Status, setDefaultTimeout } = require('@cucumber/cucumber');
 const { chromeBinary } = require('./chrome');
@@ -50,6 +50,9 @@ BeforeAll(async function () {
     options.setChromeBinaryPath(binary);
   }
   options.setUserPreferences({ intl: { accept_languages: 'en-US,en' } });
+  const logs = new logging.Preferences();
+  logs.setLevel(logging.Type.BROWSER, logging.Level.ALL);
+  options.setLoggingPrefs(logs);
   const args = [
     '--lang=en-US',
     '--accept-lang=en-US,en',
@@ -74,13 +77,14 @@ BeforeAll(async function () {
   await driver.sendDevToolsCommand('Page.addScriptToEvaluateOnNewDocument', { source: PRELOAD });
 });
 
-Before(async function () {
+Before(async function ({ pickle }) {
   const driver = runtime.getDriver();
   await pinLocale(driver);
   await resetWindow();
   await driver.get(runtime.baseUrl() + '/app.html');
   await driver.executeScript('localStorage.clear(); sessionStorage.clear();');
   await driver.navigate().refresh();
+  const workspaceEntry = (pickle.tags || []).some((tag) => tag.name === '@session');
   await driver.wait(async () => {
     const heading = await driver.executeScript(
       "var node = document.querySelector('#app h1'); return node ? node.textContent : ''"
@@ -94,7 +98,7 @@ Before(async function () {
   const heading = await driver.executeScript(
     "var node = document.querySelector('#app h1'); return node ? node.textContent : ''"
   );
-  if (heading.includes('Choose your workspace')) {
+  if (!workspaceEntry && heading.includes('Choose your workspace')) {
     const ui = require('./ui');
     await ui.clickButton('Enter faculty workspace');
     await ui.waitForText('Patient Studio');
