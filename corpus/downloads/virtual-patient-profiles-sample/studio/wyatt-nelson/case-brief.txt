@@ -1,0 +1,194 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Wyatt Nelson",
+    "age": 18,
+    "sex": "Male",
+    "description": "Wyatt Nelson is an 18-year-old high school senior struggling with uncontrolled Type 2 Diabetes, obesity, and dyslipidemia. He is shy, resistant, and sensitive about discussing his bowel health and diet. Despite being diagnosed with diabetes, he exhibits limited health literacy and is motivated by sports performance but hindered by constipation and poor dietary choices. He avoids fruits and vegetables and requires developmentally appropriate counseling to address fiber, fat intake, and cardiovascular risk factors while navigating adolescence-specific lifestyle barriers.",
+    "keywords": [
+      "adolescent",
+      "uncontrolled type 2 diabetes",
+      "obesity",
+      "dyslipidemia",
+      "constipation",
+      "motivation",
+      "health literacy",
+      "sports",
+      "lifestyle barriers",
+      "medical nutrition therapy"
+    ]
+  },
+  "demographics": {
+    "occupation": "High school student",
+    "residence": "Suburban community",
+    "ethnicity": "White American",
+    "language": "English",
+    "marital_status": null,
+    "education_level": "12th grade (High School)",
+    "insurance": "Public insurance via parents",
+    "cultural_context": "Standard American dietary habits with some fast food influence; community values sports performance."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "High in refined carbohydrates, saturated fats, and sugar; low in fiber and vegetables",
+    "food_preferences": [
+      "Fast food",
+      "Pizza",
+      "Sodas",
+      "Chips"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "Preference for processed snacks during study sessions",
+      "Dislike of fruits and vegetables due to texture and taste",
+      "High consumption of sugary drinks during sports practice",
+      "Limited preparation of meals at home",
+      "Social eating habits with peers favoring quick, high-calorie foods"
+    ],
+    "meal_pattern": "Irregular; often skips breakfast, has small snacks, and has a large dinner",
+    "hydration": "Primarily sugary sodas; water intake is low",
+    "physical_activity": "Moderate; plays soccer twice a week, but sedentary during other hours",
+    "substance_use": "None",
+    "sleep": "7 hours average; inconsistent sleep schedule due to homework and screens"
+  },
+  "psychosocial_profile": {
+    "personality": "Shy, sensitive, and resistant to discussions about his health; feels self-conscious about his weight and diet",
+    "communication_style": "Concise, avoids eye contact, deflects sensitive topics, responds well to empathetic and non-judgmental interactions",
+    "goals": [
+      "Improve energy levels for soccer",
+      "Reduce constipation",
+      "Regain control over blood sugar",
+      "Improve appearance"
+    ],
+    "concerns": [
+      "Afraid of weight loss being seen as weakness",
+      "Worried about medication side effects",
+      "Concerned about the cost of healthy foods",
+      "Embarrazed to discuss bowel habits"
+    ],
+    "beliefs": [
+      "Healthy food is expensive and hard to prepare",
+      "Fruits and vegetables are boring and unappetizing",
+      "Sugar helps with energy during sports"
+    ],
+    "motivations": [
+      "Improve athletic performance",
+      "Gain more control over his health",
+      "Avoid future health complications"
+    ],
+    "fears": [
+      "Being judged by peers for his weight",
+      "Developing serious diabetes complications",
+      "Failing in school due to health issues"
+    ],
+    "barriers": [
+      "Lack of cooking skills and time",
+      "Peer pressure to consume fast food",
+      "Difficulty accessing healthy options",
+      "Emotional stress and limited stress management skills"
+    ],
+    "strengths": [
+      "Willingness to try new things if framed as improvement",
+      "Strong athletic motivation",
+      "Support from parents for healthy choices"
+    ],
+    "support_system": "Parents who encourage healthy eating, soccer team peers who value performance over fast food",
+    "readiness_to_change": "Ambivalent; motivated to improve but hesitant about making significant lifestyle changes"
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "Mentions frequent thirst and fatigue",
+      "Discloses uncontrolled blood sugar levels",
+      "Mentions constipation only when prompted by the clinician",
+      "States he doesn't enjoy fruits and vegetables"
+    ],
+    "discoverable_information": [
+      "Details his diet consisting of fast food and sugary drinks",
+      "Shows inconsistency in taking medications",
+      "Reveals his motivation to improve soccer performance",
+      "Admits to skipping meals and relying on snacks",
+      "Provides information about social eating habits"
+    ],
+    "reluctant_information": [
+      "Feels self-conscious about his weight and may deflect comments",
+      "Is hesitant to discuss his bowel habits and may need reassurance to open up",
+      "May initially hide the fact that he doesn't take his full medication dose"
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Apply the Nutrition Care Process and develop an appropriate PES statement.",
+        "expected_discoveries": [
+          "Poor adherence to current medications",
+          "Limited intake of fiber-rich foods",
+          "Irregular meal patterns and poor hydration",
+          "Social and environmental barriers to healthy eating"
+        ],
+        "possible_patient_reactions": [
+          "May become defensive when discussed in terms of diet and medication",
+          "Will respond positively to open-ended questions about his health goals",
+          "May deflect conversations about weight and constipation"
+        ]
+      },
+      {
+        "learning_objective": "Develop evidence-based nutrition interventions.",
+        "expected_discoveries": [
+          "Preference for processed foods and sugary beverages",
+          "Lack of meal preparation skills",
+          "Need for strategies to incorporate fiber without increasing bulking",
+          "Social dining pressure at sports events"
+        ],
+        "possible_patient_reactions": [
+          "Resists dietary advice that limits favorite foods",
+          "Will be open to modifications that are practical and budget-friendly",
+          "May express frustration if interventions don't consider his social activities"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care.",
+        "expected_discoveries": [
+          "Side effects of medications causing non-adherence",
+          "Nutrition strategies to reduce gastrointestinal discomfort",
+          "Need for consistent medication timing with meals"
+        ],
+        "possible_patient_reactions": [
+          "May initially resist discussing medication adjustments",
+          "Will be receptive to explanations on how nutrition can minimize side effects",
+          "May show relief when offered solutions that address his concerns"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing to address lifestyle and behavioral barriers.",
+        "expected_discoveries": [
+          "Internal conflict about health goals versus comfort behaviors",
+          "Self-efficacy barriers to change",
+          "Potential to use sports as motivation for dietary changes"
+        ],
+        "possible_patient_reactions": [
+          "May exhibit ambivalence and test the clinician's approach",
+          "Will respond well to affirmations and exploration of his own motivations",
+          "May disengage if he feels his opinions are not respected"
+        ]
+      },
+      {
+        "learning_objective": "Consider interprofessional and community resources.",
+        "expected_discoveries": [
+          "Need for coordination with sports medicine and school health services",
+          "Access to school nutrition programs and community health resources",
+          "Peer support networks that can reinforce healthy behaviors"
+        ],
+        "possible_patient_reactions": [
+          "May not know about available resources",
+          "Will be open to learning about supportive services",
+          "May feel empowered when given actionable community options"
+        ]
+      }
+    ]
+  }
+}

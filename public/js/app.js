@@ -193,7 +193,7 @@ function studio() {
 }
 function studioGroups() {
   const group = groups.find((g) => g.id === selectedGroup) || groups[0];
-  return `<section class="studio-group-panel" aria-labelledby="studio-groups-title"><div><h2 id="studio-groups-title">Assign a patient group</h2><p class="muted">Give a student a prepared test with multiple patient trials.</p></div>${group ? `<div class="row"><label for="studio-group">Patient group</label><select id="studio-group">${groups.map((g) => `<option value="${esc(g.id)}" ${g.id === group.id ? "selected" : ""}>${esc(g.title)} · ${g.trialCount} patients</option>`).join("")}</select>${button("Review & assign group", "nav", 'data-tab="tests"', "pri")}${button("Student results", "nav", 'data-tab="results"')}</div><p class="group-preparation">${group.preparationStatus === "ready" ? "Ready to assign: choose a student on the next screen." : group.preparationStatus === "clinical-mismatch" ? "The cases have different clinical settings. Review and republish both before assigning." : "First use Review & assign group to review and publish both prepared cases. Then select a student and assign the test."}</p>` : `<p>No prepared groups are available.</p>`}</section>`;
+  return `<section class="studio-group-panel" aria-labelledby="studio-groups-title"><div><h2 id="studio-groups-title">Assign a patient group</h2><p class="muted">Give a student a prepared test with multiple patient trials.</p></div>${group ? `<div class="row"><label for="studio-group">Patient group</label><select id="studio-group">${groups.map((g) => `<option value="${esc(g.id)}" ${g.id === group.id ? "selected" : ""}>${esc(g.title)} · ${g.trialCount} patients</option>`).join("")}</select>${button("Assign a group", "nav", 'data-tab="tests"', "pri")}${button("Student results", "nav", 'data-tab="results"')}</div><p class="group-preparation">${group.preparationStatus === "ready" ? "Choose a student and assign the prepared group." : group.preparationStatus === "clinical-mismatch" ? "The cases have different clinical settings. Review and republish both before assigning." : "This custom group needs published cases before assignment."}</p>` : `<p>No prepared groups are available.</p>`}</section>`;
 }
 function recordSelect(label, path, options) {
   const selected = value(path) || [];
@@ -756,7 +756,7 @@ function reviewNotice(a) {
 }
 function assessment() {
   if (enc?.feedbackHeld)
-    return `<div class="pn"><h1>Trial saved</h1><p>Standard feedback becomes available after every trial in this group is complete.</p>${button("Continue assigned test", "nav", 'data-tab="tests"', "pri")}</div>`;
+    return `<div class="pn"><h1>Trial saved</h1><p>Standard feedback becomes available after every trial in this group is complete.</p>${button("Continue to next patient", "next-test", `data-id="${esc(enc.attemptId)}"`, "pri")}</div>`;
   if (!enc) return '<div class="pn"><h1>No active encounter</h1></div>';
   if (!enc.assessment)
     return `<div class="pn"><h1>Encounter feedback</h1><p>${demoSession.role === "faculty" && enc.studentId ? "The student is still completing this encounter." : "Finish the encounter to assess the complete evidence."}</p>${demoSession.role === "faculty" && enc.studentId ? biasEvidenceView() : button("Finish & get feedback", "complete", "", "pri")}</div>`;
@@ -909,19 +909,37 @@ function past() {
 function rolePicker() {
   return `<div class="pn role-picker"><div class="panel-kicker">VirtuSP demo</div><h1>Choose your workspace</h1><p>Faculty prepares patients and reviews student results. Students practice and complete assigned tests.</p><div class="role-grid"><section><h2>Faculty</h2>${button("Enter Faculty", "choose-role", 'data-role="faculty"', "pri")}</section><section><h2>Student</h2><label for="demo-student">Demo student</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter Student", "choose-role", 'data-role="student"', "pri")}</section></div><p class="muted">Local demonstration identities; no passwords.</p></div>`;
 }
+function assignmentCards(items) {
+  return items
+    .map(
+      (a) =>
+        `<article class="group-card assignment-card"><div><h2>${esc(a.title)}</h2><p class="muted">${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} patient trials`}</p></div>${button(a.attempt?.status === "complete" ? "View results" : a.attempt ? "Resume assessment" : "Start assessment", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`,
+    )
+    .join("");
+}
 function studentHome() {
   const alias =
     students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
-  return `<section class="student-home" aria-labelledby="simulation-choice"><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1 id="simulation-choice">Choose your simulation</h1><p class="muted">Practice with one patient or complete a group of patient trials.</p><div class="simulation-choices"><button type="button" class="simulation-choice" data-action="nav" data-tab="studio"><span class="choice-symbol" aria-hidden="true">01</span><span class="choice-title">Individual patient</span><span class="choice-description">Choose a published patient from Patient Studio. Receive feedback after the visit.</span><span class="choice-cta">Choose a patient →</span></button><button type="button" class="simulation-choice" data-action="nav" data-tab="tests"><span class="choice-symbol" aria-hidden="true">02</span><span class="choice-title">Patient group</span><span class="choice-description">Take an assigned or available simulation. Complete every trial to unlock feedback.</span><span class="choice-cta">Choose a group →</span></button></div>${history.length ? button("View my attempts", "nav", 'data-tab="history"') : ""}</section>`;
+  const assigned = assignments.filter((a) => a.origin !== "open");
+  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div>${button("Select open assessments", "nav", 'data-tab="open-assessments"')}</div>${assignmentCards(assigned) || '<div class="empty-assignments"><h2>No assessments assigned yet</h2><p class="muted">You can choose an open assessment to begin practicing.</p></div>'}${history.length ? button("View my attempts", "nav", 'data-tab="history"') : ""}</section>`;
+}
+function openAssessments() {
+  const alias =
+    students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
+  return `<section class="student-home" aria-labelledby="simulation-choice"><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1 id="simulation-choice">Select open assessments</h1><p class="muted">Practice with one patient or complete a group of patient trials.</p><div class="simulation-choices"><button type="button" class="simulation-choice" data-action="nav" data-tab="studio"><span class="choice-symbol" aria-hidden="true">01</span><span class="choice-title">Individual patient</span><span class="choice-description">Choose a published patient from Patient Studio. Receive feedback after the visit.</span><span class="choice-cta">Choose a patient →</span></button><button type="button" class="simulation-choice" data-action="nav" data-tab="tests"><span class="choice-symbol" aria-hidden="true">02</span><span class="choice-title">Patient group</span><span class="choice-description">Choose an open group of patient trials. Complete every trial to unlock feedback.</span><span class="choice-cta">Choose a group →</span></button></div>${history.length ? button("View my attempts", "nav", 'data-tab="history"') : ""}</section>`;
 }
 function studentGroups() {
   const available = groups.filter(
-    (g) =>
-      g.availableToAll &&
-      g.preparationStatus === "ready" &&
-      !assignments.some((a) => a.groupId === g.id),
+    (g) => g.availableToAll && g.preparationStatus === "ready",
   );
-  return `<div class="pn"><div class="panel-kicker">Group simulation</div><h1>Choose a patient group</h1><p class="muted">Complete all trials before reviewing your standard assessment.</p><h2>Assigned to you</h2>${assignments.map((a) => `<article class="group-card"><h3>${esc(a.title)}</h3><p>${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} trials · Not started`}</p>${button(a.attempt?.status === "complete" ? "View feedback in history" : "Start / resume test", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`).join("") || "<p>No tests assigned yet.</p>"}<h2>Available simulations</h2>${available.map((g) => `<article class="group-card"><h3>${esc(g.title)}</h3><p>${esc(g.purpose)}</p><p>${g.trialCount} trials</p>${button("Start group", "start-available", `data-id="${esc(g.id)}"`, "pri")}</article>`).join("") || "<p>No additional groups available. Faculty can make a prepared group available here.</p>"}</div>`;
+  return `<div class="pn"><div class="panel-kicker">Open assessments</div><h1>Choose a patient group</h1><p class="muted">Complete all patient trials to unlock your assessment.</p>${
+    available
+      .map((g) => {
+        const assignment = assignments.find((a) => a.groupId === g.id);
+        return `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p class="muted">${assignment?.attempt ? `${assignment.attempt.completed}/${assignment.attempt.trials.length} trials complete` : `${g.trialCount} patient trials`}</p>${button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}</article>`;
+      })
+      .join("") || "<p>No open group assessments are available yet.</p>"
+  }</div>`;
 }
 function groupBuilder() {
   return `<details class="group-builder"><summary>Create a patient group</summary><p class="muted">Select published cases. Practice groups can combine different conditions; demographic comparisons require matching clinical settings.</p><label for="group-title">Group name</label><input id="group-title" maxlength="120"><label for="group-purpose">Purpose (optional)</label><input id="group-purpose" maxlength="1000"><label for="group-kind">Group type</label><select id="group-kind"><option value="practice">Practice</option><option value="comparison">Demographic comparison</option></select><fieldset><legend>Patients (select at least two)</legend>${list
@@ -932,11 +950,19 @@ function groupBuilder() {
     )
     .join(
       "",
-    )}</fieldset><label><input id="group-available" type="checkbox"> Available to all students</label>${button("Create group", "create-group", "", "pri")}</details>`;
+    )}</fieldset><label><input id="group-available" type="checkbox"> Include in open assessments</label>${button("Create group", "create-group", "", "pri")}</details>`;
 }
 function testCatalog() {
   if (demoSession.role === "student") return studentGroups();
-  return `<div class="pn"><h1>Prepared patient groups</h1><p>Assign a group to a student or make it available to everyone.</p>${groupBuilder()}<div class="row"><label for="assign-student">Assign to</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p><b>${g.trialCount} trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Clinical settings differ — review both cases" : "Faculty review required before rehearsal"}</b></p><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><p class="muted">${g.kind === "practice" ? "Practice group" : "Demographic comparison"} · ${g.availableToAll ? "Available to all students when ready" : "Faculty assignment only"}</p><div class="row">${button(g.availableToAll ? "Use assignments only" : "Make available to all", "group-availability", `data-id="${esc(g.id)}" data-available="${!g.availableToAll}"`)}${g.cases.map((c) => button(`${c.version ? "Review" : "Review & publish"} ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}${g.preparationStatus === "ready" ? button("Assign group", "assign-group", `data-id="${esc(g.id)}"`, "pri") : button("Assign group", "assign-group", `data-id="${esc(g.id)}" disabled title="Review and publish matching cases before assigning"`, "pri")}</div><details><summary>Comparison limits and source notes</summary><p>${esc(g.limitations)}</p><p>${esc(g.sourceNote)}</p></details></article>`).join("")}<h2>Demo students</h2><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div><h2>Assignments</h2>${assignments.map((a) => `<p>${esc(students.find((s) => s.id === a.studentId)?.alias)} · ${esc(a.title)} · ${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials` : "Not started"}</p>`).join("") || "<p>No assignments yet.</p>"}</div>`;
+  return `<div class="pn"><h1>Assign a patient group</h1><p class="muted">Choose a student, then assign a prepared assessment.</p><div class="row assignment-target"><label for="assign-student">Student</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card faculty-group"><div class="workspace-heading"><div><h2>${esc(g.title)}</h2><p class="muted">${g.trialCount} patient trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Cases need matching clinical settings" : "Publish the selected cases first"}</p></div>${button("Assign group", "assign-group", `data-id="${esc(g.id)}" ${g.preparationStatus !== "ready" ? 'disabled title="Publish matching cases before assigning"' : ""}`, "pri")}</div><p>${esc(g.purpose)}</p><details class="group-details"><summary>Group details and settings</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><label class="open-assessment-setting"><input type="checkbox" data-group-open="${esc(g.id)}" ${g.availableToAll ? "checked" : ""}> Include in open assessments</label><p class="muted">Students can choose this group without a faculty assignment.</p><div class="row">${g.cases.map((c) => button(`Edit ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}</div><p class="muted">${esc(g.limitations)}</p><p class="muted">${esc(g.sourceNote)}</p></details></article>`).join("")}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
+    assignments
+      .filter((a) => a.origin !== "open")
+      .map(
+        (a) =>
+          `<p>${esc(students.find((s) => s.id === a.studentId)?.alias)} · ${esc(a.title)} · ${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : "Not started"}</p>`,
+      )
+      .join("") || "<p>No assessments assigned yet.</p>"
+  }</div>`;
 }
 function biasPanel(result) {
   const r = result || { status: "pending", findings: [], limitations: [] };
@@ -959,10 +985,18 @@ function render() {
     $("#app").innerHTML = rolePicker();
     return;
   }
-  if (demoSession.role === "student" && tab === "student-home") {
-    $("#nav").innerHTML = button("Switch workspace", "switch-role");
+  if (
+    demoSession.role === "student" &&
+    ["student-home", "open-assessments"].includes(tab)
+  ) {
+    $("#nav").innerHTML =
+      (tab === "open-assessments"
+        ? button("My assignments", "nav", 'data-tab="student-home"')
+        : "") + button("Switch workspace", "switch-role");
     $("#mode").textContent = "Student";
-    $("#app").innerHTML = studentHome();
+    $("#app").innerHTML =
+      `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+      (tab === "student-home" ? studentHome() : openAssessments());
     return;
   }
   const focusId = document.activeElement?.id;
@@ -974,7 +1008,10 @@ function render() {
       patientDialog.openSections[detail.dataset.detail] = detail.open;
   const navs = [
     ...(demoSession.role === "student"
-      ? [["student-home", "Simulation options"]]
+      ? [
+          ["student-home", "My assignments"],
+          ["open-assessments", "Open assessments"],
+        ]
       : []),
     [
       "studio",
@@ -1012,6 +1049,7 @@ function render() {
     {
       studio,
       "student-home": studentHome,
+      "open-assessments": openAssessments,
       enc: encounter,
       team,
       rep: assessment,
@@ -1392,13 +1430,28 @@ for (const type of ["dragenter", "dragover", "dragleave", "drop"])
     },
     true,
   );
-document.addEventListener("input", (e) => {
+document.addEventListener("input", async (e) => {
   const t = e.target;
   if (t.id === "demo-student") loginStudent = t.value;
   if (t.id === "assign-student") selectedStudent = t.value;
   if (t.id === "studio-group") {
     selectedGroup = t.value;
     render();
+  }
+  if (t.dataset.groupOpen) {
+    try {
+      await api(`/api/groups/${t.dataset.groupOpen}`, "PUT", {
+        availableToAll: t.checked,
+      });
+      const group = groups.find((g) => g.id === t.dataset.groupOpen);
+      if (group) group.availableToAll = t.checked;
+    } catch (error) {
+      t.checked = !t.checked;
+      message = error.message;
+      $(".toast").textContent = message;
+      $(".toast").classList.remove("hidden");
+    }
+    return;
   }
   if (t.id === "new-student-alias") newStudentAlias = t.value;
   if (t.id === "patient-description") {
@@ -1530,7 +1583,6 @@ document.addEventListener("click", async (e) => {
         "assign-group",
         "start-test",
         "start-available",
-        "group-availability",
         "next-test",
         "add-student",
         "bias-evidence",
@@ -1603,13 +1655,6 @@ document.addEventListener("click", async (e) => {
         return;
       }
     }
-    if (a === "group-availability") {
-      await api(`/api/groups/${t.dataset.id}`, "PUT", {
-        availableToAll: t.dataset.available === "true",
-      });
-      await refresh();
-      message = "Group availability updated.";
-    }
     if (a === "add-student") {
       const alias = newStudentAlias;
       await api("/api/students", "POST", { alias });
@@ -1661,7 +1706,16 @@ document.addEventListener("click", async (e) => {
       if (tab === "studio" && dirty) await save();
       stopAudio();
       tab = t.dataset.tab;
-      if (["history", "tests", "results"].includes(tab)) await refresh();
+      if (
+        [
+          "student-home",
+          "open-assessments",
+          "history",
+          "tests",
+          "results",
+        ].includes(tab)
+      )
+        await refresh();
     }
     if (a === "pick") {
       if (dirty) await save();

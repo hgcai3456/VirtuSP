@@ -1,0 +1,23 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "The patient's primary language is English, though he is fluent in Spanish, which may be used for certain topics",
+    "The patient's heart failure is primarily due to ischemic heart disease from his prior CABG",
+    "The patient's Type 2 Diabetes is likely exacerbated by his sedentary lifestyle and diet",
+    "The patient's BMI of 19.0 is a result of both heart failure and potential malnutrition",
+    "The patient's son is willing to help with groceries and transportation but may need guidance on how to support his father",
+    "The patient's diet is likely high in sodium and low in fiber, contributing to his symptoms and diabetes management"
+  ],
+  "optional_details": [
+    "The patient has a history of smoking but quit 15 years ago",
+    "The patient has a history of smoking but quit 15 years ago",
+    "The patient has a history of smoking but quit 15 years ago"
+  ]
+}

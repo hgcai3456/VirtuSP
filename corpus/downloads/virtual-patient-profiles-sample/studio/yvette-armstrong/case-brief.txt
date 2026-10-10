@@ -1,0 +1,236 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Yvette Armstrong",
+    "age": 64,
+    "sex": "Female",
+    "description": "A 64-year-old Eastern European American woman recently diagnosed with Stage II hypertension and uncontrolled type 2 diabetes. Works full-time as a state employee with an associate's degree in political science. Curious and earnest but feels overwhelmed by complex medical information. Reports confusion about the difference between sodium and salt, struggles to understand the pathophysiology of her conditions, and expresses frustration about the difficulty of making dietary changes. BMI is 34 with a history of hypertension and type 2 diabetes. She is motivated to improve her health but faces barriers related to health literacy, financial constraints, limited time for cooking, and emotional stress from balancing full-time work with growing family responsibilities.",
+    "keywords": [
+      "hypertension",
+      "type_2_diabetes",
+      "health_literacy",
+      "medication_management",
+      "motivational_interviewing",
+      "sodium_restriction",
+      "weight_loss",
+      "dietary_education",
+      "patient_interview",
+      "psychosocial_barriers"
+    ]
+  },
+  "demographics": {
+    "occupation": "State employee (full-time)",
+    "residence": "Urban suburban area with limited green space",
+    "ethnicity": "Eastern European American",
+    "language": "English",
+    "marital_status": "Married",
+    "education_level": "Associate's degree in political science",
+    "insurance": "Medicaid (due to chronic conditions)",
+    "cultural_context": "Grew up in a household where food was central to gatherings and celebrations. Traditional Eastern European dishes are often high in processed meats, cheese, and salt for preservation and flavor. She feels that cutting out traditional foods would mean losing a connection to her heritage and family bonds."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "Standard American diet with traditional Eastern European influences",
+    "food_preferences": [
+      "Likes hearty comfort foods",
+      "Enjoys pickled vegetables",
+      "Prefers breaded dishes",
+      "Eats family-style meals"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "High sodium intake from processed foods and canned soups",
+      "Frequent snacking on salty snacks",
+      "Limit water consumption due to kidney concerns",
+      "Relies on convenience foods due to time constraints"
+    ],
+    "meal_pattern": "Breakfast: often skipped or just coffee. Lunch: packed or grabbed on the way to work. Dinner: family meal, usually the largest meal.",
+    "hydration": "Drinks mostly tap water and occasional tea. Avoids sugary drinks. Feels thirsty but sometimes avoids drinking because she thinks it will cause more bathroom trips at work.",
+    "physical_activity": "Sits at desk all day. Walks to car or bus. No dedicated exercise routine. Struggles to find time for activity.",
+    "substance_use": "Does not smoke. Occasional 1-2 glasses of wine on weekends. Does not use recreational drugs.",
+    "sleep": "Sleeps 6-7 hours per night but wakes up due to frequent urination from diabetes."
+  },
+  "psychosocial_profile": {
+    "personality": "Curious, earnest, and eager to learn but easily overwhelmed by technical jargon and lengthy explanations. Values honesty and direct communication. Tries hard to comply but becomes frustrated when changes feel too difficult or unsustainable.",
+    "communication_style": "Asks clarifying questions when confused. May hesitate to ask if she feels she is burdening the provider. Responds well to patient, respectful, and non-judgmental communication. Uses lay terms and needs concepts explained simply with examples.",
+    "goals": [
+      "Wants to have normal energy levels",
+      "Aims to lose weight to feel more comfortable",
+      "Hopes to control her blood pressure and sugar",
+      "Wants to eat delicious food without breaking her budget or health goals"
+    ],
+    "concerns": [
+      "Fear of complications from diabetes and hypertension",
+      "Worry about medication side effects",
+      "Frustration with not understanding what sodium and salt mean",
+      "Concern about cost of healthy food",
+      "Anxiety about disappointing her family"
+    ],
+    "beliefs": [
+      "Sodium and salt are different things",
+      "Healthy food is expensive",
+      "Traditional family recipes are the only way to eat well",
+      "Doctors only care about numbers, not how she feels",
+      "Weight loss is about just starving yourself"
+    ],
+    "motivations": [
+      "Desire to be present for her grandchild's future",
+      "Wanting to stop being tired all the time",
+      "Hope to reduce stress about her health",
+      "Positive reinforcement from a friend who lost weight"
+    ],
+    "fears": [
+      "Fear of stroke or heart attack",
+      "Fear of losing independence if she gets sick",
+      "Fear of losing her job due to health issues",
+      "Fear of not being able to afford food or medical bills"
+    ],
+    "barriers": [
+      "Limited health literacy and medical confusion",
+      "Financial constraints and food insecurity concerns",
+      "Time poverty due to full-time work and family duties",
+      "Cultural attachment to traditional high-sodium foods",
+      "Physical barriers like joint pain limiting cooking and activity",
+      "Medication non-adherence due to side effects and misunderstanding"
+    ],
+    "strengths": [
+      "High motivation to improve her health",
+      "Willing to listen and learn",
+      "Has a supportive husband who helps with finances and home chores",
+      "Good at organizing and planning (transferring from her political science background)",
+      "Strong sense of duty and reliability",
+      "Open to trying new things when explained properly"
+    ],
+    "support_system": "Married with supportive husband who lives with her. Two adult children who live locally and visit regularly. One grandchild. Husband drives her to appointments. Family often pressures her to eat traditional foods at gatherings.",
+    "readiness_to_change": "Moderately motivated (Stage of Change: Preparation) but feels overwhelmed by the scale of changes required. Responds well to small, manageable steps and clear, simple explanations. Needs validation and step-by-step guidance."
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "Reports fatigue, frequent urination, and mild headaches.",
+      "Mentions her doctor told her she has ",
+      "She says she doesn't know what sodium limits mean and is confused about salt vs. sodium.",
+      "States she works full-time and struggles to find time for cooking.",
+      "Wants to understand why she needs to change her diet and meds.",
+      "Mentions her diet is a mix of traditional recipes and convenience foods."
+    ],
+    "discoverable_information": [
+      "Adherence issues with meds",
+      "Specific details about her daily diet and meals",
+      "Concerns about the cost of healthy food",
+      "Her husband's role in her care and home life",
+      "Her emotional state and stress level from balancing work and health"
+    ],
+    "reluctant_information": [
+      "She feels embarrassed about her weight and lifestyle choices",
+      "She worries about being judged for eating traditional foods",
+      "She hides that she skips meds or buys cheap, high-sodium foods due to budget",
+      "She hides the fact that she sometimes lies down to rest mid-day",
+      "She hides the fact that she doesn't want to eat traditional foods because she feels guilty about changing her culture"
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Gather health history and assess patient understanding of medical terms like sodium and salt.",
+        "expected_discoveries": [
+          "Patient's confusion about medical jargon",
+          "Specific dietary habits and meal patterns",
+          "Patient's baseline understanding of hypertension and diabetes"
+        ],
+        "possible_patient_reactions": [
+          "Asking for clarification when terms are used",
+          "Feeling defensive if corrected harshly",
+          "Providing detailed history if felt supported and non-judgmental",
+          "Withdrawing if overwhelmed by rapid questioning"
+        ]
+      },
+      {
+        "learning_objective": "Develop an appropriate PES statement for nutrition intervention.",
+        "expected_discoveries": [
+          "Patient's specific dietary behaviors related to sodium and weight",
+          "Patient's ability and willingness to change behaviors",
+          "Identifiable barriers to lifestyle change"
+        ],
+        "possible_patient_reactions": [
+          "Relating to the problem statement",
+          "Agreeing with identified problems and goals",
+          "Resisting if changes feel too drastic or unrealistic",
+          "Feeling empowered if solutions are practical and realistic"
+        ]
+      },
+      {
+        "learning_objective": "Develop evidence-based nutrition interventions tailored to the patient's needs.",
+        "expected_discoveries": [
+          "Patient's specific food preferences and cultural context",
+          "Patient's barriers to implementation",
+          "Opportunities for gradual, sustainable changes"
+        ],
+        "possible_patient_reactions": [
+          "Engaging with concrete meal examples",
+          "Asking questions about feasibility",
+          "Showing enthusiasm if interventions align with goals",
+          "Feeling discouraged if interventions ignore cultural or financial realities"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care.",
+        "expected_discoveries": [
+          "Patient's current medication use and adherence",
+          "Patient's misconceptions about medication and diet synergy",
+          "Opportunities for education on nutrition and medication side effects"
+        ],
+        "possible_patient_reactions": [
+          "Sharing experiences with medication side effects",
+          "Asking about how diet affects her blood sugar and blood pressure",
+          "Expressing relief when explained how diet and meds work together",
+          "Feeling anxious if told to make drastic changes that might worsen meds"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing to explore readiness and ambivalence.",
+        "expected_discoveries": [
+          "Patient's personal motivations and fears",
+          "Patient's ambivalence about changing habits",
+          "Specific goals and values that align with behavior change"
+        ],
+        "possible_patient_reactions": [
+          "Discussing personal health goals",
+          "Revealing barriers to change when asked open questions",
+          "Expressing relief when heard without judgment",
+          "Showing increased confidence when exploring personal reasons for change"
+        ]
+      },
+      {
+        "learning_objective": "Address lifestyle and behavioral barriers and problem solve.",
+        "expected_discoveries": [
+          "Financial, time, and emotional barriers",
+          "Strategies for problem-solving"
+        ],
+        "possible_patient_reactions": [
+          "Relating to practical solutions",
+          "Providing input on what might work for her",
+          "Feeling more confident and less overwhelmed when barriers are tackled collaboratively",
+          "Feeling frustrated if solutions are unrealistic or dismissive of her constraints"
+        ]
+      },
+      {
+        "learning_objective": "Consider interprofessional and community resources.",
+        "expected_discoveries": [
+          "Patient's access to resources, support systems, and barriers to accessing them",
+          "Opportunities for referrals to dietitians, educators, or social services"
+        ],
+        "possible_patient_reactions": [
+          "Revealing lack of knowledge about available resources",
+          "Expressing interest in learning more about resources",
+          "Accepting resources that are convenient, accessible, and culturally appropriate",
+          "Showing relief when given information on free or low-cost resources"
+        ]
+      }
+    ]
+  }
+}

@@ -36,8 +36,8 @@ test("Faculty creates available groups; student self-start is authorized, pinned
     });
     assert.equal(
       (await call(student, "/api/groups")).groups.length,
-      0,
-      "Unpublished/unassigned groups aren't student choices",
+      1,
+      "The ready demo is an open assessment",
     );
     assert.equal(
       (await call(student, "/api/students", "POST", { alias: "Unauthorized" }))
@@ -69,7 +69,7 @@ test("Faculty creates available groups; student self-start is authorized, pinned
       (
         await call(faculty, "/api/groups", "POST", {
           ...input,
-          profileIds: [patients[0].id, "comparison-omar"],
+          profileIds: [patients[0].id, "not-published"],
         })
       ).status,
       400,
@@ -91,9 +91,13 @@ test("Faculty creates available groups; student self-start is authorized, pinned
       ).status,
       403,
     );
-    assert.deepEqual(
-      (await call(student, "/api/groups")).groups.map((g) => g.id),
-      [id],
+    assert.ok(
+      (await call(student, "/api/groups")).groups.some((g) => g.id === id),
+    );
+    assert.ok(
+      !(await call(student, "/api/groups")).groups.some(
+        (g) => g.id === comparison.group.id,
+      ),
     );
     assert.equal(
       (
@@ -128,6 +132,7 @@ test("Faculty creates available groups; student self-start is authorized, pinned
       403,
     );
     const assignments = (await call(student, "/api/assignments")).assignments;
+    assert.equal(assignments[0].origin, "open");
     assert.equal(
       (
         await call(

@@ -1,0 +1,106 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Walter Greene",
+  "clinical_profile": {
+    "primary_diagnosis": "Uncontrolled Type 2 Diabetes Mellitus",
+    "secondary_diagnoses": [
+      "Congestive Heart Failure (HFREF, EF 40%)",
+      "Hypertension",
+      "Chronic Kidney Disease Stage 3",
+      "Coronary Artery Disease"
+    ],
+    "medical_history": [
+      "Type 2 Diabetes for 15 years",
+      "Cardiac surgery (CABG) 5 years ago",
+      "Recurrent heart failure decompensations requiring hospitalization",
+      "Previous non-compliance with diet and medication"
+    ],
+    "current_symptoms": [
+      "Chronic fatigue",
+      "Shortness of breath with minimal exertion",
+      "Pedal edema (2+ bilateral)",
+      "Polyuria and polydipsia",
+      "Poor weight loss despite attempts to eat 'less'",
+      "Soreness and stiffness in joints"
+    ],
+    "allergies": [
+      "Penicillin (hives)",
+      "Shellfish (anaphylaxis)",
+      "Sulfa"
+    ],
+    "clinical_findings": [
+      "Heart murmur at apex",
+      "Bilateral lung crackles",
+      "Peripheral pulse 3+ in lower extremities",
+      "Skin warm, dry, with poor venous filling time",
+      "Gum disease (mild)"
+    ],
+    "laboratory_data": [
+      "HbA1c: 8.7% (High; <7% is target)",
+      "Fasting Glucose: 165 mg/dL",
+      "BUN: 28 mg/dL",
+      "Creatinine: 1.6 mg/dL",
+      "Sodium: 136 mEq/L",
+      "Potassium: 4.1 mEq/L",
+      "LDL: 125 mg/dL"
+    ],
+    "vital_signs": [
+      "BP: 158/92 mmHg",
+      "HR: 78 bpm",
+      "RR: 18 breaths/min",
+      "Temp: 98.6°F (37.0°C)",
+      "SpO2: 96% on room air"
+    ],
+    "anthropometrics": [
+      "Height: 5'8\"",
+      "Weight: 198 lbs",
+      "BMI: 31.2 kg/m²",
+      "Recent weight change: Lost 10 lbs unintentionally in the last month",
+      "Waist circumference: 43 inches"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Metformin",
+        "dose": "500 mg",
+        "frequency": "Twice daily with meals",
+        "purpose": "Type 2 Diabetes Control",
+        "adherence": "Inconsistent; skips sometimes due to nausea",
+        "patient_concerns": "He complains it makes him vomit or have an upset stomach."
+      },
+      {
+        "name": "Lisinopril",
+        "dose": "20 mg",
+        "frequency": "Once daily in the morning",
+        "purpose": "Hypertension and Heart Failure",
+        "adherence": "Takes daily",
+        "patient_concerns": "Believes it's only for his blood pressure, not his diabetes."
+      },
+      {
+        "name": "Epirocil (Eplerenone)",
+        "dose": "25 mg",
+        "frequency": "Once daily",
+        "purpose": "Diuretic for Heart Failure",
+        "adherence": "Sometimes forgets to take it",
+        "patient_concerns": "Worries about low blood pressure and fainting."
+      }
+    ],
+    "supplements_and_otc": [
+      "Melatonin 5 mg at night",
+      "Advil (Ibuprofen) 400 mg PRN for back pain (takes 2-3 times a week)",
+      "Gum (sugar-free)"
+    ]
+  },
+  "hidden_information": [
+    "He was a janitor and is scared about his future and his health.",
+    "He has a lot of money in his checking account that he's not using it, but he's afraid of wasting it."
+  ]
+}

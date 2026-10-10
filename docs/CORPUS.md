@@ -10,13 +10,13 @@ Use the organizer-linked **virtual-patient-profiles-sample** for case authoring:
 npm run corpus:fetch
 ```
 
-Run from the repository root. This downloads public files, verifies pinned revisions, preserves original bytes and records SHA-256 hashes. It requires internet access, but no Hugging Face key or AWS credentials. It does not train a model, import facts or publish patients. [datasets.json](../corpus/datasets.json) records revisions, URLs and license notes. Downloads are ignored by Git; teammates reproduce them with this command.
+Run from the repository root. This downloads public files, verifies pinned revisions, preserves original bytes and records SHA-256 hashes. It requires internet access, but no Hugging Face key or AWS credentials. It does not train a model, import facts or publish patients. [datasets.json](../corpus/datasets.json) records revisions, URLs and license notes. The 24 Studio TXT documents and their attribution README are tracked in Git, so teammates can use them directly after pulling. Raw/normalized caches and the Patient-Doctor download remain ignored; reproduce those with this command.
 
 | Directory                                                                 | Contents                                                   |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `corpus/downloads/virtual-patient-profiles-sample/raw/`                   | Original README and patient file: eight synthetic profiles |
 | `corpus/downloads/virtual-patient-profiles-sample/normalized/`            | The same values as JSON and one-record-per-line JSONL      |
-| `corpus/downloads/virtual-patient-profiles-sample/studio/<patient-name>/` | Split TXT documents for Studio upload and review           |
+| `corpus/downloads/virtual-patient-profiles-sample/studio/<patient-name>/` | Tracked TXT documents for Studio upload and review           |
 | `corpus/downloads/patient-doctor/raw/`                                    | 271 original conversation TXT files                        |
 
 Both downloads succeeded: 115,364 bytes for the profile source and 2,277,538 bytes for conversations. Each directory has `manifest.json` with provenance and hashes. Upstream `patients.jsonl` actually contains consecutive pretty-printed objects; normalization parses boundaries without evaluating text or changing values.

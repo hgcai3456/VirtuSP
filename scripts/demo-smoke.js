@@ -41,12 +41,6 @@ async function main() {
     await faculty("/api/session", "POST", { role: "faculty" });
     const people = (await faculty("/api/students")).students,
       group = (await faculty("/api/groups")).groups[0];
-    for (const c of group.cases) {
-      const p = (await faculty(`/api/profiles/${c.profileId}`)).profile;
-      p.reviewAcknowledged = true;
-      await faculty(`/api/profiles/${p.id}`, "PUT", { profile: p });
-      await faculty(`/api/profiles/${p.id}/publish`, "POST", {});
-    }
     const a = (
       await faculty("/api/assignments", "POST", {
         groupId: group.id,

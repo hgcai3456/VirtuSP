@@ -1,0 +1,20 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "Patient has employment-based insurance",
+    "Patient is married with children",
+    "Patient has no other underlying conditions"
+  ],
+  "optional_details": [
+    "Patient enjoys grilling on weekends",
+    "Patient watches football with neighbors",
+    "Patient takes vitamins"
+  ]
+}

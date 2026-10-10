@@ -6,7 +6,7 @@ const test = require("node:test"),
   path = require("node:path");
 const { createApp } = require("../lib/http");
 const { cookieClient } = require("./http-client");
-test("Faculty review/assignment, student trials, delayed feedback and role clearing through the DOM", async () => {
+test("Ready faculty assignment, assigned-first student entry, open choices and role clearing through the DOM", async () => {
   process.env.AI_ENABLED = "false";
   delete process.env.S3_BUCKET;
   delete process.env.ELEVENLABS_API_KEY;
@@ -63,10 +63,11 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
     );
     assert.match(
       d.querySelector(".studio-group-panel").textContent,
-      /publish both prepared cases/,
+      /Choose a student/,
     );
     d.querySelector('.studio-group-panel [data-tab="tests"]').click();
     await wait(() => !!d.getElementById("assign-student"));
+    assert.ok(!d.querySelector('[data-action="assign-group"]').disabled);
     fill("new-student-alias", "Student C");
     click("add-student");
     await wait(() => d.getElementById("assign-student")?.options.length === 3);
@@ -81,33 +82,16 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
       () => d.querySelector(".toast")?.textContent === "Patient group created.",
     );
     assert.match(d.querySelector("#app").textContent, /Available practice/);
-    assert.match(
-      d.querySelector("#app").textContent,
-      /Faculty review required/,
+    assert.equal(d.querySelectorAll(".group-details[open]").length, 0);
+    assert.ok(
+      !d.querySelector("#app").textContent.includes("Make available to all"),
     );
-    for (const id of ["comparison-omar", "comparison-alex"]) {
-      click("pick", `[data-id="${id}"]`);
-      await wait(() => !!d.getElementById("patient-dialog"));
-      assert.equal(
-        d.querySelectorAll(".patient-dialog input[type=checkbox]").length,
-        1,
-      );
-      assert.equal(d.querySelectorAll(".clinical-row details").length, 0);
-      assert.equal(d.querySelectorAll(".editor-group[open]").length, 0);
-      assert.equal(d.getElementById("field-facts-0-id"), null);
-      assert.equal(d.getElementById("field-facts-0-kw"), null);
-      assert.match(
-        d.querySelector(".editor").textContent,
-        /Patient information and character/,
-      );
-      fill("field-reviewAcknowledged", true);
-      click("submit-patient");
-      await wait(
-        () =>
-          !d.getElementById("patient-dialog") &&
-          !!d.getElementById("assign-student"),
-      );
-    }
+    assert.ok(
+      !d.querySelector("#app").textContent.includes("Use assignments only"),
+    );
+    assert.ok(
+      !d.querySelector("#app").textContent.includes("Review & publish"),
+    );
     assert.match(d.querySelector("#app").textContent, /Ready to assign/);
     click("assign-group");
     await wait(
@@ -121,18 +105,24 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
         .textContent.includes("Prepared comparison groups"),
     );
     click("choose-role", '[data-role="student"]');
-    await wait(() => !!d.querySelector(".student-home"));
-    assert.equal(d.querySelectorAll(".simulation-choice").length, 2);
+    await wait(() => !!d.querySelector(".student-assignments"));
+    assert.match(
+      d.querySelector("#app").textContent,
+      /My assigned assessments/,
+    );
+    assert.equal(d.querySelectorAll(".simulation-choice").length, 0);
+    assert.ok(d.querySelector('[data-action="start-test"]'));
     assert.equal(d.querySelector('#nav [data-action="nav"]'), null);
     assert.equal(d.querySelector('[data-action="new"]'), null);
     assert.equal(d.querySelector('[data-tab="results"]'), null);
+    click("nav", '[data-tab="open-assessments"]');
+    await wait(() => d.querySelectorAll(".simulation-choice").length === 2);
     click("nav", '[data-tab="studio"]');
     assert.equal(d.querySelectorAll(".patient-card").length, 2);
     assert.equal(d.querySelector('[data-action="pick"]'), null);
     click("nav", '[data-tab="student-home"]');
+    await wait(() => !!d.querySelector(".student-assignments"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
-    click("nav", '[data-tab="tests"]');
-    await wait(() => !!d.querySelector('[data-action="start-test"]'));
     assert.equal(d.querySelector('[data-action="add-student"]'), null);
     assert.equal(d.querySelector('[data-action="create-group"]'), null);
     click("start-test");
@@ -142,7 +132,10 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
       d.querySelector("#app").textContent.includes("Trial saved"),
     );
     assert.equal(d.querySelector(".score-num"), null);
-    click("nav", '[data-tab="tests"]');
+    assert.match(d.querySelector('[data-action="next-test"]').textContent, /Continue to next patient/);
+    click("next-test");
+    await wait(() => !!d.getElementById("question"));
+    click("nav", '[data-tab="student-home"]');
     await wait(() =>
       d.querySelector("#app").textContent.includes("1/2 trials complete"),
     );
@@ -157,16 +150,26 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
     click("start-available");
     await wait(() => !!d.getElementById("question"));
     assert.match(d.querySelector("#app").textContent, /Trial 1 of 2/);
+    click("nav", '[data-tab="student-home"]');
+    await wait(() => !!d.querySelector(".student-assignments"));
+    assert.ok(
+      !d.querySelector("#app").textContent.includes("Available practice"),
+      "Self-selected open attempts aren't faculty assignments",
+    );
     click("switch-role");
     await wait(() => !!d.getElementById("demo-student"));
     const choices = d.getElementById("demo-student").options;
     fill("demo-student", choices[1].value);
     click("choose-role", '[data-role="student"]');
-    await wait(() => !!d.querySelector(".student-home"));
-    click("nav", '[data-tab="tests"]');
-    await wait(() =>
-      d.querySelector("#app").textContent.includes("No tests assigned"),
+    await wait(() => !!d.querySelector(".student-assignments"));
+    assert.match(
+      d.querySelector("#app").textContent,
+      /No assessments assigned yet/,
     );
+    click("nav", '[data-tab="open-assessments"]');
+    await wait(() => d.querySelectorAll(".simulation-choice").length === 2);
+    click("nav", '[data-tab="tests"]');
+    await wait(() => !!d.querySelector('[data-action="start-available"]'));
     click("nav", '[data-tab="history"]');
     await wait(() =>
       d.querySelector("#app").textContent.includes("No encounters yet"),
@@ -220,8 +223,7 @@ test("Faculty review/assignment, student trials, delayed feedback and role clear
     await wait(() => !!d.getElementById("demo-student"));
     fill("demo-student", d.getElementById("demo-student").options[0].value);
     click("choose-role", '[data-role="student"]');
-    await wait(() => !!d.querySelector(".student-home"));
-    click("nav", '[data-tab="tests"]');
+    await wait(() => !!d.querySelector(".student-assignments"));
     await wait(() => !!d.querySelector('[data-action="start-test"]'));
     assert.ok(
       !d

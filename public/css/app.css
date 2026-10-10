@@ -1581,6 +1581,49 @@ summary:focus-visible {
   flex-direction: column;
   justify-content: center;
 }
+.student-assignments {
+  min-height: calc(100dvh - 130px);
+}
+.workspace-heading,
+.assignment-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.workspace-heading h1,
+.workspace-heading h2,
+.assignment-card h2 {
+  margin: 0 0 8px;
+}
+.empty-assignments {
+  padding: 48px 20px;
+  margin: 24px 0;
+  border: 1px dashed var(--bd);
+  border-radius: 12px;
+  text-align: center;
+}
+.assignment-target {
+  margin: 24px 0;
+}
+.assignment-target select {
+  flex: 1;
+  max-width: 460px;
+}
+.group-details > summary,
+.student-management > summary {
+  color: var(--mu);
+  cursor: pointer;
+  padding: 10px 0;
+}
+.open-assessment-setting {
+  display: block;
+  margin-top: 18px;
+}
+.student-management {
+  margin: 20px 0;
+}
 .student-home h1 {
   font-size: clamp(30px, 4vw, 48px);
   margin: 10px 0;

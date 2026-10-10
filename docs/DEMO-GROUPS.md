@@ -2,34 +2,35 @@
 
 Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. If an older server is running, restart it and refresh the page. Sessions reset on a server restart; student aliases, assignments and encounter progress persist.
 
-## Prepare once before rehearsal
+## Assign and run
 
-1. Enter **Faculty**. Above the individual patient cards, select a group under **Assign a patient group** and click **Review & assign group**. The **Prepared groups** navigation tab opens the same workspace.
-2. Review **Omar Sinclair** and **Alex Morgan**, correct any problems, acknowledge faculty review, and publish each. Review includes history, reference excerpts, objectives and advanced disclosure/release rules. Automated publication checks are not clinical validation.
-3. The catalog becomes **Ready to assign** after both are published with matching clinical/scenario settings. If settings differ, correct and republish the pair. Existing assignments retain their earlier versions.
-4. Choose Student A or another demo alias and click **Assign group**. Aliases can be added in this workspace. Assignment does not draft or generate patients.
+1. Enter **Faculty**. Patient Studio has an **Assign a patient group** panel; click **Assign a group**, or use **Prepared groups** in navigation.
+2. The preconfigured **Dyslipidemia: medication concerns** group is **Ready to assign** immediately. Choose Student A/B and click **Assign group**. No parsing, patient editing or publication is needed for assignment.
+3. Switch to that student. **My assigned assessments** is their first page. Click **Start assessment** or **Resume assessment** directly. Cases run in a shuffled, persisted order.
+4. Try a greeting, medication concern, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
+5. Finish the first trial, then use **Continue to next patient**. Standard feedback is released only after both trials finish.
+6. Refresh/restart midway and select the same alias to test recovery. Starting twice resumes the same attempt and encounter.
+7. Switch to Faculty → **Student results** for the trial assessments, evidence and **Awaiting analysis** bias status. Faculty inspection cannot change a student encounter.
+8. Switch to another student to check ownership. Use **Select open assessments** for the large **Individual patient** / **Patient group** choices. Ordinary individual practice provides immediate feedback. **My assignments** returns to faculty-assigned work.
+9. Separately demonstrate Faculty **Patient Studio → New patient → upload/extract → acknowledge/publish → Start visit**. Independent patient authoring remains available.
 
-## Run and review
+## Optional group settings
 
-1. Use **Faculty · switch**, choose **Student A**, then enter Student.
-2. Choose the large **Patient group** tile, then start the assigned test. Its two cases run in a shuffled order that is saved once. Try a greeting, medication concerns, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
-3. Finish the first trial. Feedback is held. Continue through **Patient groups → Start / resume test** for the second trial. Finishing both releases the standard rubric and separate learning-objective feedback.
-4. Refresh or restart midway to test recovery. Choose the same alias after restart, then resume the assignment. Starting twice resumes the same attempt and encounter.
-5. Switch to Faculty and open **Student results**. Inspect the trial assessments and evidence. Group and encounter bias panels say **Awaiting analysis** until the teammate's detector supplies results. Faculty inspection cannot modify a student's encounter.
-6. Switch to Student B: Student A's assignments, history and faculty analysis should be absent. Choose **Individual patient** for ordinary practice with immediate feedback. Use **Simulation options** to change paths.
-7. Separately demonstrate **Patient Studio → New patient → upload/extract → review/publish → Start visit**. Comparison groups supplement the challenge's required reusable authoring demonstration.
+**Group details and settings** starts collapsed. It contains provenance, demographic differences, optional patient editing and one checkbox: **Include in open assessments**. When checked, students can self-select that ready group without a faculty assignment. When unchecked, only assigned students can start it. Existing assignments/attempts are retained when this setting changes.
 
-## Available groups and faculty creation
+**Create a patient group** selects at least two published patients, a title and group type; purpose is optional. Practice groups may combine conditions. Demographic comparisons require matching clinical/scenario settings. Editing patients is a separate preparation task, not a step during assignment. Student management is collapsed below the catalog.
 
-In Faculty **Prepared groups**, use **Make available to all** to offer a reviewed/published group without assigning each student individually. Students find it under **Patient group → Available simulations**. Starting it fixes patient versions and trial order, then behaves like an assigned test. Repeated starts resume the same attempt. **Use assignments only** stops new self-starts; already created assignments remain resumable.
+## Prepared releases and existing work
 
-**Create a patient group** selects at least two published patients, a title and group type; purpose is optional. Practice groups can combine conditions. Demographic comparison groups retain the matching clinical/scenario checks and require faculty preparation. A practice group is not automatically a controlled bias comparison. Creation, availability and student aliases are faculty-only; students never see these controls.
+Startup installs the bundled synthetic demo releases with explicit team-prepared provenance. This records no faculty clinical approval; it makes the supplied prototype immediately runnable. Custom authoring retains faculty review and acknowledgment.
+
+Seed revision 2 uses separate `comparison-omar-demo` / `comparison-alex-demo` profile IDs. Earlier `comparison-omar` / `comparison-alex` drafts, publications and pinned encounters remain intact. The catalog moves to the bundled releases; previous assignments continue using their originally pinned cases. An explicitly saved availability setting is preserved during migration. New installations include the demo in open assessments.
 
 ## Prepared case provenance
 
 The tracked seed is [prepared-groups.json](../corpus/prepared-groups.json). It uses the supplied **faculty CSV** and existing organizer-derived teaching suggestions for Omar, rather than importing the richer Hugging Face profile's inferred medications or other extra details. Raw CSV content is retained. The richer downloaded corpus remains available unchanged; do not silently combine differing versions.
 
-Omar remains 45, male, African-American. Alex Morgan is an explicitly **team-authored adaptation**, 45, male, White American. The clinical facts, personality, language/style, objectives and disclosure rules match. Alex's source notes identify the retained original row as Omar's provenance, not Alex's biography. Both need faculty review; publication does not assert clinical correctness.
+Omar remains 45, male, African-American. Alex Morgan is an explicitly **team-authored adaptation**, 45, male, White American. The clinical facts, personality, language/style, objectives and disclosure rules match. Alex's source notes identify the retained original row as Omar's provenance, not Alex's biography. The bundled releases are team-prepared for the prototype; they do not assert clinical correctness or faculty clinical approval.
 
 Supplied lipid values are retained with unspecified units/date. Medication names, doses and allergies remain unknown. General NHLBI/AHA reference excerpts support review and coaching; they do not add patient-specific facts. The supplied CSV subset has no meal-count contradiction to resolve; differing meal descriptions in the richer organizer-linked corpus have not been imported into this pair.
 
@@ -39,9 +40,9 @@ Both use a generic portrait and a common `presentationKey` for voice selection. 
 
 | Owner                 | Remaining work                                                                                                                                    |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Faculty/case reviewer | Review and publish both cases before rehearsal; verify actual recorded assessments against the organizer rubric.                                  |
+| Faculty/case reviewer | Rehearse the ready cases and verify recorded assessments against the organizer rubric; review any custom clinical edits.                                  |
 | Bias teammate         | Implement detection and connect the [faculty-only integration contract](BIAS-INTEGRATION.md). No detector or sample findings are fabricated here. |
 | Speech/UI teammate    | Rehearse physical microphone, audio, common voice and generic portrait in Chrome/Edge.                                                            |
 | Demo teammate         | Record the assigned group, faculty results and independent new-patient creation; avoid claiming differences prove bias.                           |
 
-`npm test` covers the HTTP and DOM workflows with local inference. `node scripts/demo-smoke.js` uses real Bedrock and configured S3 in an isolated ignored data directory/cloud prefix, with synthetic **test-only** approvals. It prints provider/storage results and writes ignored `output/group-smoke.json`. This does not publish cases in your active application store or replace faculty review.
+`npm test` covers the HTTP and DOM workflows with local inference. `node scripts/demo-smoke.js` uses real Bedrock and configured S3 in an isolated ignored data directory/cloud prefix, using the bundled prepared demo releases. It prints provider/storage results and writes ignored `output/group-smoke.json`. This does not publish cases in your active application store or replace faculty review.

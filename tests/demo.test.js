@@ -63,29 +63,15 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
       403,
     );
     const group = (await call(faculty, "/api/groups")).data.groups[0];
-    assert.equal(group.preparationStatus, "faculty-review-required");
-    assert.equal(
-      (
-        await call(faculty, "/api/assignments", "POST", {
-          groupId: group.id,
-          studentId: students[0].id,
-        })
-      ).status,
-      422,
-    );
+    assert.equal(group.preparationStatus, "ready");
     const profiles = [];
     for (const c of group.cases) {
       const p = (await call(faculty, `/api/profiles/${c.profileId}`)).data
         .profile;
       assert.equal(p.reviewAcknowledged, false);
       assert.ok(!p.facts.some((f) => f.allergyDrug));
-      p.reviewAcknowledged = true;
-      await call(faculty, `/api/profiles/${p.id}`, "PUT", { profile: p });
-      assert.equal(
-        (await call(faculty, `/api/profiles/${p.id}/publish`, "POST", {}))
-          .status,
-        201,
-      );
+      assert.ok(p.preparedDemo);
+      assert.match(p.publicationBasis, /no faculty clinical approval/);
       profiles.push(p);
     }
     assert.equal(speech.pickVoice(profiles[0]), speech.pickVoice(profiles[1]));
@@ -170,6 +156,7 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     );
     const p = profiles.find((p) => p.id === first.profileId);
     p.facts[0].say = "Changed after assignment.";
+    p.reviewAcknowledged = true;
     await call(faculty, `/api/profiles/${p.id}`, "PUT", { profile: p });
     await call(faculty, `/api/profiles/${p.id}/publish`, "POST", {});
     assert.equal(

@@ -4,16 +4,18 @@
       "id": "omar-dyslipidemia-comparison",
       "title": "Dyslipidemia: medication concerns",
       "purpose": "Practice respectful information gathering and shared decisions across matched demographic cases.",
-      "profileIds": ["comparison-omar", "comparison-alex"],
+      "profileIds": ["comparison-omar-demo", "comparison-alex-demo"],
       "differences": "Name and self-described ethnicity: African-American / White American. Age, gender, clinical facts, character, language, objectives and disclosure rules are held constant.",
       "provenance": "Omar Sinclair organizer CSV plus an explicitly team-authored identity variant.",
       "limitations": "Two prototype trials cannot establish student bias. Repeated-case learning and model response variation remain confounds. Generic portrait and common voice selection are used.",
-      "sourceNote": "Engineering-organized suggestions from the organizer CSV. No medication, allergy, measurement unit or report date has been supplied. Review every proposed patient-known statement before publication."
+      "sourceNote": "Preconfigured synthetic demo cases based on the organizer CSV. The second identity is team-authored. Unspecified medication, allergy, measurement units and dates remain unknown. This is a team-prepared demo release, not faculty clinical approval.",
+      "seedRevision": 2,
+      "availableToAll": true
     }
   ],
   "profiles": [
     {
-      "id": "comparison-omar",
+      "id": "comparison-omar-demo",
       "name": "Omar Sinclair",
       "age": 45,
       "intro": "Hello, I'm Omar.",
@@ -221,11 +223,13 @@
       "provenance": {
         "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
         "source": "corpus/faculty-patients.csv",
-        "preparation": "Team-organized organizer facts; faculty review required"
-      }
+        "preparation": "Team-prepared synthetic demo based on organizer facts; no faculty clinical approval recorded"
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled synthetic demo case prepared by the team; no faculty clinical approval recorded."
     },
     {
-      "id": "comparison-alex",
+      "id": "comparison-alex-demo",
       "name": "Alex Morgan",
       "age": 45,
       "intro": "Hello, I'm Alex.",
@@ -440,7 +444,9 @@
         "sourcePatientId": "b5814549-fd2b-42a2-af78-9b681ad6f268",
         "source": "corpus/faculty-patients.csv",
         "preparation": "Team-authored identity/ethnicity variant; not an organizer-provided persona"
-      }
+      },
+      "preparedDemo": true,
+      "publicationBasis": "Bundled synthetic demo case prepared by the team; no faculty clinical approval recorded."
     }
   ]
 }

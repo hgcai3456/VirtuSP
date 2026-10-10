@@ -1,0 +1,23 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "Patient has limited English proficiency but uses functional English",
+    "Patient's trauma history affects his mental health and sleep",
+    "Patient's family dynamics are supportive but not actively involved in his care",
+    "Patient's financial status is strained but stable enough to access care"
+  ],
+  "optional_details": [
+    "He has a pet dog that he cares for and walks",
+    "He attends a community meeting weekly to discuss local issues",
+    "He has a history of eating disorders related to body image",
+    "He has been using supplements to lower his blood sugar",
+    "He has a strong belief that he should be the provider for his family"
+  ]
+}
