@@ -9,3 +9,4 @@ data/*.sqlite-wal
 data/*.sqlite-shm
 data/ingest-checkpoint.json
 data/ingest-checkpoint-*.json
+data/reports/

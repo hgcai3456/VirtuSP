@@ -47,3 +47,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_medical_data_quote
 CREATE INDEX IF NOT EXISTS idx_medical_data_journal ON medical_data(journal_id);
 CREATE INDEX IF NOT EXISTS idx_medical_data_topic ON medical_data(topic);
 CREATE INDEX IF NOT EXISTS idx_journals_year ON journals(year);
+
+CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  patient_id TEXT NOT NULL,
+  encounter_id TEXT,
+  kind TEXT NOT NULL,
+  title TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  stored_name TEXT NOT NULL,
+  uploaded_by TEXT NOT NULL,
+  uploader_role TEXT,
+  size_bytes INTEGER NOT NULL,
+  uploaded_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reports_patient ON reports(patient_id, uploaded_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_stored ON reports(stored_name);

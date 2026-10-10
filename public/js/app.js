@@ -669,7 +669,7 @@ function disclose(f, q) {
 
 const UNKNOWN = "I'm not sure about that. Could you ask me another way?";
 
-function caseFactsForGate() {
+function caseFactsForService() {
   const profile = enc && enc.p;
   if (!profile) {
     return { intro: '', facts: [] };
@@ -681,7 +681,10 @@ function caseFactsForGate() {
       id: f.id,
       say: f.say || '',
       deflect: f.deflect || '',
-      label: f.label || ''
+      label: f.label || '',
+      kw: f.kw || [],
+      vis: f.vis || 'ask',
+      gate: f.gate || 0
     }))
   };
 }
@@ -699,29 +702,6 @@ function citeLabel(side) {
   }
 
   return first.pmid ? 'PMID ' + first.pmid : ('data:' + first.id);
-}
-
-function draftReply(q) {
-  const lower = q.toLowerCase();
-  const profile = enc.p;
-  let best = null;
-  let score = 0;
-  profile.facts.filter((f) => f.vis === 'ask').forEach((f) => {
-    const s = (f.kw || []).filter((k) => lower.includes(k)).length;
-    if (s > score) {
-      score = s;
-      best = f;
-    }
-  });
-
-  if (!best) {
-    return { lower, best: null, reply: UNKNOWN, grounded: 'fallback', emotion: 'neutral' };
-  }
-  if (best.gate > enc.trust && !enc.disc.has(best.id)) {
-    return { lower, best, reply: best.deflect, grounded: 'blocked:' + best.id, emotion: 'embarrassed', trustHold: true };
-  }
-
-  return { lower, best, reply: best.say, grounded: best.id, emotion: best.gate ? 'relieved' : 'neutral' };
 }
 
 function scoreStudent(lower) {
@@ -743,19 +723,32 @@ function scoreStudent(lower) {
   }
 }
 
-async function runGate(request, response) {
-  const res = await fetch('/api/gate', {
+function logReview(verdict) {
+  const stages = (verdict && verdict.stages) || {};
+  const identified = stages.identify || {};
+  const searched = stages.search || {};
+  const wide = stages.exhaustive || {};
+  const review = stages.review || {};
+  log('identify', identified.unique ? 'Problem: ' + identified.problem : 'No single problem identified');
+  log('search', searched.confirmed ? 'Search confirmed ' + searched.fact_id : 'Search did not confirm one problem');
+  log('exhaustive', wide.unique ? 'Exhaustive search kept ' + wide.fact_id : 'Exhaustive search was not conclusive');
+  log('review', review.reason || 'Review finished');
+}
+
+async function consultPatient(request) {
+  const res = await fetch('/api/patient', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       request,
-      response,
-      case_facts: caseFactsForGate()
+      trust: enc.trust,
+      disclosed: [...enc.disc.keys()],
+      case_facts: caseFactsForService()
     })
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || 'Grounding gate is unavailable');
+    throw new Error(data.error || 'Patient review is unavailable');
   }
 
   return data;
@@ -773,12 +766,12 @@ async function ask(q) {
   av('checking', 'neutral');
   const status = $('#mst');
   if (status) {
-    status.textContent = 'Checking this request against journals and medical_data…';
+    status.textContent = 'Identifying the problem, searching the record, and reviewing the reply…';
   }
 
   try {
-    const proposed = draftReply(text);
-    const verdict = await runGate(text, proposed.reply);
+    const verdict = await consultPatient(text);
+    logReview(verdict);
     if (!verdict.send || !verdict.request || !verdict.request.allow) {
       enc.tr.push({ w: 'Student', t: text, g: 'blocked' });
       enc.tr.push({
@@ -791,25 +784,21 @@ async function ask(q) {
       save();
       render(true);
     } else {
-      scoreStudent(proposed.lower);
+      scoreStudent(text.toLowerCase());
       enc.turns += 1;
       enc.tr.push({ w: 'Student', t: text, g: citeLabel(verdict.request) });
       log('student', text);
       log('gate', verdict.request.reason);
 
-      let reply = proposed.reply;
-      let grounded = proposed.grounded;
-      let emotion = proposed.emotion;
-      if (!verdict.response || !verdict.response.allow) {
-        reply = UNKNOWN;
-        grounded = 'blocked-ungrounded';
-        emotion = 'neutral';
-        log('gate', (verdict.response && verdict.response.reason) || 'Response blocked');
-      } else if (proposed.trustHold) {
+      const reply = verdict.certain ? verdict.reply : (verdict.reply || UNKNOWN);
+      const grounded = verdict.certain ? verdict.grounded : 'fallback';
+      const emotion = verdict.certain ? (verdict.emotion || 'neutral') : 'neutral';
+      const fact = (enc.p.facts || []).find((item) => item.id === verdict.fact_id);
+      if (verdict.certain && verdict.trust_hold) {
         enc.blocked += 1;
-        log('gate', `${proposed.best.id} withheld (trust ${enc.trust}<${proposed.best.gate})`);
-      } else if (proposed.best && grounded === proposed.best.id) {
-        disclose(proposed.best, text);
+        log('gate', `${verdict.fact_id} withheld (trust ${enc.trust})`);
+      } else if (verdict.certain && fact) {
+        disclose(fact, text);
       }
 
       enc.tr.push({ w: 'Patient', t: reply, g: grounded });
@@ -1512,7 +1501,7 @@ function vEnc() {
       <h2>${esc(enc.p.name)}, ${enc.p.age}</h2>
       <div class="av-status" id="avs">Listening</div>
       <button class="mic-btn" id="micBtn" type="button" onclick="mic()">Tap to talk</button>
-      <div class="chip" id="mst">Every ask is checked against journals and medical_data before it is sent.</div>
+      <div class="chip" id="mst">Every ask is identified, searched, and reviewed before the patient answers.</div>
       <div class="row" style="margin-top:10px">
         <button class="btn" type="button" onclick="endConvo()">Pause</button>
         <button class="btn" type="button" onclick="toggleType()">Type instead</button>
@@ -2009,7 +1998,7 @@ function render(keep) {
 
   const mode = $('#mode');
   if (mode) {
-    mode.textContent = tab === 'enc' ? 'Grounding gate on' : 'Local demo · no API keys';
+    mode.textContent = tab === 'enc' ? 'Reviewed reply · approved facts only' : 'Local demo · no API keys';
   }
 
   if (keep && tab === 'enc') {
