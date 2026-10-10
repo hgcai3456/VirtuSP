@@ -75,8 +75,9 @@ test("a visit turn appends the chat request and patient response", async () => {
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   const request = async (url, method = "GET", payload) => {
-    const r = await fetch(base + url, {
+    const r = await client(url, {
       method,
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,

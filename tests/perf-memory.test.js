@@ -67,12 +67,13 @@ test("Concurrent visits keep memory correct with no failed turns", async () => {
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   const samples = [];
   let failures = 0;
 
   async function turn(id, question, requestId) {
     const started = Date.now();
-    const response = await fetch(`${base}/api/encounters/${id}/turn`, {
+    const response = await client(`/api/encounters/${id}/turn`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, requestId }),
@@ -89,7 +90,7 @@ test("Concurrent visits keep memory correct with no failed turns", async () => {
   }
 
   async function visit(index) {
-    const started = await fetch(base + "/api/encounters", {
+    const started = await client("/api/encounters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profileId: "denise", version: 1 }),

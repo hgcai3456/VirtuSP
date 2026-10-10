@@ -8,12 +8,15 @@ const { createApp } = require("../server");
 test("HTTP lifecycle: publication, stale-edit regression, reusability, restart and protected reports", async () => {
   process.env.AI_ENABLED = "false";
   delete process.env.S3_BUCKET;
+  delete process.env.ELEVENLABS_API_KEY;
+  delete process.env.ELEVENLABS_VOICE_ID;
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "virtusp-test-"));
   let app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   let base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   const request = async (url, method = "GET", payload) => {
-    const r = await fetch(base + url, {
+    const r = await client(base + url, {
       method,
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,
@@ -42,6 +45,7 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     const encounter = (
       await request("/api/encounters", "POST", { profileId: p.id, version: 1 })
     ).data.encounter;
+    assert.equal(encounter.videoUrl, "/video/omar.mp4");
     assert.ok(!JSON.stringify(encounter).includes("LDL 195"));
     p.facts.find((f) => f.id === "concern").say =
       "I want to discuss medication concerns today.";
@@ -123,13 +127,13 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
         .status,
       403,
     );
-    assert.equal((await fetch(base + "/img/denise-ecg.jpg")).status, 404);
+    assert.equal((await client(base + "/img/denise-ecg.jpg")).status, 404);
     await request(`/api/encounters/${denise.id}/open`, "POST", {
       section: "img",
     });
     assert.equal(
       (
-        await fetch(
+        await client(
           base + `/api/encounters/${denise.id}/artifacts/den-ecg/file`,
         )
       ).status,
@@ -141,11 +145,41 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     });
     assert.equal(
       (
-        await fetch(
+        await client(
           base + `/api/encounters/${denise.id}/artifacts/den-ecg/file`,
         )
       ).status,
       200,
+    );
+    // Live realtime token needs ElevenLabs; without it the API reports 503.
+    assert.equal(
+      (await request(`/api/encounters/${denise.id}/live-token`, "POST", {}))
+        .status,
+      503,
+    );
+    const deniseFull = (await request(`/api/encounters/${denise.id}`)).data
+      .encounter;
+    const patientTurn = deniseFull.transcript.findLast(
+      (t) => t.role === "patient",
+    );
+    const studentTurn = deniseFull.transcript.find((t) => t.role === "student");
+    // Streaming speech is only offered for validated patient turns.
+    assert.equal(
+      (
+        await client(
+          base + `/api/encounters/${denise.id}/speech/${studentTurn.id}/stream`,
+        )
+      ).status,
+      403,
+    );
+    // A valid patient turn still needs ElevenLabs configured before it can stream.
+    assert.equal(
+      (
+        await client(
+          base + `/api/encounters/${denise.id}/speech/${patientTurn.id}/stream`,
+        )
+      ).status,
+      503,
     );
     await request(`/api/encounters/${newEnc.id}/complete`, "POST", {});
     await app.store.flush();
@@ -160,7 +194,7 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     assert.ok(
       (await request(`/api/encounters/${newEnc.id}`)).data.encounter.assessment,
     );
-    const malformed = await fetch(base + "/api/files", {
+    const malformed = await client(base + "/api/files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

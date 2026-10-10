@@ -1,0 +1,201 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Omar Sinclair",
+    "age": 45,
+    "sex": "Male",
+    "description": "Omar is a 45-year-old African-American aircraft mechanic presenting with dyslipidemia. He is independent and pragmatic but skeptical of pharmaceutical interventions. Despite a BMI of 29 and waist circumference of 43 inches, he has low health literacy regarding cardiovascular risk. He struggles with medication adherence due to perceived side effects and requires evidence-based nutrition counseling to manage lipids and reduce future cardiovascular risk.",
+    "keywords": [
+      "dyslipidemia",
+      "skeptical patient",
+      "medication non-adherence",
+      "clinical nutrition therapy",
+      "cardiovascular risk",
+      "motivational interviewing",
+      "low health literacy",
+      "lifestyle modification",
+      "medication counseling",
+      "mechanic"
+    ]
+  },
+  "demographics": {
+    "occupation": "Airplane mechanic",
+    "residence": "Suburban area",
+    "ethnicity": "African-American",
+    "language": "English",
+    "marital_status": "Married",
+    "education_level": "High school diploma",
+    "insurance": "Employment-based insurance",
+    "cultural_context": "Work-focused culture with long shifts and reliance on convenience foods; strong value placed on self-reliance and practical solutions."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "Western-style diet",
+    "food_preferences": [
+      "High-carb convenience foods",
+      "Burgers and pizza for quick meals"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "High intake of saturated fats",
+      "Low fruit and vegetable consumption",
+      "Heavy consumption of processed meats"
+    ],
+    "meal_pattern": "Irregular; breakfast skipped, heavy dinner",
+    "hydration": "Inadequate water intake; frequently drinks soda",
+    "physical_activity": "Sedentary; limited movement during long shifts",
+    "substance_use": "Non-smoker; moderate alcohol consumption",
+    "sleep": "Inconsistent sleep due to shift work"
+  },
+  "psychosocial_profile": {
+    "personality": "Independent, skeptical, practical, resistant to authority",
+    "communication_style": "Direct, concise, pragmatic, resistant to lecturing",
+    "goals": [
+      "Return to full work shifts without fatigue",
+      "Control cholesterol levels without side effects",
+      "Reduce cardiovascular risk without lifestyle changes"
+    ],
+    "concerns": [
+      "Medication side effects",
+      "Dietary changes are too restrictive",
+      "Misunderstanding of cholesterol numbers"
+    ],
+    "beliefs": [
+      "Statins cause muscle pain",
+      "Cholesterol is normal",
+      "Healthy eating is too expensive"
+    ],
+    "motivations": [
+      "Avoid heart attack",
+      "Play with grandkids",
+      "Return to full work"
+    ],
+    "fears": [
+      "Heart attack",
+      "Medication costs",
+      "Losing job"
+    ],
+    "barriers": [
+      "Medication side effects",
+      "Low health literacy",
+      "Busy schedule",
+      "Food accessibility"
+    ],
+    "strengths": [
+      "Pragmatic mindset",
+      "Desire for family",
+      "Ability to understand practical advice"
+    ],
+    "support_system": "Spouse who encourages healthy eating but has limited involvement",
+    "readiness_to_change": "Precontemplation on medication; contemplation on diet"
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "Name: Omar Sinclair",
+      "Age: 45",
+      "Occupation: Airplane mechanic"
+    ],
+    "discoverable_information": [
+      "Lives with spouse",
+      "Lives with young children",
+      "Eats 3 meals a day"
+    ],
+    "reluctant_information": [
+      "Medication side effects cause dizziness",
+      "Inconsistent medication adherence",
+      "Fear of being told what to eat"
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Apply the Nutrition Care Process",
+        "expected_discoveries": [
+          "Identify nutritional deficiencies",
+          "Assess medication interactions",
+          "Evaluate lifestyle factors"
+        ],
+        "possible_patient_reactions": [
+          "Resistant to the process initially",
+          "Copes well with structured approach"
+        ]
+      },
+      {
+        "learning_objective": "Develop an appropriate PES statement",
+        "expected_discoveries": [
+          "Identify the problem with LDL",
+          "Identify the cause of poor lipid profile",
+          "Identify effect on cardiovascular risk"
+        ],
+        "possible_patient_reactions": [
+          "Misunderstand PES format",
+          "Respond well to practical explanation"
+        ]
+      },
+      {
+        "learning_objective": "Develop evidence-based nutrition interventions",
+        "expected_discoveries": [
+          "Identify dietary habits",
+          "Identify dietary barriers",
+          "Develop specific dietary changes"
+        ],
+        "possible_patient_reactions": [
+          "Resist dietary changes",
+          "Explore changes when explained"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care",
+        "expected_discoveries": [
+          "Identify medication non-adherence",
+          "Identify medication side effects",
+          "Identify potential interactions"
+        ],
+        "possible_patient_reactions": [
+          "Fear of side effects",
+          "Willing to adjust diet"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing",
+        "expected_discoveries": [
+          "Identify values",
+          "Identify readiness",
+          "Identify barriers"
+        ],
+        "possible_patient_reactions": [
+          "Initial resistance",
+          "Open to non-confrontational approach"
+        ]
+      },
+      {
+        "learning_objective": "Address lifestyle and behavioral barriers",
+        "expected_discoveries": [
+          "Identify barriers",
+          "Identify strengths",
+          "Develop realistic solutions"
+        ],
+        "possible_patient_reactions": [
+          "Feeling overwhelmed",
+          "Appreciate practical strategies"
+        ]
+      },
+      {
+        "learning_objective": "Consider interprofessional and community resources",
+        "expected_discoveries": [
+          "Identify need for PCP follow-up",
+          "Identify need for dietitian counseling"
+        ],
+        "possible_patient_reactions": [
+          "Skepticism about referrals",
+          "Open to community resources"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,225 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Vladko Bareche",
+    "age": 31,
+    "sex": "Male",
+    "description": "Vladko is a 31-year-old Asian Indian male, a college-educated TV producer who recently migrated from Mumbai to Brooklyn. He struggles with uncontrolled type 2 diabetes complicated by substance use issues. He appears quiet and introverted, often showing signs of stress from his demanding creative career. He has significant dietary habits influenced by his background, along with smoking, alcohol abuse, and occasional cocaine use. He lacks consistent healthcare follow-up due to immigration-related barriers and limited local support.",
+    "keywords": [
+      "type 2 diabetes",
+      "migrant",
+      "substance use",
+      "vegan",
+      "smoking",
+      "alcohol abuse",
+      "motivational interviewing",
+      "community resources"
+    ]
+  },
+  "demographics": {
+    "occupation": "TV Producer",
+    "residence": "Brooklyn",
+    "ethnicity": "Asian Indian",
+    "language": "English, Hindi",
+    "marital_status": "Single",
+    "education_level": "Bachelor's degree in Film Studies (Completed in India)",
+    "insurance": "Marketplace plan (Limited coverage due to recent immigration)",
+    "cultural_context": "Vladko grew up in a traditional Indian household where communal meals and cultural foods were central. After moving to the US, he retains a preference for vegetarian meals and spicy flavors. He values independence and is hesitant to accept help or share personal struggles due to cultural norms around privacy and dignity."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "Traditional vegetarian",
+    "food_preferences": [
+      "Vegetarian meals",
+      "Spicy Asian and Indian cuisine",
+      "Avoids red meat entirely"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "Consumption of high-sugar sweets and drinks",
+      "Large portions of refined carbs (rice, bread)",
+      "Occasional alcohol consumption during social events"
+    ],
+    "meal_pattern": "Irregular meal times, frequently rushing between work, late dinners"
+  },
+  "psychosocial_profile": {
+    "personality": "Quiet, introverted, hardworking, highly creative",
+    "communication_style": "Brief, reserved, often deflecting personal questions with work-related stress",
+    "goals": [
+      "Maintain his demanding TV job",
+      "Improve energy levels for creative work",
+      "Travel to India in the future",
+      "Maintain a sense of control over his life"
+    ],
+    "concerns": [
+      "Will stop caring about this new 'diabetes' problem",
+      "Worried his diet changes will lead to depression",
+      "Concerned about the future of his creative career"
+    ],
+    "beliefs": [
+      "He is 'healthy' compared to his old age",
+      "Food and culture are more important than medical labs",
+      "Diabetes affects older people or 'unhealthy' people like his uncle"
+    ],
+    "motivations": [
+      "Desire to travel to India in the future",
+      "Fear of needing to rely on others",
+      "Wants to protect his health so he can keep creating"
+    ],
+    "fears": [
+      "Losing his independence",
+      "Being a 'failure' as a producer",
+      "Becoming a burden on his family in India",
+      "Physical decline or becoming reliant on others"
+    ],
+    "barriers": [
+      "Limited local support network",
+      "Chaos at work with frequent overtime",
+      "Lack of knowledge about nutrition in India",
+      "Difficulty affording healthier grocery options",
+      "Stress-induced eating"
+    ],
+    "strengths": [
+      "High creativity",
+      "Strong discipline for projects",
+      "Willing to try if shown clear benefit for career",
+      "Access to community resources if guided"
+    ],
+    "support_system": "Single, lives alone, no immediate family in US",
+    "readiness_to_change": "Ambivalent. Prefers to work out of desperation"
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "Mention of fatigue and high blood sugar",
+      "Vague references to alcohol during social events",
+      "Concern about weight loss",
+      "Mentions he eats 'Indian food' mostly",
+      "Will voluntarily share he is a vegetarian",
+      "Smoking habits",
+      "Occasional cocaine use",
+      "Inconsistent condom use",
+      "Lack of local support network"
+    ],
+    "discoverable_information": [
+      "Detailed alcohol use (2-8 drinks, 2-6 nights/week)",
+      "Inconsistent condom use (1-2 times/month)",
+      "Inconsistent condom use",
+      "Lack of local support network"
+    ],
+    "reluctant_information": [
+      "Lack of local support network"
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Apply the Nutrition Care Process.",
+        "expected_discoveries": [
+          "Patient's current food intake (high sugar, refined carbs)",
+          "Dietary restrictions (vegetarian)",
+          "Medication interactions (Metformin side effects)",
+          "Substance use affecting diet",
+          "Social support or lack thereof"
+        ],
+        "possible_patient_reactions": [
+          "Deflects personal questions about substance use",
+          "Minimizes the impact of current diet",
+          "Expresses confusion about food labels",
+          "Expresses frustration about work schedule affecting meals"
+        ]
+      },
+      {
+        "learning_objective": "Develop an appropriate PES statement.",
+        "expected_discoveries": [
+          "Patient's goals and fears",
+          "Barriers to change",
+          "Strengths and resources",
+          "Readiness to change",
+          "Cultural and social context"
+        ],
+        "possible_patient_reactions": [
+          "Expresses anger or fear when discussing goals",
+          "Expresses frustration about past failures",
+          "Shows hesitation when asked about future plans"
+        ]
+      },
+      {
+        "learning_objective": "Develop evidence-based nutrition interventions.",
+        "expected_discoveries": [
+          "Nutrition education gaps",
+          "Practical cooking or meal planning skills",
+          "Access to healthy foods",
+          "Food budget constraints",
+          "Social support or barriers"
+        ],
+        "possible_patient_reactions": [
+          "Expresses skepticism about dietary changes",
+          "Expresses frustration about 'unhealthy' options",
+          "Shows interest in cultural recipes"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care.",
+        "expected_discoveries": [
+          "Metformin side effects (nausea)",
+          "Alcohol use interacting with meds",
+          "Nutrition affecting glycemic control",
+          "Lack of consistency in medication use"
+        ],
+        "possible_patient_reactions": [
+          "Minimizes side effects",
+          "Expresses frustration with 'pills' causing issues",
+          "Shows interest in 'natural' fixes"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing.",
+        "expected_discoveries": [
+          "Patient's motivations (career, travel)",
+          "Readiness to change (ambivalence)",
+          "Barriers to change",
+          "Strengths and resources",
+          "Values and beliefs"
+        ],
+        "possible_patient_reactions": [
+          "Expresses anger or fear when discussing goals",
+          "Expresses frustration about past failures",
+          "Shows hesitation when asked about future plans"
+        ]
+      },
+      {
+        "learning_objective": "Address lifestyle and behavioral barriers.",
+        "expected_discoveries": [
+          "Work schedule affecting meals",
+          "Substance use affecting diet",
+          "Lack of local support network",
+          "Food budget constraints"
+        ],
+        "possible_patient_reactions": [
+          "Expresses anger or fear when discussing goals",
+          "Expresses frustration about past failures",
+          "Shows hesitation when asked about future plans"
+        ]
+      },
+      {
+        "learning_objective": "Consider interprofessional and community resources.",
+        "expected_discoveries": [
+          "Substance use (alcohol, cocaine)",
+          "Mental health stress (immigration)",
+          "Sexual health concerns (STI risk)",
+          "Access to community support groups"
+        ],
+        "possible_patient_reactions": [
+          "Expresses anger or fear when discussing goals",
+          "Expresses frustration about past failures",
+          "Shows hesitation when asked about future plans"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,219 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Case brief. Follow explicit disclosure conditions. Reluctant material requires a guarded disclosure rule, not immediate disclosure.
+
+{
+  "patient_overview": {
+    "name": "Walter Greene",
+    "age": 72,
+    "sex": "Male",
+    "description": "A 72-year-old African-American retired janitor with uncontrolled Type 2 Diabetes and congestive heart failure. Walter presents as a 'frequent flier' with non-adherent to dietary recommendations. He is grumpy and sarcastic toward students but can engage humorously when he feels understood or when he has a strong desire to be part of the care process. He tends to dominate conversations with 'shop talk' but reveals deeper fears about hospitalization and loss of independence if pressed empathetically.",
+    "keywords": [
+      "uncontrolled diabetes",
+      "heart failure",
+      "dietary nonadherence",
+      "motivational interviewing",
+      "medical nutrition therapy",
+      "aging",
+      "social isolation",
+      "health literacy",
+      "patient empowerment",
+      "interprofessional communication"
+    ]
+  },
+  "demographics": {
+    "occupation": "Retired janitor",
+    "residence": "Suburban area, lives alone in a two-bedroom apartment",
+    "ethnicity": "African-American",
+    "language": "English",
+    "marital_status": "Widowed",
+    "education_level": "High school diploma",
+    "insurance": "Medicare (Primary) and Medicaid (Secondary)",
+    "cultural_context": "Values self-sufficiency and doesn't like being treated like he is 'too old' for care plans he doesn't like. May be skeptical of modern dietary guidelines that conflict with his lifelong diet."
+  },
+  "nutrition_profile": {
+    "dietary_pattern": "American Heart Association 'diet', but modified by family recipes and personal taste. High in processed convenience foods, high-fat meats, and refined carbohydrates. Low in fiber and fruits/vegetables.",
+    "food_preferences": [
+      "Prefers fried foods and heavy sauces",
+      "Loves macaroni and cheese and fried chicken",
+      "Enjoys sweet tea and soda",
+      "Dislikes bitter vegetables"
+    ],
+    "foods_or_behaviors_to_explore": [
+      "Eats out with a local group twice a week",
+      "Order 'special' versions of standard menu items that are higher in sodium",
+      "Uses high-sodium canned soups for comfort food",
+      "Eats breakfast with toast and syrup if he has it",
+      "Drinks soda instead of water to make meals taste better"
+    ],
+    "meal_pattern": "Irregular eating. Usually skips breakfast, eats a large lunch around noon, and snacks in the evening. Dinner varies; sometimes has it with the dinner club, sometimes just eats leftovers.",
+    "hydration": "Dehydrates easily but avoids drinking water consistently due to excessive thirst. Prefers sugary sodas and fruit punch. Takes fluids mostly during lunch.",
+    "physical_activity": "Sits at his computer at the computer, mostly stationary. Limited physical ability due to shortness of breath and fatigue. Walks around the house only. Has a history of being very active, and feels frustrated that he can't do so much anymore.",
+    "substance_use": "Drinks 1-2 small cups of beer during TV at night. No smoking history (never smoked).",
+    "sleep": "Experiences insomnia due to excessive night urination (nocturia). Wakes up multiple times at night to urinate, which disrupts his sleep cycle."
+  },
+  "psychosocial_profile": {
+    "personality": "Cynical and sarcastic. He masks his anxiety and fear with humor and grumpiness. He doesn't like people who pity him or make him feel like a child. He can become very engaged when discussing his ",
+    "communication_style": "Direct and dismissive. He is often short and snappy at the beginning of the interaction, especially if he perceives the student is a student (often says, 'You look like a kid'). However, if the student acknowledges his experience and listens attentively, he opens up. He has a lot of energy and talks a lot.",
+    "goals": [
+      "Avoid going back to the hospital",
+      "Be able to eat his favorite foods without getting sick",
+      "Manage his medications without feeling dazed",
+      "Keep his independence",
+      "Understand exactly how his diabetes and heart failure are connected"
+    ],
+    "concerns": [
+      "Loses his home in the hospital because his heart condition makes him feel so much fatigue.",
+      "He knows he is losing weight and he's scared of losing his muscle mass",
+      "He is scared of the future and being a burden on his sister who lives across the country",
+      "Medication side effects like stomach upset or dizziness"
+    ],
+    "beliefs": [
+      "He believes that 'healthy eating' is just for the young, healthy, and rich. He thinks food is about comfort and joy, not calories.",
+      "He thinks his heart failure and diabetes are just the same thing. His 'sick thing'",
+      "He thinks doctors just want to keep him in the hospital to make money.",
+      "He is skeptical about the low-sodium diet because he loves salty food."
+    ],
+    "motivations": [
+      "Wants to see his family more often",
+      "Does not want to lose his independence",
+      "Wants to reduce his fatigue and not need to sit so much",
+      "Likes to feel in control"
+    ],
+    "fears": [
+      "Dying",
+      "Being a burden on his sister or friends",
+      "Losing his ability to go out for dinner with his friends",
+      "Losing weight"
+    ],
+    "barriers": [
+      "Health literacy: He doesn't understand the medical jargon around heart failure vs. diabetes",
+      "Financial: His fixed income makes fresh food and medications expensive",
+      "Social: His dinner club eats out twice a week, and the food is heavy on fried and salty foods.",
+      "Physiological: He is thirsty and tired, so he lacks the energy or motivation to prepare meals or exercise.",
+      "Medical: His medications cause stomach upset and dizziness, making him feel sick."
+    ],
+    "strengths": [
+      "He is highly intelligent and quick to learn",
+      "He is loyal and reliable",
+      "He has a sense of humor that can be used to build rapport"
+    ],
+    "support_system": "Sister lives across the country. Has a few neighbors, but he doesn't interact with them. Has a group of retired friends he talks to online (facebook or email), but no in-person support.",
+    "readiness_to_change": "Prefears, is in the Precontemplation or Early Contemplation stage. He says things like 'I know I should eat better, but who cares?' but he also says 'I don't want to die on the couch'."
+  },
+  "information_disclosure": {
+    "initial_information": [
+      "He introduces himself as Walter Greene.",
+      "He complains immediately about his medications: 'I take all these pills, they make me feel dumb and nauseous.'",
+      "He mentions he's here because his doctor sent him. He doesn't like being sent to the clinic for diet stuff.",
+      "He makes jokes about the student being young or not taking the session seriously. 'Do I need to fill out a form for this diet thing?'"
+    ],
+    "discoverable_information": [
+      "He eats out twice a week with his dinner club friends. The restaurant is a local chain with high sodium and fried foods.",
+      "He takes Ibuprofen for back pain 2-3 times a week. He doesn't know it might be bad for his heart and kidneys.",
+      "He doesn't understand the connection between his heart failure and his diabetes. He thinks they are separate things.",
+      "He drinks soda with every meal and avoids water.",
+      "He skips breakfast and eats his biggest meal at lunch.",
+      "He has no one to cook for him and relies on canned soups, instant mac and cheese, and leftovers.",
+      "He has trouble getting up in the morning and getting to the grocery store.",
+      "He feels guilty about his sister across the country because he is not taking care of himself."
+    ],
+    "reluctant_information": [
+      "He feels like he's failed his kids and his wife. He feels he's been a 'bad husband' and is afraid of being a 'bad' person because he doesn't follow the diet."
+    ]
+  },
+  "learning_opportunities": {
+    "opportunities": [
+      {
+        "learning_objective": "Apply the Nutrition Care Process.",
+        "expected_discoveries": [
+          "Student must assess patient's needs, identify the problem (PES statement), and then develop an individualized care plan.",
+          "Student will discover patient's knowledge, beliefs, and barriers to care.",
+          "Student will discover his health literacy level.",
+          "Student will identify his social and behavioral barriers."
+        ],
+        "possible_patient_reactions": [
+          "Patient will say 'I don't need a care plan, I just need to eat less.'"
+        ]
+      },
+      {
+        "learning_objective": "Develop an appropriate PES statement.",
+        "expected_discoveries": [
+          "Nutritional Status: Uncontrolled T2DM and HF, increased Na intake, low fiber intake, social barriers.",
+          "Evidence: HbA1c 8.7%, Creatinine 1.6, labs show high Na and low K. Lab values indicate diet and lifestyle are affecting his health."
+        ],
+        "possible_patient_reactions": [
+          "Patient may say 'I don't understand what a PES statement is. Is that a form?'"
+        ]
+      },
+      {
+        "learning_objective": "Develop evidence-based nutrition interventions.",
+        "expected_discoveries": [
+          "Student needs to develop interventions that address patient's diet (high sodium, high fat, low fiber), hydration (soda vs water), and medication adherence.",
+          "Student will discuss how to make 'less sodium' food taste good without compromising his health.",
+          "Student must discuss how to address his fear of losing weight and his desire for comfort food."
+        ],
+        "possible_patient_reactions": [
+          "Patient will say 'I don't eat like that! I eat like a person. You kids always want us to eat like we're in jail.'"
+        ]
+      },
+      {
+        "learning_objective": "Integrate medication management with nutrition care.",
+        "expected_discoveries": [
+          "Student will discover he takes Metformin (nausea), Lisinopril, Epirocil, and Ibuprofen.",
+          "Student will discover he takes Ibuprofen frequently for back pain, which can raise BP and strain kidneys.",
+          "Student will discuss how diet affects BP and heart failure (sodium), and how to manage medication side effects through diet."
+        ],
+        "possible_patient_reactions": [
+          "Patient will say 'Iblets make me feel sick. Why can't I just take a pill and forget it?'",
+          "Patient will say 'I take Advil for my back. Why does that matter?'"
+        ]
+      },
+      {
+        "learning_objective": "Use motivational interviewing.",
+        "expected_discoveries": [
+          "Student must use open-ended questions, reflective listening, and summarizing to explore patient's readiness to change.",
+          "Patient is in Precontemplation stage. Student must use MI techniques to help patient understand that patient is ready to change.",
+          "Student will discover he values independence and wants to avoid hospitalization."
+        ],
+        "possible_patient_reactions": [
+          "Student uses 'What makes you think that?' or 'You mentioned you didn't want to die. Is that why you're here today?'",
+          "Patient may react with defensiveness, say 'I'm here because my doctor ordered me.'",
+          "If student is empathetic, patient may open up: 'I'm scared. I don't want to be a burden to my kids or my sister.'",
+          "Student should ask 'On a scale of 1 to 10, how ready are you to try a different way of eating?'",
+          "Student should ask 'What do you feel like about trying something different?'",
+          "Student should ask 'How important is it that you are eating healthy?'"
+        ]
+      },
+      {
+        "learning_objective": "Address lifestyle and behavioral barriers.",
+        "expected_discoveries": [
+          "Student will discover barriers like health literacy, financial constraints, taste preferences, social isolation, and health literacy.",
+          "Student will discover he eats out twice a week with his dinner club friends.",
+          "Student will discuss how to incorporate his favorite foods in a way that is lower in sodium and higher in fiber.",
+          "Student will discuss how to manage his thirst without sugar, soda."
+        ],
+        "possible_patient_reactions": [
+          "Patient will say 'I know what I should do. I just don't have the time or the energy to cook.'",
+          "Patient will say 'Everyone I know eats out at my dinner club. How am I supposed to eat out on a low-sodium diet?'"
+        ]
+      },
+      {
+        "learning_objective": "Consider interprofessional and community resources.",
+        "expected_discoveries": [
+          "Student will discover he is a frequent flier and needs care coordination.",
+          "Student will discuss referring him to a diabetes educator, a dietitian, a social worker for food resources, a cardiologist, a nephrologist for his kidneys.",
+          "Student will discuss referring to a PT for his back pain and limited activity.",
+          "Student will discuss his support system and how to engage him."
+        ],
+        "possible_patient_reactions": [
+          "Student: 'I will be happy to talk with my team about your back pain and your kidney and heart doctor.'"
+        ]
+      }
+    ]
+  }
+}

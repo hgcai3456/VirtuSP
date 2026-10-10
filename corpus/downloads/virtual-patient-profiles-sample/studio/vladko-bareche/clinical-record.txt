@@ -1,0 +1,87 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Vladko Bareche",
+  "clinical_profile": {
+    "primary_diagnosis": "Type 2 Diabetes Mellitus, Poorly Controlled",
+    "secondary_diagnoses": [
+      "Hypertension",
+      "Non-Human Sexually Transmitted Infection (STI, Unspecified)",
+      "Chronic Alcohol Use Disorder"
+    ],
+    "medical_history": [
+      "Long-standing history of Type 2 Diabetes (Diagnosed ~3 years ago)",
+      "History of Hypertension (Diagnosed ~4 years ago)",
+      "Recent stress related to immigration and job change"
+    ],
+    "current_symptoms": [
+      "Persistent fatigue and low energy",
+      "Frequent urination (10-15 times/day)",
+      "Excessive thirst",
+      "Occasional blurry vision"
+    ],
+    "allergies": [
+      "Penicillin - rash"
+    ],
+    "clinical_findings": [
+      "Weight loss over the past 6 months (30 lbs)",
+      "Dry skin on lower extremities",
+      "Gestalt of substance use (fingernail nail changes/sores)",
+      "Evidence of non-adherence to medical advice"
+    ],
+    "laboratory_data": [
+      "HbA1c: 9.1% (Target < 7%) - High",
+      "Glucose: 230 mg/dL fasting - High",
+      "BMI: 22.0 (Underweight for current metabolic state)",
+      "Cholesterol Panel: High HDL",
+      "Liver Enzymes: Markedly elevated ALT - suggestive of alcohol use disorder"
+    ],
+    "vital_signs": [
+      "BP: 135/88 mmHg",
+      "HR: 110 bpm",
+      "Temp: 98.6 F",
+      "Respiratory rate: 16 breaths/min"
+    ],
+    "anthropometrics": [
+      "Height: 5'9\" (175 cm)",
+      "Weight: 148 lbs (67 kg)",
+      "BMI: 22.0 kg/m^2",
+      "Weight change: -30 lbs over 6 months",
+      "Waist circumference: 32 inches"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Metformin",
+        "dose": "500mg",
+        "frequency": "Twice daily with meals",
+        "purpose": "Type 2 Diabetes Management",
+        "adherence": "Poor. Reports sporadic use. Often forgets doses due to a chaotic work schedule.",
+        "patient_concerns": "Experiencing nausea and stomach cramps, causing nausea and abdominal pain."
+      },
+      {
+        "name": "Amlodipine",
+        "dose": "5mg",
+        "frequency": "Daily",
+        "purpose": "Hypertension Management",
+        "adherence": "Fair, reports taking them every day, but often misses morning doses. Reports mild dizziness sometimes.",
+        "patient_concerns": "Feels lightheaded in the mornings and occasionally forgets to take them."
+      }
+    ],
+    "supplements_and_otc": [
+      "Multivitamin (taken irregularly)",
+      "Acupressure wristbands"
+    ]
+  },
+  "hidden_information": [
+    "Inconsistent condom use (1-2 times/month)",
+    "Lack of local support network"
+  ]
+}

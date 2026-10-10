@@ -1,0 +1,88 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Omar Sinclair",
+  "clinical_profile": {
+    "primary_diagnosis": "Dyslipidemia",
+    "secondary_diagnoses": [
+      "Prediabetes",
+      "Essential Hypertension"
+    ],
+    "medical_history": [
+      "Family history of early coronary artery disease",
+      "Prior episodes of severe migraine",
+      "No prior cardiac events"
+    ],
+    "current_symptoms": [
+      "No specific symptoms"
+    ],
+    "allergies": [
+      "No known food or medication allergies"
+    ],
+    "clinical_findings": [
+      "Waist circumference 43 inches",
+      "Blood pressure 148/92 mmHg",
+      "Elevated LDL cholesterol"
+    ],
+    "laboratory_data": [
+      "Total cholesterol 260 mg/dL",
+      "LDL cholesterol 195 mg/dL",
+      "HDL cholesterol 30 mg/dL",
+      " Triglycerides 180 mg/dL",
+      "HbA1c 5.8%",
+      " fasting glucose 110 mg/dL"
+    ],
+    "vital_signs": [
+      "Heart rate: 82 bpm",
+      "Blood pressure: 148/92 mmHg",
+      "Temperature: 98.4°F",
+      "Respiratory rate: 16 breaths/min",
+      "Oxygen saturation: 97%"
+    ],
+    "anthropometrics": [
+      "Height: 5'10\"",
+      "Weight: 228 lbs",
+      "BMI: 29.2",
+      "Waist circumference: 43 inches",
+      "Body fat estimate: 28%"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Atorvastatin",
+        "dose": "40 mg",
+        "frequency": "Once daily",
+        "purpose": "Lower LDL cholesterol and reduce cardiovascular risk",
+        "adherence": "Inconsistent; misses doses occasionally",
+        "patient_concerns": "Feels dizzy after taking it and worries about "
+      },
+      {
+        "name": "Lisinopril",
+        "dose": "20 mg",
+        "frequency": "Once daily",
+        "purpose": "Control blood pressure",
+        "adherence": "Consistent",
+        "patient_concerns": "Experience a persistent dry cough."
+      }
+    ],
+    "supplements_and_otc": [
+      "Fish oil",
+      "Vitamin D3",
+      "Multivitamin"
+    ]
+  },
+  "hidden_information": [
+    "Recent weight gain due to long shifts",
+    "Low fruit and vegetable consumption",
+    "Heavy alcohol consumption",
+    "Irregular sleep due to shift work",
+    "Poor understanding of cholesterol"
+  ]
+}

@@ -22,10 +22,20 @@ flowchart LR
     E --> B[Bedrock rubric assessment]
     X[Reviewed teaching excerpts] --> B
     B --> Q[Evidence validation and grounding review]
-    Q --> U
+    Q --> FG[Role, ownership and group feedback gates]
+    FG --> U
+    GP[Prepared groups] --> AS[Faculty assignment pins versions]
+    AS --> TR[Student attempt with fixed trial order]
+    TR --> E
+    E --> BC[Faculty-only detector context]
+    BC --> BI[Teammate bias detector]
+    BI --> BR[Separate evidence-validated analysis record]
+    BR --> FV[Faculty student results]
 ```
 
 ## Data boundaries
+
+The entry picker selects a local Faculty/Student demo session. Server guards protect authoring, raw files, student ownership and faculty analysis. Students see only their encounters; group assessments are filtered from every student response/export until all trials finish. Faculty can inspect student attempts but cannot alter them. Aliases, prepared groups, assignments, attempts and separate analysis results share the existing local/S3 manifest. Sessions reset on restart; saved progress remains. See [comparison workflow](DEMO-GROUPS.md) and [detector contract](BIAS-INTEGRATION.md). This is intentionally a local demonstration identity system, not public-hosting authentication.
 
 | Data                               | Source of authority                      | Model use                                                                         |
 | ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |

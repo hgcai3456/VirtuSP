@@ -89,16 +89,17 @@ test("The talking-video route stays unavailable without ElevenLabs", async () =>
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   try {
-    const started = await fetch(base + "/api/encounters", {
+    const started = await client("/api/encounters", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ profileId: "denise", version: 1 }),
     });
     assert.equal(started.status, 201);
     const encounter = (await started.json()).encounter;
-    const video = await fetch(
-      `${base}/api/encounters/${encounter.id}/talking-video`,
+    const video = await client(
+      `/api/encounters/${encounter.id}/talking-video`,
     );
     assert.equal(video.status, 503);
     const body = await video.json();

@@ -21,13 +21,15 @@ test("Rich-case drafting allows a complete response and retains independent grou
       return response({
         name: "Patient",
         age: 59,
+        gender: "male",
+        ethnicity: "Supplied ethnicity",
         facts: [{ label: "Concern", say: "I feel tired." }],
       });
     return response({ supported: true });
   };
   try {
     const draft = await cloud.draft(
-      "Name: Patient. Age: 59. I feel tired.",
+      "Name: Patient. Age: 59. Gender: male. Ethnicity: Supplied ethnicity. I feel tired.",
       [],
     );
     assert.equal(draft.age, 59);
@@ -41,6 +43,9 @@ test("Rich-case drafting allows a complete response and retains independent grou
       calls[0].system[0].text.includes("Exclude faculty-only metadata"),
     );
     assert.ok(calls[1].system[0].text.includes("Reject ANY new"));
+    const reviewed = JSON.parse(calls[1].messages[0].content[0].text);
+    assert.equal(reviewed.details.gender, "male");
+    assert.equal(reviewed.details.ethnicity, "Supplied ethnicity");
     assert.ok(
       calls[1].outputConfig?.textFormat.structure.jsonSchema.schema.includes(
         '"supported"',

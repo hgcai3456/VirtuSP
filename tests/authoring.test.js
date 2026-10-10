@@ -15,8 +15,9 @@ test("Document roles, previews, clinical attachments and explicit creation prese
   await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${app.server.address().port}`,
     oldDraft = cloud.draft;
+  const client = await require("./http-client").facultyClient(() => base);
   const request = async (url, payload) => {
-    const r = await fetch(base + url, {
+    const r = await client(base + url, {
       method: payload ? "POST" : "GET",
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,
@@ -45,6 +46,8 @@ test("Document roles, previews, clinical attachments and explicit creation prese
       return {
         name: "Document Patient",
         age: null,
+        gender: "female",
+        ethnicity: "Explicit synthetic ethnicity",
         facts: [
           {
             label: "Follow-up requested",
@@ -71,6 +74,8 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     assert.equal(draft.status, 201);
     assert.equal(draft.profile.sources.filter((s) => s.fileId).length, 3);
     assert.equal(draft.profile.age, null);
+    assert.equal(draft.profile.gender, "female");
+    assert.equal(draft.profile.ethnicity, "Explicit synthetic ethnicity");
     assert.equal(
       draft.profile.facts[0].vis,
       "chart",

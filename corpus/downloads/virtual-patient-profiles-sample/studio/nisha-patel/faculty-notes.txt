@@ -1,0 +1,18 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Faculty-only source assumptions and optional details. These are not automatically approved patient facts.
+
+{
+  "assumptions": [
+    "The patient's anxiety is linked to her first hospitalization and the new diagnosis.",
+    "The patient's husband supports her emotionally and financially.",
+    "The patient's high intelligence does not directly translate to better health literacy due to stress and anxiety."
+  ],
+  "optional_details": [
+    "She is a tech enthusiast who often researches health topics online."
+  ]
+}

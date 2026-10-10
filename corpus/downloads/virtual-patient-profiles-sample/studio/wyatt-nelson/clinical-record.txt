@@ -1,0 +1,88 @@
+Organizer-linked synthetic patient material
+Source: https://huggingface.co/datasets/joeljames270/virtual-patient-profiles-sample
+Revision: ee5c260a6e24cd9d6baf5c0ab7ec636788c64c70
+Attribution: VHS (Virtual Human Simulation) project, Rutgers University
+Derived by splitting supplied sections; no patient facts were generated.
+Faculty review is required before publication.
+Upload purpose: Chart report. All findings in this document are chart-only until faculty explicitly authors patient-known wording. Dates absent from the source remain unspecified.
+
+{
+  "patient": "Wyatt Nelson",
+  "clinical_profile": {
+    "primary_diagnosis": "Type 2 Diabetes Mellitus (Uncontrolled)",
+    "secondary_diagnoses": [
+      "Obesity Class I",
+      "Dyslipidemia",
+      "Constipation"
+    ],
+    "medical_history": [
+      "Diagnosis of Type 2 Diabetes at age 15",
+      "History of obesity",
+      "Family history of metabolic syndrome"
+    ],
+    "current_symptoms": [
+      "Frequent thirst and urination",
+      "Fatigue and low energy levels",
+      "Constipation and abdominal discomfort",
+      "Blurred vision"
+    ],
+    "allergies": [],
+    "clinical_findings": [
+      "BMI 32 kg/m2",
+      "Blood pressure 128/84 mmHg",
+      "Resting heart rate 78 bpm",
+      "Peripheral edema (mild)"
+    ],
+    "laboratory_data": [
+      "HbA1c: 8.9%",
+      "Total Cholesterol: 235 mg/dL",
+      "LDL: 145 mg/dL",
+      "HDL: 38 mg/dL",
+      "Triglycerides: 180 mg/dL",
+      "Fasting Glucose: 142 mg/dL"
+    ],
+    "vital_signs": [
+      "Heart Rate: 78 bpm",
+      "Blood Pressure: 128/84 mmHg",
+      "Respiratory Rate: 16/min",
+      "Temperature: 98.4 F",
+      "O2 Saturation: 99%"
+    ],
+    "anthropometrics": [
+      "Height: 5'10\"",
+      "Weight: 210 lbs",
+      "BMI: 32.1 kg/m2",
+      "Waist circumference: 38 inches"
+    ]
+  },
+  "medication_profile": {
+    "medications": [
+      {
+        "name": "Metformin",
+        "dose": "1000 mg",
+        "frequency": "Twice daily with meals",
+        "purpose": "To lower blood sugar levels",
+        "adherence": "Inconsistent; often forgets doses due to school schedule",
+        "patient_concerns": "Experiences nausea and stomach upset; skips doses to avoid discomfort"
+      },
+      {
+        "name": "Glipizide",
+        "dose": "5 mg",
+        "frequency": "Once daily with dinner",
+        "purpose": "To help regulate blood glucose",
+        "adherence": "Good adherence",
+        "patient_concerns": "None; takes it as directed"
+      }
+    ],
+    "supplements_and_otc": [
+      "Magnesium glycinate",
+      "Ibbotronix"
+    ]
+  },
+  "hidden_information": [
+    "Parent reports that Wyatt has had frequent school absences due to health issues",
+    "School nurse notes his declining energy and attention during classes",
+    "Medical records show previous non-adherence with insulin therapy",
+    "Peer interviews indicate that Wyatt feels pressured to consume sugary foods during group activities"
+  ]
+}

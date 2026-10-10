@@ -1,0 +1,14 @@
+{
+  "default": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "denise.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "marcus.jpg": { "mouthTop": 0.67, "mouthHeight": 0.2 },
+  "m-young.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "m-mid.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "m-mid-2.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "m-old.jpg": { "mouthTop": 0.67, "mouthHeight": 0.2 },
+  "f-young.jpg": { "mouthTop": 0.65, "mouthHeight": 0.2 },
+  "f-mid.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "f-mid-2.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 },
+  "f-old.jpg": { "mouthTop": 0.67, "mouthHeight": 0.2 },
+  "patient.jpg": { "mouthTop": 0.66, "mouthHeight": 0.2 }
+}

@@ -6,9 +6,9 @@ const os = require("node:os");
 const path = require("node:path");
 const { createApp } = require("../lib/http");
 
-async function request(base, url, payload) {
+async function request(client, url, payload) {
   const started = performance.now();
-  const response = await fetch(base + url, {
+  const response = await client(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -17,8 +17,10 @@ async function request(base, url, payload) {
   return { status: response.status, ms: performance.now() - started, data };
 }
 
-async function textVisit(base, user) {
-  const created = await request(base, "/api/encounters", { profileId: "riley" });
+async function textVisit(client, user) {
+  const created = await request(client, "/api/encounters", {
+    profileId: "riley",
+  });
   assert.equal(created.status, 201);
   const id = created.data.encounter.id;
   assert.equal(created.data.encounter.channel, "visit");
@@ -34,7 +36,7 @@ async function textVisit(base, user) {
   ];
   let last = created;
   for (const [question, name] of turns) {
-    last = await request(base, `/api/encounters/${id}/turn`, {
+    last = await request(client, `/api/encounters/${id}/turn`, {
       question,
       requestId: `${user}-${name}`,
     });
@@ -50,10 +52,13 @@ test("Eight concurrent Riley video visits stay local, correct, and within 2 seco
   const app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${app.server.address().port}`;
+  const client = await require("./http-client").facultyClient(() => base);
   try {
     const users = 8;
     const results = await Promise.all(
-      Array.from({ length: users }, (_, index) => textVisit(base, `u${index}`)),
+      Array.from({ length: users }, (_, index) =>
+        textVisit(client, `u${index}`),
+      ),
     );
     for (const result of results) {
       assert.equal(result.encounter.emergency.service, "911");
