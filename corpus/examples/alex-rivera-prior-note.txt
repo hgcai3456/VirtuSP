@@ -1,0 +1,14 @@
+SYNTHETIC CLINICAL RECORD - authored example, not a real medical record
+
+Patient: Alex Rivera
+Age: 42
+Note date: 2026-10-10
+Chart category: Notes
+
+Patient reported feeling tired for two weeks and requested a discussion.
+No measurements, diagnoses or treatment decisions are supplied in this note.
+Unspecified information must remain unknown.
+
+Upload purpose: Clinical report (student chart).
+Faculty should review the extracted findings, enter the report date, link its
+facts, and choose when the note becomes available during the encounter.

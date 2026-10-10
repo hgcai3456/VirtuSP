@@ -38,6 +38,7 @@ test("Document roles, previews, clinical attachments and explicit creation prese
     const report = await upload("Clinical.pdf", [
       "Synthetic chart report. Date: 2026-10-10. Prior note: Follow-up requested.",
     ]);
+    const caseBrief = await upload("Case.pdf", ["Name: Document Patient"]);
     cloud.draft = async (description, sources) => {
       assert.ok(!description.includes("age is 80"));
       assert.ok(sources.some((s) => s.id === "upload-" + reference.id));
@@ -63,10 +64,12 @@ test("Document roles, previews, clinical attachments and explicit creation prese
       files: [
         { id: reference.id, role: "reference" },
         { id: report.id, role: "clinical", section: "notes" },
+        { id: caseBrief.id, role: "case" },
       ],
       preview: true,
     });
     assert.equal(draft.status, 201);
+    assert.equal(draft.profile.sources.filter((s) => s.fileId).length, 3);
     assert.equal(draft.profile.age, null);
     assert.equal(
       draft.profile.facts[0].vis,

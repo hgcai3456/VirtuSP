@@ -40,7 +40,7 @@ Open [the simulator](http://localhost:3000/app.html). The header says **configur
 
 ## Create and edit patients
 
-Click **New patient** or a card's **Edit** button to open the faculty form. Upload one or two synthetic case documents, choose their purpose, then **Extract & fill form**. Review/correct details and use the single faculty acknowledgment before **Create & publish patient**. Use **Save draft** for unfinished work. Parsing previews do not add patients; missing medical facts stay unknown. Selectable PDF text works; image/handwritten OCR is deferred. See [AUTHORING.md](AUTHORING.md) for examples and artifact guidance.
+Click **New patient** or a card's **Edit** button to open the faculty form. Upload synthetic case documents, choose their purpose, then **Extract & fill form**. Review/correct details and use the single faculty acknowledgment before **Create & publish patient**. Use **Save draft** for unfinished work. Parsing previews do not add patients; missing medical facts stay unknown. Selectable PDF text works; image/handwritten OCR is deferred. See [AUTHORING.md](AUTHORING.md) for examples and artifact guidance.
 
 ## ElevenLabs can be added later
 

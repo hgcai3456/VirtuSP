@@ -23,6 +23,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     virtualConsole: console,
   });
   const window = dom.window;
+  window.structuredClone = structuredClone;
   window.fetch = (url, options) => fetch(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
   const recognizers = [];
@@ -50,7 +51,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
     throw new Error(
-      "DOM action did not settle: " + doc.querySelector(".toast")?.textContent,
+      "DOM action did not settle: " +
+        (doc.querySelector(".form-notice")?.textContent ||
+          doc.querySelector(".toast")?.textContent),
     );
   };
   const click = (action, extra = "") => {
@@ -98,20 +101,19 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     ]);
     const input = doc.getElementById("patient-upload");
     Object.defineProperty(input, "files", {
-      value: [
-        {
-          name: "Synthetic case.pdf",
-          type: "application/pdf",
-          arrayBuffer: async () => pdf,
-        },
-      ],
+      value: ["Case.pdf", "History.pdf", "Context.pdf"].map((name) => ({
+        name,
+        type: "application/pdf",
+        arrayBuffer: async () => pdf,
+      })),
     });
     input.dispatchEvent(new window.Event("change", { bubbles: true }));
-    await wait(() =>
-      doc
-        .querySelector(".uploaded-document")
-        ?.textContent.includes("Text extracted"),
+    await wait(
+      () =>
+        doc.querySelectorAll(".uploaded-document").length === 3 &&
+        !doc.querySelector('[data-action="parse-patient"]').disabled,
     );
+    assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
     const cloud = require("../lib/cloud"),
       oldDraft = cloud.draft;
     process.env.AI_ENABLED = "true";
@@ -198,6 +200,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         "I feel tired.",
     );
     click("nav", '[data-tab="studio"]');
+    click("pick", '[data-id="' + created.id + '"]');
+    await wait(() => doc.querySelectorAll(".uploaded-document").length === 3);
+    click("close-patient");
     click("pick", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
     await wait(() =>
       doc.querySelector(".editor")?.textContent.includes("Omar Sinclair"),

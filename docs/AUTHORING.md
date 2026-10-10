@@ -4,7 +4,7 @@ The challenge overview requires profile authoring, teaching references, clinical
 
 The provided faculty CSV supplies eight patient personas. The challenge overview and rubric are instructions and assessment criteria, not patient histories. There is no requirement that faculty arrive with a particular pre-existing PDF template.
 
-A useful starting package contains one or two documents:
+A useful starting package contains a case brief and an optional clinical report. Add more documents whenever the scenario needs them:
 
 | Document purpose   | Faculty supplies                                                                                                                                         | Application use                                                                  |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -17,7 +17,7 @@ These purposes remain distinct even though the interface uses one upload area. A
 ## Workflow
 
 1. Click **New patient**. A dialog opens immediately; nothing is added to the library yet. **Edit** opens the same dialog for an existing patient.
-2. Upload up to two PDF/TXT/image files and choose each file's purpose. Uploading saves the original attachment locally and to the configured private S3 bucket; canceling the form does not remove stored uploads, but does not create a patient.
+2. Upload PDF/TXT/image files and choose each file's purpose. Uploading saves the original attachment locally and to the configured private S3 bucket; canceling the form does not remove stored uploads, but does not create a patient.
 3. Add optional patient details, then click **Extract & fill form**. Selectable PDF text is parsed and Bedrock organizes explicit case details into a temporary preview. References are passed separately. With AI disabled or unavailable, original text is preserved for manual entry.
 4. Review and correct identity, clinical facts, sources, chart artifacts, release conditions and objectives. Dates, units, medications and allergies are not invented; missing fields remain blank/unknown. Extraction rebuilds the form and can replace manual edits. Review originals before approving.
 5. Check the single **Faculty review and publication acknowledgment**. This attests to review of synthetic material and approval of that version; it is not an automated certification. Further content edits clear acknowledgment.
@@ -25,7 +25,7 @@ These purposes remain distinct even though the interface uses one upload area. A
 
 Publication checks remain on the server. The UI omits the persistent error inventory and repeated record-review checkboxes. Failed submissions show the next blocking item inside the dialog. All seven rubric domains apply by default; optional scope editing remains available for scenarios that cannot support some observations.
 
-Images, scanned PDFs and handwritten notes can be retained, but no OCR or image interpretation is implemented. Transcribe their content manually. PDF limits: 5 MB/file, 50 pages, 100,000 extracted characters/file; drafting accepts at most 48,000 patient-text characters. The simplified dialog allows two files; structured facts, references and reports can still be authored directly.
+Images, scanned PDFs and handwritten notes can be retained, but no OCR or image interpretation is implemented. Transcribe their content manually. PDF limits: 5 MB/file, 50 pages, 100,000 extracted characters/file; drafting accepts at most 48,000 patient-text characters. There is no file-count cap in the dialog or profile attachment lists; structured facts, references and reports can still be authored directly.
 
 ## Example faculty case brief
 
@@ -50,3 +50,9 @@ A second document can contain explicitly authored chart findings, with dates, un
 ## Verification limits
 
 Regression coverage exercises real PDF text extraction, simulated Bedrock drafting, document-role separation, chart-only enforcement, preview/cancel behavior, single acknowledgment invalidation, publication and immediate encounter reuse. Model extraction and final clinical consistency still require faculty review. Actual browser layout and microphone verification require a connected browser or manual rehearsal.
+
+## Where to find documents
+
+The organizer patient data is [faculty-patients.csv](../corpus/faculty-patients.csv); use **Import faculty CSV** for that file. The supplied challenge/rubric PDFs describe requirements and scoring, not individual patient histories.
+
+For the New Patient upload flow, use the newly authored synthetic [Alex Rivera case brief](../corpus/examples/alex-rivera-case.txt) and optional [prior note](../corpus/examples/alex-rivera-prior-note.txt). These TXT files work directly; PDF conversion is not needed. Label them **Faculty case brief** and **Clinical report**, respectively. They are examples created for this application, not organizer/faculty-approved cases.

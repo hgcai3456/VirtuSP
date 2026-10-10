@@ -275,7 +275,6 @@ function openPatientDialog(mode, selected = profile) {
       profile.sources.find((s) => s.id === "description")?.excerpt || "";
     patientDialog.files = profile.sources
       .filter((s) => s.fileId)
-      .slice(0, 2)
       .map((s) => {
         const artifact = profile.artifacts.find((a) => a.fileId === s.fileId);
         return {
@@ -338,7 +337,7 @@ function patientForm() {
     <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1><p class="muted">Upload a case, review the details, and create a reusable encounter.</p></div>${button("Cancel", "close-patient")}</div>
     <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
     <section class="form-section"><h2>1. Case documents</h2><p class="muted">Start with a synthetic case brief containing identity, history and objectives. Optionally add a clinical report. Choose each file’s purpose before extracting details.</p>
-      <label class="upload-zone">Choose PDF, TXT or image files <span>Up to two files · 5 MB each · optional</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
+      <label class="upload-zone">Choose PDF, TXT or image files <span>Multiple files · 5 MB each · optional</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg"></label>
       ${d.files
         .map(
           (f, i) =>
@@ -881,10 +880,6 @@ document.addEventListener("change", async (e) => {
     }
     if (e.target.id === "patient-upload") {
       const files = Array.from(e.target.files || []);
-      if (patientDialog.files.length + files.length > 2)
-        throw new Error(
-          "Choose up to two documents. Remove a file to replace it.",
-        );
       busy = true;
       patientDialog.notice = "Uploading and extracting document text…";
       render();
