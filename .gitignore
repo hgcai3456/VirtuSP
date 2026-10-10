@@ -4,3 +4,8 @@ node_modules/
 .env.*
 *.log
 .cursor/
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/ingest-checkpoint.json
+data/ingest-checkpoint-*.json

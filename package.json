@@ -4,7 +4,15 @@
   "private": true,
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "ingest": "node agents/ingest.js",
+    "ingest:seed": "node agents/ingest.js --seed",
+    "ingest:nih": "node agents/ingest.js --nih --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:2": "node agents/ingest.js --nih --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 0 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:2:resume": "node agents/ingest.js --nih --resume --shards 2 --shard 1 --chunk 20 --delay 800 --per-illness 200",
+    "ingest:nih:all": "node agents/ingest.js --nih --all --resume --shards 2 --shard 0 --chunk 20 --delay 800",
+    "ingest:status": "node agents/ingest.js --status"
   },
   "engines": {
     "node": ">=16"

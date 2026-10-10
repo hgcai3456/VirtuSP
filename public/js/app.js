@@ -667,17 +667,64 @@ function disclose(f, q) {
   log('disclose', `${f.id} released (${f.type}) via ${q}`);
 }
 
-function ask(q) {
-  if (!enc || !String(q).trim()) {
-    return;
+const UNKNOWN = "I'm not sure about that. Could you ask me another way?";
+
+function caseFactsForGate() {
+  const profile = enc && enc.p;
+  if (!profile) {
+    return { intro: '', facts: [] };
   }
 
+  return {
+    intro: profile.intro || '',
+    facts: (profile.facts || []).map((f) => ({
+      id: f.id,
+      say: f.say || '',
+      deflect: f.deflect || '',
+      label: f.label || ''
+    }))
+  };
+}
+
+function citeLabel(side) {
+  if (!side || !side.allow) {
+    return 'blocked';
+  }
+  const first = (side.matches || [])[0];
+  if (!first) {
+    return side.kind === 'interview' ? 'interview' : 'allowed';
+  }
+  if (first.source === 'case') {
+    return first.id ? 'case:' + first.id : 'case';
+  }
+
+  return first.pmid ? 'PMID ' + first.pmid : ('data:' + first.id);
+}
+
+function draftReply(q) {
   const lower = q.toLowerCase();
   const profile = enc.p;
-  enc.turns += 1;
-  enc.tr.push({ w: 'Student', t: q });
-  log('student', q);
+  let best = null;
+  let score = 0;
+  profile.facts.filter((f) => f.vis === 'ask').forEach((f) => {
+    const s = (f.kw || []).filter((k) => lower.includes(k)).length;
+    if (s > score) {
+      score = s;
+      best = f;
+    }
+  });
 
+  if (!best) {
+    return { lower, best: null, reply: UNKNOWN, grounded: 'fallback', emotion: 'neutral' };
+  }
+  if (best.gate > enc.trust && !enc.disc.has(best.id)) {
+    return { lower, best, reply: best.deflect, grounded: 'blocked:' + best.id, emotion: 'embarrassed', trustHold: true };
+  }
+
+  return { lower, best, reply: best.say, grounded: best.id, emotion: best.gate ? 'relieved' : 'neutral' };
+}
+
+function scoreStudent(lower) {
   if (/(understand|sorry|must be|sounds|thank you for|worr|concern about|appreciate|no judg|i hear|that must)/.test(lower)) {
     enc.emp += 1;
     enc.prof += 1;
@@ -694,44 +741,105 @@ function ask(q) {
   if (/^(how|what|tell|can you|could you|walk me)/.test(lower)) {
     enc.open += 1;
   }
+}
 
-  let best = null;
-  let score = 0;
-  profile.facts.filter((f) => f.vis === 'ask').forEach((f) => {
-    const s = (f.kw || []).filter((k) => lower.includes(k)).length;
-    if (s > score) {
-      score = s;
-      best = f;
-    }
+async function runGate(request, response) {
+  const res = await fetch('/api/gate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      request,
+      response,
+      case_facts: caseFactsForGate()
+    })
   });
-
-  let reply;
-  let grounded = 'fallback';
-  let emotion = 'neutral';
-
-  if (!best) {
-    reply = "I'm not sure about that. Could you ask me another way?";
-  } else if (best.gate > enc.trust && !enc.disc.has(best.id)) {
-    reply = best.deflect;
-    grounded = 'blocked:' + best.id;
-    emotion = 'embarrassed';
-    enc.blocked += 1;
-    log('gate', `${best.id} withheld (trust ${enc.trust}<${best.gate})`);
-  } else {
-    reply = best.say;
-    grounded = best.id;
-    disclose(best, q);
-    if (best.gate) {
-      emotion = 'relieved';
-    }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Grounding gate is unavailable');
   }
 
-  enc.tr.push({ w: 'Patient', t: reply, g: grounded });
-  releaseByQuestion(q);
-  surfaceMM();
-  save();
-  render(true);
-  speak(reply, emotion);
+  return data;
+}
+
+async function ask(q) {
+  if (!enc || !String(q).trim() || window.__gating) {
+    return;
+  }
+
+  const text = String(q).trim();
+  window.__gating = true;
+  window.__busy = true;
+  stopListen();
+  av('checking', 'neutral');
+  const status = $('#mst');
+  if (status) {
+    status.textContent = 'Checking this request against journals and medical_data…';
+  }
+
+  try {
+    const proposed = draftReply(text);
+    const verdict = await runGate(text, proposed.reply);
+    if (!verdict.send || !verdict.request || !verdict.request.allow) {
+      enc.tr.push({ w: 'Student', t: text, g: 'blocked' });
+      enc.tr.push({
+        w: 'Gate',
+        t: (verdict.request && verdict.request.reason) || 'Request blocked: not grounded on the publication library.',
+        g: 'blocked'
+      });
+      log('gate', 'Request not sent: ' + ((verdict.request && verdict.request.reason) || 'blocked'));
+      enc.blocked += 1;
+      save();
+      render(true);
+    } else {
+      scoreStudent(proposed.lower);
+      enc.turns += 1;
+      enc.tr.push({ w: 'Student', t: text, g: citeLabel(verdict.request) });
+      log('student', text);
+      log('gate', verdict.request.reason);
+
+      let reply = proposed.reply;
+      let grounded = proposed.grounded;
+      let emotion = proposed.emotion;
+      if (!verdict.response || !verdict.response.allow) {
+        reply = UNKNOWN;
+        grounded = 'blocked-ungrounded';
+        emotion = 'neutral';
+        log('gate', (verdict.response && verdict.response.reason) || 'Response blocked');
+      } else if (proposed.trustHold) {
+        enc.blocked += 1;
+        log('gate', `${proposed.best.id} withheld (trust ${enc.trust}<${proposed.best.gate})`);
+      } else if (proposed.best && grounded === proposed.best.id) {
+        disclose(proposed.best, text);
+      }
+
+      enc.tr.push({ w: 'Patient', t: reply, g: grounded });
+      releaseByQuestion(text);
+      surfaceMM();
+      save();
+      render(true);
+      speak(reply, emotion);
+
+      return;
+    }
+  } catch (err) {
+    enc.tr.push({ w: 'Student', t: text, g: 'blocked' });
+    enc.tr.push({
+      w: 'Gate',
+      t: 'Request was not sent. ' + (err.message || 'Grounding gate failed.'),
+      g: 'blocked'
+    });
+    log('gate', 'Request not sent: ' + (err.message || 'gate failed'));
+    enc.blocked += 1;
+    save();
+    render(true);
+  } finally {
+    window.__gating = false;
+  }
+  window.__busy = false;
+  av('listening', 'neutral');
+  if (window.__convo !== false) {
+    startListen();
+  }
 }
 
 function askHint(i) {
@@ -806,7 +914,7 @@ function setMicLabel() {
 function av(state, em) {
   const status = $('#avs');
   if (status) {
-    const label = state === 'speaking' ? 'Speaking' : state === 'listening' ? 'Listening' : state;
+    const label = state === 'speaking' ? 'Speaking' : state === 'listening' ? 'Listening' : state === 'checking' ? 'Checking ground truth' : state;
     status.textContent = label + (em && em !== 'neutral' ? ' · ' + em : '');
   }
 
@@ -1106,6 +1214,9 @@ function goTab(next) {
   tab = next;
   save();
   render();
+  if (next === 'truth') {
+    loadTruth();
+  }
 }
 
 function setIdent(field, value) {
@@ -1401,7 +1512,7 @@ function vEnc() {
       <h2>${esc(enc.p.name)}, ${enc.p.age}</h2>
       <div class="av-status" id="avs">Listening</div>
       <button class="mic-btn" id="micBtn" type="button" onclick="mic()">Tap to talk</button>
-      <div class="chip" id="mst">Speak, or type if you need to. The chart updates as you earn it.</div>
+      <div class="chip" id="mst">Every ask is checked against journals and medical_data before it is sent.</div>
       <div class="row" style="margin-top:10px">
         <button class="btn" type="button" onclick="endConvo()">Pause</button>
         <button class="btn" type="button" onclick="toggleType()">Type instead</button>
@@ -1433,7 +1544,7 @@ function renderTr() {
   }
 
   box.innerHTML = enc.tr.map((m) => {
-    const who = m.w === 'Student' ? 'student' : 'patient';
+    const who = m.w === 'Student' ? 'student' : m.w === 'Gate' ? 'gate' : 'patient';
 
     return `<div class="bubble ${who}"><b>${esc(m.w)}${m.g ? ` <span class="chip">grounded: ${esc(m.g)}</span>` : ''}</b><p>${esc(m.t)}</p></div>`;
   }).join('');
@@ -1692,6 +1803,193 @@ function vRep() {
   </div>`;
 }
 
+let truth = {
+  journals: [],
+  facts: [],
+  q: '',
+  pmid: '',
+  query: '',
+  limit: 5,
+  json: '',
+  status: '',
+  busy: false,
+  counts: { journals: 0, medical_data: 0 },
+  nih: null
+};
+
+function cite(row) {
+  const bits = [row.authors, row.journal_name, row.year].filter(Boolean);
+
+  return bits.join('. ') + (row.pmid ? ' · PMID ' + row.pmid : '');
+}
+
+async function loadTruth(keepStatus) {
+  try {
+    const q = encodeURIComponent(truth.q || '');
+    const [journalsRes, factsRes, healthRes, nihRes] = await Promise.all([
+      fetch('/api/journals'),
+      fetch('/api/medical-data?q=' + q),
+      fetch('/api/health'),
+      fetch('/api/ingest/status')
+    ]);
+    if (!journalsRes.ok || !factsRes.ok) {
+      throw new Error('Ground truth API is not running. Restart with node server.js.');
+    }
+    const journals = await journalsRes.json();
+    const facts = await factsRes.json();
+    const health = healthRes.ok ? await healthRes.json() : {};
+    truth.journals = journals.journals || [];
+    truth.facts = facts.medical_data || [];
+    const nih = nihRes.ok ? await nihRes.json() : {};
+    truth.counts = {
+      journals: health.journals || truth.journals.length,
+      medical_data: health.medical_data || truth.facts.length
+    };
+    truth.nih = nih;
+    if (!keepStatus) {
+      truth.status = '';
+    }
+  } catch (err) {
+    truth.status = err.message || String(err);
+  }
+  truth.busy = false;
+  if (tab === 'truth') {
+    render();
+  }
+}
+
+async function ingestTruth(kind) {
+  if (truth.busy) {
+    return;
+  }
+
+  const body = {};
+  try {
+    if (kind === 'seed') {
+      body.seed = true;
+    } else if (kind === 'pmid') {
+      if (!truth.pmid.trim()) {
+        throw new Error('Enter a PubMed ID.');
+      }
+      body.pmid = truth.pmid.trim();
+    } else if (kind === 'query') {
+      if (!truth.query.trim()) {
+        throw new Error('Enter a PubMed search.');
+      }
+      body.query = truth.query.trim();
+      body.limit = Number(truth.limit) || 5;
+    } else if (kind === 'json') {
+      body.publication = JSON.parse(truth.json);
+    } else {
+      throw new Error('Unknown ingest type.');
+    }
+  } catch (err) {
+    truth.status = err.message || String(err);
+    render();
+
+    return;
+  }
+
+  truth.busy = true;
+  truth.status = 'Ingesting grounded publications…';
+  render();
+  try {
+    const res = await fetch('/api/ingest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Ingest failed');
+    }
+    const added = (data.results || []).reduce((sum, row) => sum + (row.facts_added || 0), 0);
+    truth.status = 'Ingested ' + (data.results || []).length + ' publication(s) and added ' + added + ' grounded fact(s). Ungrounded claims were rejected.';
+    await loadTruth(true);
+  } catch (err) {
+    truth.busy = false;
+    truth.status = err.message || String(err);
+    render();
+  }
+}
+
+function vTruth() {
+  const journalRows = truth.journals.map((j) => `<tr>
+    <td>${esc(j.year || '')}</td>
+    <td>${esc(j.title)}</td>
+    <td>${esc(j.authors || '')}</td>
+    <td>${j.pmid ? `<a href="${esc(j.url || ('https://pubmed.ncbi.nlm.nih.gov/' + j.pmid + '/'))}" target="_blank" rel="noreferrer">${esc(j.pmid)}</a>` : ''}</td>
+    <td>${j.fact_count || 0}</td>
+  </tr>`).join('') || '<tr><td colspan="5">No journals yet. Load the seed set or ingest a PubMed record.</td></tr>';
+
+  const factRows = truth.facts.map((f) => `<tr>
+    <td>${esc(f.claim)}</td>
+    <td class="quote">${esc(f.quote)}</td>
+    <td>${esc(f.topic || '')}</td>
+    <td>${esc(cite(f))}</td>
+  </tr>`).join('') || '<tr><td colspan="4">No grounded medical_data rows match this search.</td></tr>';
+
+  return `<div class="pn studio">
+    <div class="studio-head">
+      <div>
+        <h2>Ground Truth</h2>
+        <p class="muted">The ingest agent writes only claims that quote their source. The model does not invent medical facts.</p>
+      </div>
+      <div class="row">
+        <button class="btn pri" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('seed')">Load seed publications</button>
+      </div>
+    </div>
+    <div class="truth-meta">
+      <span class="chip mode">${truth.counts.journals} journals</span>
+      <span class="chip mode">${truth.counts.medical_data} medical_data rows</span>
+      ${(truth.nih && truth.nih.workers || []).map((w) => {
+        const c = w.checkpoint;
+        if (!c) {
+          return `<span class="chip mode">shard ${w.shard} idle · ${esc(w.file)}</span>`;
+        }
+
+        return `<span class="chip mode">shard ${w.shard} ${esc(c.status || '')} · ${esc(c.current_illness || 'idle')} · ${esc(String((c.done || []).length))} done</span>`;
+      }).join('') || '<span class="chip mode">NIH catalog ready · run npm run ingest:nih</span>'}
+    </div>
+    ${truth.status ? `<p class="${/fail|error|not running|Enter |Invalid|Unknown/i.test(truth.status) ? 'err' : 'ok'}">${esc(truth.status)}</p>` : ''}
+    <div class="fields truth-actions">
+      <div><label>PubMed ID</label>
+        <div class="row">
+          <input value="${esc(truth.pmid)}" placeholder="11942998" oninput="truth.pmid=this.value">
+          <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('pmid')">Ingest PMID</button>
+        </div>
+      </div>
+      <div><label>PubMed search</label>
+        <div class="row">
+          <input value="${esc(truth.query)}" placeholder="metformin adherence type 2 diabetes" oninput="truth.query=this.value">
+          <input type="number" min="1" max="20" value="${esc(truth.limit)}" style="max-width:90px" oninput="truth.limit=this.value" title="Limit">
+          <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('query')">Ingest search</button>
+        </div>
+      </div>
+    </div>
+    <div class="stack"><label>Paste a publication JSON object</label>
+      <textarea rows="4" placeholder='{"title":"...","abstract":"...","facts":[{"claim":"...","quote":"..."}]}' oninput="truth.json=this.value">${esc(truth.json)}</textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" type="button" ${truth.busy ? 'disabled' : ''} onclick="ingestTruth('json')">Ingest JSON</button>
+      </div>
+    </div>
+    <div class="row" style="margin:16px 0 8px">
+      <input value="${esc(truth.q)}" placeholder="Search grounded facts" oninput="truth.q=this.value" onkeydown="if(event.key==='Enter')loadTruth()">
+      <button class="btn" type="button" onclick="loadTruth()">Search</button>
+    </div>
+    <h3>journals</h3>
+    <div class="sc"><table>
+      <tr><th>Year</th><th>Title</th><th>Authors</th><th>PMID</th><th>Facts</th></tr>
+      ${journalRows}
+    </table></div>
+    <h3>medical_data</h3>
+    <div class="sc"><table>
+      <tr><th>Claim</th><th>Source quote</th><th>Topic</th><th>Citation</th></tr>
+      ${factRows}
+    </table></div>
+  </div>`;
+}
+
 function render(keep) {
   const nav = $('#nav');
   if (nav) {
@@ -1699,7 +1997,8 @@ function render(keep) {
       ['studio', 'Patient Studio'],
       ['enc', 'Encounter'],
       ['team', 'Team'],
-      ['rep', 'Assessment']
+      ['rep', 'Assessment'],
+      ['truth', 'Ground Truth']
     ].map(([k, v]) => `<button class="${tab === k ? 'on' : ''}" type="button" onclick="goTab('${k}')">${v}</button>`).join('');
   }
 
@@ -1710,7 +2009,7 @@ function render(keep) {
 
   const mode = $('#mode');
   if (mode) {
-    mode.textContent = 'Local demo · no API keys';
+    mode.textContent = tab === 'enc' ? 'Grounding gate on' : 'Local demo · no API keys';
   }
 
   if (keep && tab === 'enc') {
@@ -1720,8 +2019,8 @@ function render(keep) {
     return;
   }
 
-  const views = { studio: vStudio, enc: vEnc, team: vTeam, rep: vRep };
-  $('#app').innerHTML = views[tab]();
+  const views = { studio: vStudio, enc: vEnc, team: vTeam, rep: vRep, truth: vTruth };
+  $('#app').innerHTML = (views[tab] || vStudio)();
   if (tab === 'enc' && enc) {
     renderTr();
     renderEhr();
@@ -1738,3 +2037,6 @@ function render(keep) {
 applyTheme();
 bootStorage();
 render();
+if (tab === 'truth') {
+  loadTruth();
+}

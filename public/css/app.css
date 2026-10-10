@@ -252,6 +252,11 @@ textarea.code {
   border-left: 3px solid var(--ac);
 }
 
+.bubble.gate p {
+  background: color-mix(in srgb, var(--wr) 12%, transparent);
+  border-left: 3px solid var(--wr);
+}
+
 .chip {
   font-size: 11px;
   color: var(--mu);
@@ -656,4 +661,20 @@ details.advanced {
 .issue {
   padding: 8px 0;
   border-bottom: 1px solid var(--bd);
+}
+
+.truth-actions textarea {
+  min-height: 110px;
+}
+
+.truth-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+
+.quote {
+  color: var(--mu);
+  font-size: 12px;
 }

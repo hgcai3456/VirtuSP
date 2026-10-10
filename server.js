@@ -1,9 +1,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { openShards } = require('./lib/db');
+const { handleApi } = require('./lib/api');
 
 const root = path.join(__dirname, 'public');
 const port = process.env.PORT || 3000;
+const db = openShards();
 const types = {
   '.html': 'text/html',
   '.css': 'text/css',
@@ -18,6 +21,12 @@ const types = {
 };
 
 http.createServer((req, res) => {
+  if (req.url.split('?')[0].startsWith('/api/')) {
+    handleApi(req, res, db);
+
+    return;
+  }
+
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath.endsWith('/')) {
     urlPath += 'index.html';
