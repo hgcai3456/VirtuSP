@@ -2,6 +2,8 @@
 
 ## Current checkpoint
 
+Concurrent checkpoint merge: teammate `da51985` (lighter rubric rows, lining score figures and presentation of older assessments) is preserved. The only conflict was the group-builder footer; the removed availability checkbox stays removed. All 78 regressions passed on the merged app. Implementation checkpoint: `15e3b61`.
+
 Simulation catalog checkpoint (2026-10-10), built after pulling teammate `0040cb1`: Patient Studio now has **Select an AI patient**, then **Multi-patient assessment**. Each published patient/group has an inline **Assign this simulation to student** selector and Assign button. Student entry shows assigned work followed immediately by every runnable individual/group simulation; there is no open-assessment intermediary or availability switch. Legacy availability flags no longer restrict ready groups. Faculty-only authoring, aliases, results and the teammate's performance/bias pages remain intact. Patient cards use **AI-synthetic** rather than technical provenance labels; original provenance stays stored. AI generation/extraction/analysis buttons have a sparkle icon.
 
 Individual assignments use a pinned one-trial attempt, saved ownership/order/resume protection, immediate feedback on completion and ordinary encounter faculty analysis. They do not appear as multi-patient results or display group progress. New group assignments also snapshot the comparison design. Older assignments, releases and encounters survive.
