@@ -689,6 +689,38 @@ function caseFactsForService() {
   };
 }
 
+function documentsForService() {
+  const profile = enc && enc.p;
+  if (!profile) {
+    return [];
+  }
+
+  const docs = [];
+  (profile.artifacts || []).forEach((art) => {
+    const rows = (art.rows || []).map((row) => [row.name, row.value, row.unit, row.ref, row.flag]
+      .filter((part) => part != null && part !== '')
+      .join(' '));
+    docs.push({
+      id: art.id,
+      source: 'faculty',
+      title: art.title || art.src || 'Faculty document',
+      date: art.date || '',
+      text: [art.title, art.date, art.src, art.kind].concat(rows).filter(Boolean).join('\n')
+    });
+  });
+  (profile.facts || []).filter((fact) => fact.vis === 'chart').forEach((fact) => {
+    docs.push({
+      id: fact.id,
+      source: /patient/i.test(fact.role || '') ? 'patient' : 'faculty',
+      title: fact.src || fact.label || 'Chart document',
+      date: '',
+      text: [fact.label, fact.say, fact.src, fact.role].filter(Boolean).join('\n')
+    });
+  });
+
+  return docs;
+}
+
 function citeLabel(side) {
   if (!side || !side.allow) {
     return 'blocked';
@@ -733,6 +765,8 @@ function logReview(verdict) {
   log('search', searched.confirmed ? 'Search confirmed ' + searched.fact_id : 'Search did not confirm one problem');
   log('exhaustive', wide.unique ? 'Exhaustive search kept ' + wide.fact_id : 'Exhaustive search was not conclusive');
   log('review', review.reason || 'Review finished');
+  const guard = stages.interceptor || {};
+  log('interceptor', guard.reason || 'Reply reviewed before send');
 }
 
 async function consultPatient(request) {
@@ -742,8 +776,10 @@ async function consultPatient(request) {
     body: JSON.stringify({
       request,
       trust: enc.trust,
+      patient_id: enc.p && enc.p.id,
       disclosed: [...enc.disc.keys()],
-      case_facts: caseFactsForService()
+      case_facts: caseFactsForService(),
+      documents: documentsForService()
     })
   });
   const data = await res.json().catch(() => ({}));
@@ -766,7 +802,7 @@ async function ask(q) {
   av('checking', 'neutral');
   const status = $('#mst');
   if (status) {
-    status.textContent = 'Identifying the problem, searching the record, and reviewing the reply…';
+    status.textContent = 'Reviewing the reply for relevance, timing, and the patient and faculty sources…';
   }
 
   try {

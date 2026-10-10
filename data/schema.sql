@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS reports (
   uploaded_by TEXT NOT NULL,
   uploader_role TEXT,
   size_bytes INTEGER NOT NULL,
-  uploaded_at TEXT NOT NULL
+  uploaded_at TEXT NOT NULL,
+  extracted_text TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_patient ON reports(patient_id, uploaded_at DESC);
