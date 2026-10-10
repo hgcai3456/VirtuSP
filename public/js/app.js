@@ -387,8 +387,8 @@ function patientForm() {
   return `<dialog id="patient-dialog" class="patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form">
     <div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">${isNew ? "New patient" : "Edit patient"}</h1></div>${button("Cancel", "close-patient")}</div>
     <div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
-    <section class="form-section"><h2>Case documents</h2>
-      <label class="upload-zone" id="patient-drop-zone">Drag files here or browse<span>PDF, TXT, PNG or JPG · Multiple files · 5 MB each</span><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" ${busy ? "disabled" : ""}></label>
+    <section class="form-section" id="patient-upload-area"><h2>Case documents</h2>
+      <div class="upload-zone" id="patient-drop-zone"><button type="button" class="upload-browse" data-action="browse-patient" aria-describedby="patient-upload-hint" ${busy ? "disabled" : ""}><span class="upload-icon" aria-hidden="true">↑</span><strong>${busy ? "Uploading files…" : "Drop files here"}</strong><span class="upload-prompt">or click to browse</span><span id="patient-upload-hint" class="upload-hint">PDF, TXT, PNG or JPG · Multiple files · 5 MB each</span></button><input id="patient-upload" type="file" multiple accept=".pdf,.txt,.png,.jpg,.jpeg" hidden ${busy ? "disabled" : ""}></div>
       ${d.files
         .map(
           (f, i) =>
@@ -1257,25 +1257,44 @@ async function addPatientFiles(files) {
   }
 }
 for (const type of ["dragenter", "dragover", "dragleave", "drop"])
-  document.addEventListener(type, (e) => {
-    if (!patientDialog || !e.target.closest("#patient-dialog")) return;
-    // Prevent file drops elsewhere in the form from navigating away.
-    if (type === "dragover" || type === "drop") e.preventDefault();
-    const zone = $("#patient-drop-zone");
-    if (!zone) return;
-    const inside = zone.contains(e.target);
-    if (type === "dragenter" || type === "dragover") {
-      zone.classList.toggle("drag-active", inside && !busy);
-      if (e.dataTransfer)
-        e.dataTransfer.dropEffect = inside && !busy ? "copy" : "none";
-    }
-    if (type === "dragleave" && !zone.contains(e.relatedTarget))
-      zone.classList.remove("drag-active");
-    if (type === "drop") {
-      zone.classList.remove("drag-active");
-      if (inside) addPatientFiles(Array.from(e.dataTransfer?.files || []));
-    }
-  });
+  document.addEventListener(
+    type,
+    (e) => {
+      if (!patientDialog) return;
+      // Prevent file drops elsewhere in the form from navigating away.
+      if (type === "dragover" || type === "drop") e.preventDefault();
+      const zone = $("#patient-drop-zone");
+      if (!zone) return;
+      // Accept files throughout the document section, including its heading,
+      // nested button contents and previously uploaded cards.
+      const area = $("#patient-upload-area");
+      const inside = area?.contains(e.target);
+      if (type === "dragenter" || type === "dragover") {
+        zone.classList.toggle("drag-active", inside && !busy);
+        if (e.dataTransfer)
+          e.dataTransfer.dropEffect = inside && !busy ? "copy" : "none";
+      }
+      if (type === "dragleave" && !area?.contains(e.relatedTarget))
+        zone.classList.remove("drag-active");
+      if (type === "drop") {
+        zone.classList.remove("drag-active");
+        if (!inside || busy) return;
+        let files = Array.from(e.dataTransfer?.files || []);
+        if (!files.length)
+          files = Array.from(e.dataTransfer?.items || [])
+            .filter((item) => item.kind === "file")
+            .map((item) => item.getAsFile())
+            .filter(Boolean);
+        if (files.length) addPatientFiles(files);
+        else {
+          patientDialog.notice =
+            "Drag files from File Explorer, or click the upload area to browse.";
+          render();
+        }
+      }
+    },
+    true,
+  );
 document.addEventListener("input", (e) => {
   const t = e.target;
   if (t.id === "patient-description") {
@@ -1388,6 +1407,10 @@ document.addEventListener("click", async (e) => {
   if (!t || busy) return;
   const a = t.dataset.action;
   try {
+    if (a === "browse-patient") {
+      $("#patient-upload")?.click();
+      return; // Keep the input mounted while the system file picker is open.
+    }
     message = "";
     if (a === "rep-view") repView = t.dataset.view;
     if (a === "nav") {

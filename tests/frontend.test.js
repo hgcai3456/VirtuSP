@@ -107,6 +107,26 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "Patient concern: I feel tired.",
     ]);
     const input = doc.getElementById("patient-upload");
+    assert.equal(input.hidden, true, "The small native file control is hidden");
+    const browse = doc.querySelector('[data-action="browse-patient"]');
+    assert.equal(browse.tagName, "BUTTON");
+    assert.equal(browse.type, "button", "Browsing does not submit the form");
+    let pickerClicks = 0;
+    input.addEventListener("click", (event) => {
+      event.preventDefault();
+      pickerClicks++;
+    });
+    browse.querySelector("strong").click();
+    assert.equal(
+      pickerClicks,
+      1,
+      "Clicking anywhere on the panel opens the picker",
+    );
+    assert.equal(
+      doc.getElementById("patient-upload"),
+      input,
+      "File input stays mounted while browsing",
+    );
     Object.defineProperty(input, "files", {
       value: ["Case.pdf"].map((name) => ({
         name,
@@ -120,12 +140,17 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         doc.querySelectorAll(".uploaded-document").length === 1 &&
         !doc.querySelector('[data-action="parse-patient"]').disabled,
     );
-    const drag = (type, files = []) => {
+    const drag = (
+      type,
+      files = [],
+      selector = "#patient-drop-zone",
+      items = [],
+    ) => {
       const event = new window.Event(type, { bubbles: true, cancelable: true });
       Object.defineProperty(event, "dataTransfer", {
-        value: { files, dropEffect: "none" },
+        value: { files, items, dropEffect: "none" },
       });
-      doc.getElementById("patient-drop-zone").dispatchEvent(event);
+      doc.querySelector(selector).dispatchEvent(event);
       return event;
     };
     drag("dragenter");
@@ -143,21 +168,49 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     const dropped = drag(
       "drop",
-      ["History.pdf", "Context.pdf"].map((name) => ({
+      ["History.pdf"].map((name) => ({
         name,
         type: "application/pdf",
         arrayBuffer: async () => pdf,
       })),
+      ".upload-browse strong",
     );
     assert.equal(dropped.defaultPrevented, true);
     // An overlapping drop must not queue duplicate uploads.
     drag("drop", [{ name: "Duplicate.pdf", arrayBuffer: async () => pdf }]);
     await wait(
       () =>
+        doc.querySelectorAll(".uploaded-document").length === 2 &&
+        !doc.querySelector('[data-action="parse-patient"]').disabled,
+    );
+    drag("drop", [], "#patient-upload-area h2", [
+      {
+        kind: "file",
+        getAsFile: () => ({
+          name: "Context.pdf",
+          type: "application/pdf",
+          arrayBuffer: async () => pdf,
+        }),
+      },
+    ]);
+    await wait(
+      () =>
         doc.querySelectorAll(".uploaded-document").length === 3 &&
         !doc.querySelector('[data-action="parse-patient"]').disabled,
     );
     assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
+    // Editor-tab/URL drags carry no file bytes; explain rather than silently ignoring.
+    drag("drop", [], ".upload-prompt", [{ kind: "string" }]);
+    assert.ok(
+      doc.querySelector(".form-notice").textContent.includes("File Explorer"),
+    );
+    assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
+    const outside = drag("drop", [], "#patient-description");
+    assert.equal(
+      outside.defaultPrevented,
+      true,
+      "A stray drop cannot navigate away",
+    );
     drag("drop", [{ name: "Unsupported.exe", arrayBuffer: async () => pdf }]);
     await wait(() =>
       doc.querySelector(".form-notice")?.textContent.includes("Choose PDF"),
