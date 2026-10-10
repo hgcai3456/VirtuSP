@@ -14,7 +14,7 @@ The ground-truth branch now includes the educational app from `origin` and the l
 
 ## AWS autoscaling
 
-`infra/aws/autoscaling.tf` defines both Application Auto Scaling target-tracking policies: average CPU at 70% and average memory at 75%. Scale-out follows either metric; scale-in waits until both are under target. Minimum and maximum task count stay at 1 because the SQLite file on EFS is opened with an exclusive lock. RDS storage autoscaling is already set on both database definitions (`infra/aws` and `infra/rds`): 20 GiB allocated, up to 100 GiB. Applied in us-west-2 on 2026-10-10: `virtusp-cpu`, `virtusp-memory`, and the scalable target `service/virtusp/virtusp`, with no other resource changes. Raise `autoscaling_max_capacity` only after live writes move to PostgreSQL.
+`infra/aws/autoscaling.tf` defines both Application Auto Scaling target-tracking policies: average CPU at 70% and average memory at 75%. Scale-out follows either metric; scale-in waits until both are under target. The service scales from 1 to 4 tasks. Tasks set `VIRTUSP_SQLITE_EXCLUSIVE=0` so they share the EFS SQLite file instead of holding an exclusive lock. Applied in us-west-2 on 2026-10-10. A check with desired count 2 showed both tasks healthy, one in each public subnet. RDS storage autoscaling remains 20 GiB to 100 GiB on both database definitions.
 
 ## Voice integration ownership
 
