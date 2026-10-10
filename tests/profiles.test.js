@@ -4,6 +4,7 @@ const test = require("node:test"),
   fs = require("node:fs");
 const {
   blank,
+  seedFromStarter,
   fact,
   importCsv,
   csvRows,
@@ -73,6 +74,22 @@ test("CSV supports multiline, escaped quotes, rejects malformed rows", () => {
     importCsv("patient-name,age\nSynthetic Missing,\n")[0].age,
     null,
   );
+});
+test("Starter fields seed identity and a faculty-authored opening concern", () => {
+  const empty = seedFromStarter({});
+  assert.equal(empty.name, "New Patient");
+  assert.equal(empty.facts.length, 0);
+  const p = seedFromStarter({
+    name: "Pat Rivera",
+    age: "33",
+    personality: "Calm",
+    concern: "I get winded on stairs.",
+  });
+  assert.equal(p.name, "Pat Rivera");
+  assert.equal(p.age, 33);
+  assert.equal(p.intro, "Hello, I'm Pat.");
+  assert.equal(p.facts[0].id, "concern");
+  assert.equal(p.facts[0].say, "I get winded on stairs.");
 });
 test("Ready profile publishes only with explicit review and mapped objectives", () => {
   const p = ready();

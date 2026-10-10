@@ -316,6 +316,18 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     click("launch", '[data-id="b5814549-fd2b-42a2-af78-9b681ad6f268"]');
     await wait(() => !!doc.getElementById("question"));
+    assert.ok(
+      doc.querySelector("#avf .patient-photo"),
+      "Still patient photo is present",
+    );
+    assert.ok(
+      !doc
+        .querySelector(".ehr-panel")
+        ?.textContent.includes("Encounter provenance"),
+    );
+    assert.ok(
+      !doc.querySelector(".ehr-panel")?.textContent.includes("disclose"),
+    );
     assert.ok(!doc.querySelector("#app").textContent.includes("LDL 195"));
     click("mic");
     const microphone = recognizers.at(-1);

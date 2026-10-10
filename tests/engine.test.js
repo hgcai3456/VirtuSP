@@ -183,6 +183,77 @@ test("Reject unsupported numeric claims, empty citations and wrong IDs", () => {
       [],
     ),
   );
+  assert.ok(
+    !engine.validResponse(
+      {
+        text: "I take 5 mg and I also have asthma and chest pain.",
+        factIds: ["a"],
+      },
+      allowed,
+      [],
+    ),
+  );
+  assert.ok(
+    engine.validResponse({ text: "Okay, I'm listening.", factIds: [] }, [], []),
+  );
+  assert.ok(
+    engine.validResponse(
+      { text: "I'm doing all right. Thanks for asking.", factIds: [] },
+      [],
+      [],
+    ),
+  );
+  assert.ok(
+    !engine.validResponse({ text: "I feel tired.", factIds: [] }, [], []),
+  );
+});
+test("Ordinary conversation is allowed; unspecified clinical facts stay unknown", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(profile());
+  await engine.ask(enc, "Hi there, nice to meet you.", "hello");
+  assert.match(enc.transcript.at(-1).text, /Ada|Hello|meet/i);
+  assert.notEqual(enc.transcript.at(-1).text, engine.UNKNOWN);
+  await engine.ask(enc, "How are you today?", "rapport");
+  assert.equal(
+    enc.transcript.at(-1).text,
+    "I'm doing all right. Thanks for asking.",
+  );
+  await engine.ask(enc, "Are you allergic to penicillin?", "allergy");
+  assert.equal(enc.transcript.at(-1).text, engine.UNKNOWN);
+});
+test("Greetings do not release imaging; related symptoms do", async () => {
+  process.env.AI_ENABLED = "false";
+  const p = profile();
+  p.artifacts[0].title = "Abdominal CT";
+  p.artifacts[0].release = "question";
+  p.artifacts[0].unlock = [
+    "abdomen",
+    "abdominal",
+    "belly",
+    "flank",
+    "kidney",
+    "ct",
+    "scan",
+  ];
+  const enc = engine.create(p);
+  await engine.ask(enc, "Hello", "hello-ct");
+  assert.equal(enc.released.report, undefined);
+  await engine.ask(enc, "I have been getting abdominal pain.", "pain-ct");
+  assert.ok(enc.released.report);
+});
+test("Conversation can release titled artifacts without dumping gated reports", async () => {
+  const p = profile();
+  p.artifacts[0].unlock = [];
+  p.artifacts[0].title = "Lipid panel";
+  p.artifacts[0].release = "both";
+  p.facts[2].gate = 0;
+  const enc = engine.create(p);
+  await engine.ask(enc, "Can we look at the lipid results?", "lipid");
+  assert.ok(enc.released.report);
+  assert.ok(
+    engine.publicView(enc).artifacts.find((a) => a.id === "report")
+      .justReleased,
+  );
 });
 test("Grounding quotes tolerate typography but preserve numbers and negation", () => {
   const review = {
@@ -305,6 +376,10 @@ test("Bedrock receives only permitted values; verifier rejection returns approve
     await engine.ask(enc, "What is bothering you?", "bedrock");
     assert.equal(enc.transcript.at(-1).text, "I feel tired.");
     assert.equal(enc.transcript.at(-1).provider, "approved-fallback");
+    cloud.paraphrase = async () => ({
+      text: "I feel tired.",
+      factIds: ["concern"],
+    });
     cloud.verify = async () => ({
       supported: true,
       claims: [
