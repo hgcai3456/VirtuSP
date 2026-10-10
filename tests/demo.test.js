@@ -190,6 +190,16 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     ).data.encounter;
     assert.equal(done.assessment, null);
     assert.equal(done.feedbackHeld, true);
+    assert.equal(
+      (await call(learner, `/api/encounters/${first.id}/coaching`, "POST", {}))
+        .status,
+      409,
+    );
+    assert.equal(
+      (await call(other, `/api/encounters/${first.id}/coaching`, "POST", {}))
+        .status,
+      404,
+    );
     for (const url of [
       `/api/encounters/${first.id}`,
       `/api/encounters/${first.id}/export`,
@@ -285,6 +295,15 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     ).data.encounter;
     assert.ok(secondDone.assessment);
     assert.equal(secondDone.feedbackHeld, false);
+    const refreshed = await call(
+      learner,
+      `/api/encounters/${first.id}/coaching`,
+      "POST",
+      {},
+    );
+    assert.equal(refreshed.status, 200);
+    assert.ok(refreshed.data.encounter.assessment);
+    assert.equal(refreshed.data.encounter.biasAnalysis, undefined);
     const visible = (await call(learner, `/api/encounters/${first.id}/export`))
       .data;
     assert.ok(visible.assessment);
