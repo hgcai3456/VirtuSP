@@ -64,7 +64,11 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--tx);
-  font: 400 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  font:
+    400 15px/1.5 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
 }
 
 h1,
@@ -106,7 +110,10 @@ header {
   gap: 8px;
   color: inherit;
   text-decoration: none;
-  font: 600 18px Georgia, "Iowan Old Style", serif;
+  font:
+    600 18px Georgia,
+    "Iowan Old Style",
+    serif;
 }
 
 .brand img {
@@ -211,7 +218,9 @@ select {
 }
 
 textarea.code {
-  font: 12px/1.45 ui-monospace, monospace;
+  font:
+    12px/1.45 ui-monospace,
+    monospace;
   height: 160px;
 }
 
@@ -629,7 +638,10 @@ details.advanced {
 }
 
 .score-num {
-  font: 600 42px/1 Georgia, "Iowan Old Style", serif;
+  font:
+    600 42px/1 Georgia,
+    "Iowan Old Style",
+    serif;
   color: var(--ac);
 }
 
@@ -656,4 +668,351 @@ details.advanced {
 .issue {
   padding: 8px 0;
   border-bottom: 1px solid var(--bd);
+}
+
+/* Authoring and encounter workspace */
+main {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 18px;
+}
+.app-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--mu);
+  margin-bottom: 10px;
+}
+.toast {
+  position: sticky;
+  top: 74px;
+  z-index: 3;
+  background: var(--pn);
+  border: 1px solid var(--ac);
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.hidden {
+  display: none;
+}
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.patient-card {
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--soft);
+}
+.patient-card.selected {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 1px var(--ac);
+}
+.patient-card > img {
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+  border-radius: 9px;
+  margin-bottom: 10px;
+}
+.patient-card h3 {
+  margin: 2px 0;
+}
+.patient-card p {
+  margin: 6px 0;
+}
+.patient-card .row {
+  margin-top: 12px;
+}
+.editor {
+  border-top: 1px solid var(--bd);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+.editor h3 {
+  margin: 24px 0 10px;
+}
+.field label {
+  display: block;
+  color: var(--mu);
+  font-size: 12px;
+  margin: 8px 0 4px;
+}
+.field textarea,
+.field input:not([type="checkbox"]),
+.field select {
+  width: 100%;
+}
+.checkfield {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+}
+.checkfield input {
+  width: 18px;
+  height: 18px;
+}
+.file-label {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.card-edit summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 4px 0;
+  overflow-wrap: anywhere;
+}
+.card-edit details {
+  margin-top: 8px;
+}
+.card-edit .btn {
+  margin-top: 10px;
+}
+.draft-generator {
+  background: var(--soft);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 16px;
+}
+.draft-generator summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.draft-generator textarea {
+  width: 100%;
+  margin: 12px 0;
+}
+.draft-generator label {
+  display: block;
+  margin-top: 14px;
+}
+.domain-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 8px;
+}
+.domain-picks label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.domain-picks input {
+  width: 18px;
+  height: 18px;
+}
+.review-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--soft);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+}
+.issues {
+  margin-top: 20px;
+}
+.enc-grid {
+  grid-template-columns: minmax(340px, 0.9fr) minmax(400px, 1.1fr);
+  align-items: start;
+}
+.enc-talk {
+  position: sticky;
+  top: 85px;
+}
+.av-frame {
+  width: 100%;
+  height: 230px;
+  margin: 12px 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--soft);
+}
+.av-frame .av-still {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+}
+.av-frame.speaking .av-still {
+  animation: patient-breathe 2s ease-in-out infinite;
+}
+.av-frame.listening {
+  box-shadow: 0 0 0 3px var(--ac);
+}
+.voice-bars {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #17262bbd;
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 34px;
+  opacity: 0;
+}
+.voice-bars i {
+  display: block;
+  width: 4px;
+  height: 7px;
+  background: #fff;
+  border-radius: 4px;
+}
+.speaking .voice-bars {
+  opacity: 1;
+}
+.speaking .voice-bars i {
+  animation: voice-level 0.7s ease-in-out infinite alternate;
+}
+.voice-bars i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.voice-bars i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.voice-bars i:nth-child(4) {
+  animation-delay: 0.1s;
+}
+@keyframes voice-level {
+  to {
+    height: 23px;
+  }
+}
+@keyframes patient-breathe {
+  50% {
+    transform: scale(1.015);
+  }
+}
+.voice-controls {
+  margin: 10px 0;
+}
+#question-form label {
+  display: block;
+  font-size: 12px;
+  color: var(--mu);
+  margin-bottom: 5px;
+}
+#question-form .row {
+  flex-wrap: nowrap;
+}
+#question {
+  flex: 1;
+  min-width: 0;
+}
+.tr {
+  max-height: 360px;
+  overflow: auto;
+  padding: 10px 0;
+  margin: 10px 0;
+}
+.bubble {
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.bubble p {
+  margin: 5px 0;
+}
+.bubble .chip {
+  font-size: 11px;
+}
+.ehr-panel .tabs {
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.ehr-panel .tabs .btn.on {
+  background: var(--ac);
+  color: var(--pn);
+}
+.art {
+  margin: 14px 0;
+}
+.art h3 {
+  margin-top: 0;
+}
+.art .btn {
+  margin-top: 10px;
+}
+.rubric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.rating {
+  font:
+    600 24px Georgia,
+    serif;
+  color: var(--ac);
+  display: block;
+  margin-bottom: 10px;
+}
+.rubric-grid h2 {
+  font-size: 18px;
+}
+.evidence summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ac);
+}
+.evidence p {
+  font-size: 13px;
+}
+.audit-list {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+}
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.warn {
+  border: 1px solid var(--wr);
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--soft);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--ac);
+  outline-offset: 3px;
+}
+@media (max-width: 900px) {
+  .enc-grid {
+    grid-template-columns: 1fr;
+  }
+  .enc-talk {
+    position: static;
+  }
+  .patient-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  main {
+    padding: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speaking .voice-bars i,
+  .av-frame.speaking .av-still {
+    animation: none;
+  }
 }

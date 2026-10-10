@@ -4,9 +4,25 @@
   "private": true,
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test --test-timeout=30000 tests/*.test.js",
+    "preflight": "node scripts/preflight.js",
+    "evaluate": "node scripts/evaluate.js",
+    "evaluate:local": "node scripts/evaluate.js --local",
+    "setup:aws": "node scripts/storage.js configure",
+    "backup": "node scripts/storage.js backup",
+    "restore": "node scripts/storage.js restore"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "pdfjs-dist": "^6.2.108"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.10"
   }
 }

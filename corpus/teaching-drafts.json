@@ -1,0 +1,34 @@
+{
+  "b5814549-fd2b-42a2-af78-9b681ad6f268": {
+    "note":"Engineering-organized suggestions from the organizer CSV. No medication, allergy, measurement unit or report date has been supplied. Review every proposed patient-known statement before publication.",
+    "facts":[
+      {"id":"concern","label":"Discomfort with taking medication","say":"I'm uncomfortable with taking medication.","topic":"Reason for visit and concerns about taking medicine","kw":["bring","today","concern","medicine","medication","pill","statin"],"ehr":"meds"},
+      {"id":"work","label":"Works as a small aircraft mechanic","say":"I work as a small aircraft mechanic.","topic":"Work and background","kw":["work","job","background"],"ehr":"soc"},
+      {"id":"diagnosis","label":"Diagnosed with dyslipidemia","say":"I've been diagnosed with dyslipidemia.","topic":"Diagnosis and medical history","kw":["diagnos","history","cholesterol"],"ehr":"hx"},
+      {"id":"lipids","label":"Organizer values: total cholesterol 260, LDL 195, HDL 30. Units and date unspecified.","say":"","topic":"Lipid panel results in chart","kw":["lab","result","ldl","hdl","panel","number"],"vis":"chart","sec":"labs","ehr":"labs","type":"documented"},
+      {"id":"anthropometry","label":"Organizer values: BMI 29, waist circumference 43 inches. Date unspecified.","say":"","topic":"Body measurements in chart","kw":["bmi","waist","measurement"],"vis":"chart","sec":"notes","ehr":"notes","type":"documented"}
+    ],
+    "obj":[
+      {"id":"medication-concerns","t":"Explore medication concerns without judgment","w":35,"ty":"fact","f":["concern"],"tip":"Ask what concerns the patient about taking medication."},
+      {"id":"lipid-review","t":"Review the available lipid record and its limitations","w":25,"ty":"review","s":["labs"],"tip":"Review the reported values and acknowledge missing units and report date."},
+      {"id":"context","t":"Explore work and diagnosis context","w":20,"ty":"fact","f":["work","diagnosis"],"tip":"Ask about the patient's history and everyday context without assuming lifestyle details."},
+      {"id":"communication","t":"Use open questions and acknowledge concerns","w":20,"ty":"emp","tip":"Invite the patient's perspective and acknowledge medication concerns."}
+    ]
+  },
+  "6ca4cbf9-14ef-427c-b87c-bc9d34ce02b8": {
+    "note":"Engineering-organized suggestions from the organizer CSV. Missing medications, allergies and encounter dates remain unspecified. Review patient-known wording before publication.",
+    "facts":[
+      {"id":"concern","label":"Did not understand the doctor's medical explanation","say":"My doctor told me, but I just didn't understand what she said.","topic":"Reason for visit and understanding medical explanations","kw":["bring","today","understand","concern","explain"],"ehr":"hx"},
+      {"id":"sodium","label":"Confused about sodium and salt","say":"I'm confused about sodium and salt.","topic":"Understanding sodium, salt and diet","kw":["sodium","salt","diet","food"],"ehr":"soc"},
+      {"id":"work","label":"Full-time state employee; associate's degree in political science","say":"I work full time for the state. I have an associate's degree in political science.","topic":"Work, education and background","kw":["work","job","background","education"],"ehr":"soc"},
+      {"id":"diagnosis","label":"Recently diagnosed with stage II hypertension","say":"I've recently been diagnosed with high blood pressure.","topic":"Diagnosis and medical history","kw":["diagnos","history","blood pressure","hypertension"],"ehr":"hx"},
+      {"id":"blood-pressure","label":"Organizer blood pressure 155/110 mmHg; BMI 34. Measurement date unspecified.","say":"","topic":"Blood pressure and body measurements in the chart","kw":["reading","measurement","number","result","bmi","155"],"vis":"chart","sec":"labs","ehr":"labs","type":"documented"}
+    ],
+    "obj":[
+      {"id":"understanding","t":"Elicit confusion about the prior explanation","w":30,"ty":"fact","f":["concern"],"tip":"Ask the patient what she understood from the previous visit."},
+      {"id":"sodium","t":"Explore understanding of sodium and salt","w":25,"ty":"fact","f":["sodium"],"tip":"Ask what the patient thinks sodium and salt mean before offering education."},
+      {"id":"chart","t":"Review authored measurements and their limitations","w":25,"ty":"review","s":["labs"],"tip":"Review the record and acknowledge that the measurement date is unspecified."},
+      {"id":"communication","t":"Use open questions and acknowledge confusion","w":20,"ty":"emp","tip":"Use plain language, acknowledge confusion, and check understanding."}
+    ]
+  }
+}

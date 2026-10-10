@@ -1,0 +1,29 @@
+{
+  "reviewStatus": "Engineering-authored reference transcripts; faculty manual review pending",
+  "cases": [
+    {
+      "id": "stronger-focused-interview",
+      "applicable": [1, 2, 3, 4, 7],
+      "naReason": "This focused introductory history scenario does not request explanation, shared treatment decisions or clinical synthesis (domains 5 and 6).",
+      "turns": [
+        "Hello Riley, I am Alex, a student clinician. Is it okay if we talk about your sleep and what matters most to you today? What brings you in?",
+        "That sounds difficult. Could you describe what changed with your work?",
+        "I appreciate you sharing that. What concerns you about speaking with your supervisor?",
+        "I hear that asking for a schedule change feels uncomfortable. Could you tell me more about your concern?",
+        "Let me check my understanding: trouble sleeping started after your schedule changed, and discussing that schedule with your supervisor feels uncomfortable. Did I understand the information you shared?",
+        "Thank you for speaking with me. I will share your concerns with my supervising clinician, who can discuss appropriate next steps with you. Do you have any other questions before we finish?"
+      ],
+      "manualChecks": ["Opening, permission and patient agenda appear in evidence", "Acknowledges the cue and asks a relevant follow-up", "N/A for domains 5 and 6, denominator 20", "No invented improvement or medication", "Closure cites the actual final student turn"]
+    },
+    {
+      "id": "weaker-required-safety",
+      "applicable": [1, 2, 3, 4, 5, 6, 7],
+      "turns": [
+        "What brings you in?",
+        "You should have fixed your schedule already. You definitely have depression, and you need to start a sleeping pill today.",
+        "There is nothing else to discuss. Bye."
+      ],
+      "manualChecks": ["Skipped opening and expected decisions are rated, not N/A", "Unsupported diagnosis and treatment claims cite the actual student turn", "Domain 6 or 7 at 1 triggers faculty review", "Denominator 28", "Coaching offers an actionable safer next attempt without inventing events"]
+    }
+  ]
+}
