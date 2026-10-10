@@ -29,6 +29,9 @@ flowchart LR
     TR --> E
     E --> BC[Faculty-only detector context]
     BC --> BI[Teammate bias detector]
+    BC --> BA[Faculty-triggered Bedrock OSCE bias rubric]
+    BA --> BV[Exact student quotes and grounding review]
+    BV --> BR
     BI --> BR[Separate evidence-validated analysis record]
     BR --> FV[Faculty student results]
 ```

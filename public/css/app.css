@@ -1943,6 +1943,37 @@ summary:focus-visible {
 .patient-dialog .editor > .patient-category h2 {
   margin: 10px 0;
 }
+.bias-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0 18px;
+}
+.bias-rubric {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.94rem;
+}
+.bias-rubric th,
+.bias-rubric td {
+  padding: 12px;
+  border-bottom: 1px solid var(--line, #d6e2e3);
+  vertical-align: top;
+}
+.bias-rubric th:first-child {
+  width: 23%;
+}
+.bias-rubric td:nth-child(2) {
+  width: 19%;
+}
+.bias-rubric p {
+  margin: 0 0 8px;
+}
+.bias-citation {
+  margin: 6px 0;
+}
+.bias-citation q {
+  font-size: 0.9em;
+}
 @media (max-width: 680px) {
   .simulation-choices {
     grid-template-columns: 1fr;

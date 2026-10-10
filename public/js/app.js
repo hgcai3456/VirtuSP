@@ -822,7 +822,7 @@ function assessment() {
   ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
   <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
   ${biasEvidenceView()}${body}
-  ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis) : ""}
+  ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis, "encounter", enc.id, enc.status === "complete") : ""}
   <div class="row rep-actions">${enc.attemptId ? button("Assigned tests", "nav", 'data-tab="tests"', "pri") : button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
   <p class="muted small">${a.na} N/A domains · ${esc(a.provider)}${a.model ? " · " + esc(a.model) : ""}${a.revised ? " · revised once after automated review" : ""}${a.failure ? " · fallback: " + esc(a.failure) : ""}</p></div>`;
 }
@@ -1043,9 +1043,32 @@ function testCatalog() {
       .join("") || "<p>No assessments assigned yet.</p>"
   }</div>`;
 }
-function biasPanel(result) {
+function biasPanel(result, type, id, ready) {
   const r = result || { status: "pending", findings: [], limitations: [] };
-  return `<section class="bias-panel"><h3>Possible bias indicators · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}${r.detectorVersion ? ` · ${esc(r.detectorVersion)}` : ""}</p>${r.findings.map((f) => `<p>${esc(f.text)}</p><div class="row">${f.evidence.map((ref) => button("View cited event", "bias-evidence", `data-id="${esc(ref.encounterId)}" data-event="${esc(ref.eventId)}"`)).join("")}</div>`).join("")}${r.status === "complete" && !r.findings.length ? "<p>No indicators reported by this detector.</p>" : ""}${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from rubric ratings. Encounter differences alone do not establish bias.</p></section>`;
+  const scored = r.rubricAssessment;
+  const citations = (refs) =>
+    refs
+      .map(
+        (ref) =>
+          `<div class="bias-citation">${ref.quote ? `<q>${esc(ref.quote)}</q> ` : ""}${button("View cited event", "bias-evidence", `data-id="${esc(ref.encounterId)}" data-event="${esc(ref.eventId)}"`)}</div>`,
+      )
+      .join("");
+  const tables = scored
+    ? scored.encounters
+        .map(
+          (e) =>
+            `<h4>${esc(e.name)} · version ${esc(e.version)}</h4><div class="bias-table-wrap"><table class="bias-rubric"><thead><tr><th>Category</th><th>Performance</th><th>Evidence and coaching</th></tr></thead><tbody>${scored.evaluations
+              .filter((v) => v.encounterId === e.id)
+              .map(
+                (v) =>
+                  `<tr><th scope="row">${esc(scored.rubric.categories.find((c) => c.id === v.categoryId)?.name || v.categoryId)}</th><td>${v.score === null ? "Not observable" : `${v.score} · ${esc(scored.rubric.scale[v.score])}`}</td><td><p>${esc(v.reason)}</p>${citations(v.evidence)}${v.coaching ? `<p class="muted">Next time: ${esc(v.coaching)}</p>` : ""}</td></tr>`,
+              )
+              .join("")}</tbody></table></div>`,
+        )
+        .join("")
+    : "";
+  const findings = scored ? scored.comparisons : r.findings;
+  return `<section class="bias-panel"><h3>Bias assessment · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}</p>${ready ? button(r.status === "complete" ? "Recheck bias assessment" : "Run bias assessment", "analyze-bias", `data-type="${esc(type)}" data-id="${esc(id)}"`, "pri") : '<p class="muted">Available after this encounter or all group trials finish.</p>'} <a href="/api/bias/rubric/file" target="_blank" rel="noopener">View source rubric</a><p class="muted">Five separate performance ratings: 1 Unsatisfactory to 4 Exemplary. Higher is stronger performance. No combined bias score.</p>${tables}${findings.length ? `<h4>Possible bias indicators for faculty review</h4>${findings.map((f) => `<p>${esc(f.text)}</p>${citations(f.evidence)}`).join("")}` : r.status === "complete" ? "<p>No additional indicators reported; this does not establish absence of bias.</p>" : ""}<details><summary>Limits of this analysis</summary>${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from the student's seven-domain assessment. Encounter differences alone do not establish bias.</p></details></section>`;
 }
 function biasEvidenceView() {
   if (demoSession?.role !== "faculty" || !selectedEvidenceId) return "";
@@ -1055,7 +1078,7 @@ function biasEvidenceView() {
   return `<section class="bias-panel cited-event"><h2>Cited encounter event</h2><p>${esc(event.type)} · ${esc(new Date(event.at).toLocaleString())}</p><p>${esc(turn?.text || event.text || "Recorded encounter action")}</p><p class="muted">${esc(event.id)}</p></section>`;
 }
 function resultsPage() {
-  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis)}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis)}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
+  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis, "attempt", a.id, a.status === "complete")}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis, "encounter", e.id, e.status === "complete")}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
 }
 function render() {
   if (!demoSession) {
@@ -1665,6 +1688,7 @@ document.addEventListener("click", async (e) => {
         "next-test",
         "add-student",
         "bias-evidence",
+        "analyze-bias",
       ].includes(a)
     ) {
       busy = true;
@@ -1769,6 +1793,19 @@ document.addEventListener("click", async (e) => {
       localStorage.setItem("virtusp-active-v2", enc.id);
       section = "ov";
       tab = "enc";
+    }
+    if (a === "analyze-bias") {
+      const result = await api(
+        `/api/bias/${t.dataset.type}/${t.dataset.id}/analyze`,
+        "POST",
+        {},
+      );
+      await refresh();
+      if (enc) enc = (await api(`/api/encounters/${enc.id}`)).encounter;
+      message =
+        result.biasAnalysis.status === "complete"
+          ? "Faculty bias assessment ready."
+          : "Bias assessment unavailable. See the analysis limits and retry.";
     }
     if (a === "bias-evidence") {
       enc = (await api(`/api/encounters/${t.dataset.id}`)).encounter;
