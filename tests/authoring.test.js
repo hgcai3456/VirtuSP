@@ -125,6 +125,21 @@ test("Document roles, previews, clinical attachments and explicit creation prese
       ).status,
       400,
     );
+    cloud.draft = async () => {
+      throw Object.assign(new Error("Private model output"), {
+        code: "MODEL_OUTPUT_LIMIT",
+      });
+    };
+    const failed = await request("/api/generate", {
+      description: "Name: Document Patient",
+      files: [{ id: caseBrief.id, role: "case" }],
+      preview: true,
+    });
+    assert.equal(failed.draftError.code, "MODEL_OUTPUT_LIMIT");
+    assert.match(failed.warning, /output limit/);
+    assert.ok(!JSON.stringify(failed).includes("Private model output"));
+    assert.equal(failed.profile.sources[1].fileId, caseBrief.id);
+    assert.equal((await request("/api/profiles")).profiles.length, 10);
     const saved = await request("/api/profiles", { profile: draft.profile });
     assert.equal(saved.status, 201);
     assert.equal((await request("/api/profiles")).profiles.length, 11);

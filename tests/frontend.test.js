@@ -273,6 +273,28 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       process.env.AI_ENABLED = "false";
     }
     assert.equal(doc.getElementById("field-age").value, "42");
+    process.env.AI_ENABLED = "true";
+    cloud.draft = async () => {
+      throw Object.assign(new Error("Private detail"), {
+        code: "MODEL_OUTPUT_LIMIT",
+      });
+    };
+    try {
+      click("parse-patient");
+      await wait(() =>
+        doc.querySelector(".form-notice")?.textContent.includes("output limit"),
+      );
+      assert.equal(
+        doc.getElementById("field-name").value,
+        "Test New Patient",
+        "A failed retry retains existing form edits",
+      );
+      assert.equal(doc.getElementById("field-age").value, "42");
+      assert.equal(doc.querySelectorAll(".uploaded-document").length, 3);
+    } finally {
+      cloud.draft = oldDraft;
+      process.env.AI_ENABLED = "false";
+    }
     assert.equal(
       doc.querySelectorAll("#patient-dialog details[open]").length,
       0,

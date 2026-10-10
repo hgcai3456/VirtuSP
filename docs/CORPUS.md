@@ -33,6 +33,8 @@ Open `corpus/downloads/virtual-patient-profiles-sample/studio/omar-sinclair/`. D
 
 Select **Extract & fill form**, then review. These files are evidence packages, not approved application profiles. Complete original JSON is retained for comparison.
 
+Rich-case drafting allows more output than the short Alex example and may take about a minute. The first structured review may need Bedrock schema warm-up time; see [SETUP.md](SETUP.md). It proposes a concise selection of facts; review originals and author any further required details. Unapproved faculty assumptions and optional details are excluded by the extraction/review prompts. Keep `faculty-notes.txt` beside the form rather than uploading it as patient history. Failed AI retries now show a specific reason and retain your form edits and attachments.
+
 **Review/author trust gates and guarded replies for reluctant facts** in the clinical-facts section. Draft extraction does not reliably convert disclosure labels into application gates. Hidden values must remain chart-only. Overview prose can repeat clinical or guarded details, so review every fact's visibility and artifact release conditions. Do not publish with all gates at zero by default.
 
 The source includes assumptions and conflicting statements: Omar's meal pattern and discoverable meal count differ. Preserve these for explicit faculty review rather than silently resolving them. Missing dates, units, medications or allergies must remain unspecified. Add selected teaching references separately and review learning objectives. Existing published encounters retain their immutable versions.

@@ -437,6 +437,7 @@ async function parsePatient() {
       files: d.files.map(({ id, role, section }) => ({ id, role, section })),
       preview: true,
     });
+    if (r.draftError) throw new Error(r.warning);
     // Previewing must never create a library entry or change an existing identity.
     profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
     dirty = true;
