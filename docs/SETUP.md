@@ -56,7 +56,7 @@ Tap **Tap to talk**, speak your question, then tap **Stop & send**. Speech fragm
 
 Leave `ELEVENLABS_API_KEY` and `ELEVENLABS_VOICE_ID` empty to use text and browser speech. Recognition starts only with **Tap to talk**, requires microphone permission and may send audio to the browser vendor's service. Use synthetic scenarios and text when recognition is unavailable.
 
-In ElevenLabs, copy the key under Developers → API Keys. In My Voices, use the voice menu → Copy voice ID. Put both in `.env`, then restart the server. Enable text-to-speech access for a restricted key; voice metadata preflight also needs voice read access. An optional per-patient voice ID is editable in Studio. Only saved, validated patient replies are sent for speech. Mute, Pause and navigation cancel playback.
+In ElevenLabs, copy the key under Developers → API Keys. In My Voices, use the voice menu → Copy voice ID. Put both in `.env`, then restart the server. Enable text-to-speech access for a restricted key; voice metadata preflight also needs voice read access. Voice IDs and portrait storage URIs are not exposed in the faculty form. The speech teammate owns automatic ElevenLabs voice selection from patient information; the current adapter still uses its configured voice until that integration is complete. Only saved, validated patient replies are sent for speech. Mute, Pause and navigation cancel playback.
 
 Official references: [API authentication](https://elevenlabs.io/docs/api-reference/authentication), [finding a voice ID](https://help.elevenlabs.io/hc/en-us/articles/14599760033937-How-do-I-find-the-voice-ID-of-my-voices-via-the-website-and-API).
 

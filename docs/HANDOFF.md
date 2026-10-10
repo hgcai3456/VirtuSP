@@ -8,6 +8,10 @@ The reusable core is implemented: author/review/publish profiles, server-owned e
 
 Run `npm ci`, configure your own ignored `.env` via [SETUP.md](SETUP.md), run `npm run preflight`, then `npm start`. Open `/app.html`. Credentials are not shared through Git; teammates need their own event credentials and application bucket configuration.
 
+## Voice integration ownership
+
+The user assigned ElevenLabs integration to another teammate, who will choose voices from patient information. Faculty no longer enter voice IDs or portrait S3 URIs in Patient Studio. Existing profile metadata and speech adapters remain available to that integration; automatic voice selection has not been implemented by this UI change.
+
 ## Faculty authoring checkpoint
 
 New/Edit patient now opens a modal form with one unified upload area (multiple files, without a file-count cap), explicit document purposes, selectable PDF extraction, Bedrock form-filling preview, faculty correction and one whole-profile acknowledgment. Preview/cancel does not create a patient. Create & publish validates before adding the immutable first version. The permanent publication-error inventory and per-record approval controls have been removed; server publication validation remains. See [AUTHORING.md](AUTHORING.md) for input examples, policy terminology, extraction limits and the distinction between case briefs, chart reports and teaching references. OCR remains deferred.

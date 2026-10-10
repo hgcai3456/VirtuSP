@@ -168,7 +168,7 @@ function editor() {
  ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer teaching suggestions", "prepare") : ""}
  <p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Saved draft"} · Published versions and active encounters remain fixed.</p>
  ${profile.missing?.length ? `<details><summary>Imported omissions and review notes (${profile.missing.length})</summary><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul><p class="muted">An omission may remain unspecified. Do not convert it to a negative finding.</p></details>` : ""}
- <div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Authored emotional state", "emotion")}</div><details class="card-edit"><summary>Optional voice and portrait configuration</summary><div class="fields">${control("ElevenLabs voice ID", "voiceId")}${control("Portrait S3 URI", "image")}</div></details>
+ <div class="fields">${control("Name", "name")}${control("Age", "age", { type: "number" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Authored emotional state", "emotion")}</div>
  <h3>Clinical facts</h3><p class="muted">These are the authoritative records. Editing them changes the next published encounter directly. Neutral topic descriptions help question matching without exposing hidden values.</p>
  ${profile.facts
    .map(
