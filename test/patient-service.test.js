@@ -66,10 +66,16 @@ describe('patient service', { concurrency: false }, () => {
       topic: 'thirst',
       keywords: 'fatigue'
     });
-    insertJournal(box.db, {
+    const bareId = insertJournal(box.db, {
       title: 'Second paper',
       pmid: null,
       abstract: 'Another thirst note.'
+    });
+    insertFact(box.db, bareId, {
+      claim: 'Another thirst note.',
+      quote: 'Another thirst note.',
+      topic: 'thirst',
+      keywords: ''
     });
   });
 

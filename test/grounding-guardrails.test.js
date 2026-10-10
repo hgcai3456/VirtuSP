@@ -763,7 +763,8 @@ describe('ingest ground truth', () => {
     assert.equal(facts[0].evidence_level, 'source_sentence');
     assert.equal(facts[0].topic, 'adherence');
     assert.equal(custom[0].section, 'file');
-    assert.equal(custom[0].topic, 'diabetes;metformin;adherence');
+    assert.equal(custom[0].topic, 'adherence');
+    assert.equal(custom[1].topic, 'diabetes;metformin');
     assert.deepEqual(extractFacts(null), []);
     assert.ok(includesQuote(hinted, facts[0].quote));
   });

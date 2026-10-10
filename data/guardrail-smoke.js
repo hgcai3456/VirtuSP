@@ -234,8 +234,9 @@ assert.match(sport.request.reason, /medicine/);
 console.log('ok service scope');
 
 const dose = answer(db, { request: 'What dose of metformin should I prescribe?', trust: 0, case_facts: serviceFacts });
-assert.notStrictEqual(dose.reply, FACTS.facts[1].say);
-assert.ok(dose.send === false || /not sure/i.test(dose.reply || ''));
-console.log('ok service dose block', dose.send ? 'fallback' : 'blocked');
+assert.strictEqual(dose.send, false);
+assert.strictEqual(dose.reply, null);
+assert.match(dose.request.reason, /not sent|blocked|journal|medical_data/i);
+console.log('ok service dose block');
 
 console.log('guardrail smoke passed');
