@@ -36,6 +36,25 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
   w.structuredClone = structuredClone;
   w.fetch = (url, opts) => client(new URL(url, base), opts);
   w.HTMLElement.prototype.scrollTo = () => {};
+  const noop = () => {};
+  w.HTMLCanvasElement.prototype.getContext = () => ({
+    fillRect: noop,
+    clearRect: noop,
+    beginPath: noop,
+    fill: noop,
+    stroke: noop,
+    moveTo: noop,
+    lineTo: noop,
+    arc: noop,
+    ellipse: noop,
+    save: noop,
+    restore: noop,
+    translate: noop,
+    rotate: noop,
+    createLinearGradient: () => ({ addColorStop: noop }),
+  });
+  w.HTMLMediaElement.prototype.play = async () => {};
+  w.HTMLMediaElement.prototype.pause = noop;
   const wait = async (fn) => {
     for (let i = 0; i < 300; i++) {
       if (fn()) return;
@@ -160,6 +179,11 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     click("start-available");
     await wait(() => !!d.getElementById("question"));
     assert.match(d.querySelector("#app").textContent, /Trial 1 of 2/);
+    assert.equal(
+      d.querySelector('[src="/video/omar.mp4"]'),
+      null,
+      "Comparison names must not select different packaged clips",
+    );
     click("nav", '[data-tab="student-home"]');
     await wait(() => !!d.querySelector(".student-assignments"));
     assert.ok(

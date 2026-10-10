@@ -270,7 +270,7 @@ test("Faculty-only individual/group bias APIs protect students, completed target
       headers: body ? { "Content-Type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
     });
-    return { status: res.status, ...(await res.json()) };
+    return { ...(await res.json()), status: res.status };
   };
   try {
     await start();
@@ -300,6 +300,13 @@ test("Faculty-only individual/group bias APIs protect students, completed target
     const first = (
       await call(student, `/api/attempts/${attempt.id}/next`, "POST", {})
     ).encounter;
+    assert.equal(first.commonPresentation, true);
+    assert.equal(first.videoUrl, "");
+    assert.equal(first.portrait, "patient.jpg");
+    assert.equal(
+      (await call(student, `/api/encounters/${first.id}/talking-video`)).status,
+      501,
+    );
     assert.equal(
       (
         await call(
@@ -350,6 +357,9 @@ test("Faculty-only individual/group bias APIs protect students, completed target
     const second = (
       await call(student, `/api/attempts/${attempt.id}/next`, "POST", {})
     ).encounter;
+    assert.equal(second.commonPresentation, true);
+    assert.equal(second.videoUrl, first.videoUrl);
+    assert.equal(second.portrait, first.portrait);
     finish(second.id);
     const result = (
       await call(faculty, `/api/bias/attempt/${attempt.id}/analyze`, "POST", {})

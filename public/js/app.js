@@ -59,8 +59,32 @@ let list = [],
   repView = "summary",
   wordingPending = false,
   expandedDocId = "",
+  paused = false,
+  patientSpeaking = false,
+  holdMic = false,
+  liveText = "",
+  silenceTimer = null,
+  audioCtx = null,
+  mediaSource = null,
+  mouthRaf = 0,
+  mouthTimer = 0,
+  mouthLevel = 0,
+  ignoreMicUntil = 0,
+  talkVideoUrl = "",
+  talkVideoPoll = 0,
+  talkDrawRaf = 0,
+  visemes = [],
+  faceAnchors = null,
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const wordingTried = new Set();
+const SILENCE_MS = 3000;
+const liveSupported = () =>
+  typeof window !== "undefined" &&
+  !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+const reducedMotion =
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const formMemory = {
   handoff: "",
   careplan: "",
@@ -116,6 +140,69 @@ function control(
 }
 const button = (text, action, extra = "", cls = "") =>
   `<button type="button" class="btn ${cls}" data-action="${action}" ${extra} ${busy ? "disabled" : ""}>${text}</button>`;
+const micIcon =
+  '<svg class="mic-glyph" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>';
+function micCopy() {
+  if (paused)
+    return { label: "Paused", hint: "Tap to resume the conversation" };
+  if (busy) return { label: "Thinking", hint: "The patient is responding" };
+  if (patientSpeaking)
+    return { label: "Speaking", hint: "Tap the photo if you need to pause" };
+  if (listening)
+    return {
+      label: "Listening",
+      hint: "Pause 3 seconds when you are done",
+    };
+
+  return { label: "Live", hint: "Tap to start the conversation" };
+}
+function playMedia(el) {
+  try {
+    const playing = el?.play?.();
+    if (playing && typeof playing.catch === "function") {
+      playing.catch(() => {});
+    }
+  } catch {
+    /* jsdom and some browsers have no media playback. */
+  }
+}
+function packagedVisitVideo(enc) {
+  if (enc?.commonPresentation) return "";
+  if (enc?.videoUrl) return enc.videoUrl;
+  const id = String(enc?.profileId || "").toLowerCase();
+  const name = String(enc?.name || "").toLowerCase();
+  const files = {
+    nisha: "/video/nisha.mp4",
+    yvette: "/video/yvette.mp4",
+    omar: "/video/omar.mp4",
+    dominic: "/video/dominic.mp4",
+    wyatt: "/video/wyatt.mp4",
+    walter: "/video/walter.mp4",
+    vadko: "/video/vadko.mp4",
+    mramirez: "/video/mramirez.mp4",
+  };
+  if (files[id]) return files[id];
+  if (name.includes("nisha")) return files.nisha;
+  if (name.includes("yvette")) return files.yvette;
+  if (name.includes("omar")) return files.omar;
+  if (name.includes("dominic")) return files.dominic;
+  if (name.includes("wyatt")) return files.wyatt;
+  if (name.includes("walter")) return files.walter;
+  if (name.includes("vladko") || name.includes("vadko")) return files.vadko;
+  if (name.includes("ramirez")) return files.mramirez;
+
+  return "";
+}
+function micControl() {
+  if (enc?.status === "complete") return "";
+  if (!liveSupported())
+    return '<p class="mic-hint">Live voice needs Chrome or Edge. Type your question below.</p>';
+  const on = listening && !paused;
+  const waiting = (busy || patientSpeaking) && !on && !paused;
+  const copy = micCopy();
+
+  return `<button type="button" class="mic-btn ${paused ? "paused" : on ? "on" : waiting ? "wait" : ""}" data-action="toggle-pause" aria-pressed="${on}" aria-label="${esc(copy.label)}">${micIcon}<span class="mic-copy"><strong>${esc(copy.label)}</strong><span class="mic-hint">${esc(copy.hint)}</span></span></button>`;
+}
 function safeLink(url) {
   try {
     const u = new URL(url);
@@ -546,7 +633,8 @@ function encounter() {
       .filter((p) => p.version)
       .map((p) => card(p, false))
       .join("")}</div></div>`;
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame" id="avf"><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="row voice-controls">${button("Tap to talk", "mic")}${button(muted ? "Unmute" : "Mute", "mute")}${button("Pause audio", "pause")}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  const clip = packagedVisitVideo(enc);
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div>${conversationFiles()}<div class="tabs">${sections.map(([s, name]) => button(name, "section", `data-section="${s}"`, section === s ? "on" : "")).join("")}</div>${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -1203,18 +1291,260 @@ function render() {
   }
   if (tab === "enc") $("#transcript")?.scrollTo(0, 1e9);
   voiceState(voiceDisplay.state, voiceDisplay.text);
+  setFaceAnchor();
+  initTalkAvatar();
+  attachTalkVideo();
   updateMicButton();
+  syncLive();
 }
-function stopAudio() {
-  speechGeneration++;
-  listening = false;
-  clearTimeout(micRestartTimer);
-  try {
-    recognition?.abort();
-  } catch {
-    /* A disconnected recognizer is already stopped. */
+function resetTalkVideo() {
+  clearInterval(talkVideoPoll);
+  talkVideoPoll = 0;
+  if (talkVideoUrl) URL.revokeObjectURL(talkVideoUrl);
+  talkVideoUrl = "";
+  stopTalkAvatar();
+}
+function avatarSeed(value) {
+  let h = 2166136261;
+  for (const ch of String(value || "")) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
   }
-  recognition = null;
+
+  return h >>> 0;
+}
+function avatarLook(p) {
+  const n = avatarSeed((p?.profileId || "") + "|" + (p?.name || ""));
+  const female = String(p?.gender || "")
+    .toLowerCase()
+    .startsWith("f");
+  const age = Number(p?.age);
+  const skins = ["#f3d0b5", "#e2b896", "#c68642", "#8d5524", "#f1c27d"];
+  const hairs = female
+    ? ["#1b120c", "#4a2c1a", "#6b4423", "#2e1a12", "#3d2b1f"]
+    : ["#1a1a1a", "#2c241b", "#3b2f2f", "#4a3728", "#111111"];
+
+  return {
+    female,
+    older: Number.isFinite(age) && age >= 60,
+    skin: skins[n % skins.length],
+    hair: hairs[(n >> 3) % hairs.length],
+    shirt: ["#2f5d62", "#3d4f7a", "#5a3e36", "#355c4a"][(n >> 6) % 4],
+    sway: 0.45 + (n % 8) / 18,
+  };
+}
+function talkCanvas(canvas) {
+  try {
+    return canvas.getContext?.("2d") || null;
+  } catch {
+    return null;
+  }
+}
+function drawTalkingPerson(canvas, p, mouth) {
+  const ctx = talkCanvas(canvas);
+  if (!ctx) return;
+  const w = canvas.width;
+  const h = canvas.height;
+  const look = avatarLook(p);
+  const t = Date.now() / 1000;
+  const idle = Math.sin(t * look.sway) * 5;
+  const nod = patientSpeaking ? Math.sin(t * 8.5) * 3 : idle * 0.25;
+  const open = Math.max(patientSpeaking ? 0.12 : 0.04, Number(mouth) || 0);
+  ctx.clearRect(0, 0, w, h);
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, "#dfe8ea");
+  bg.addColorStop(1, "#9fb3b0");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h * 0.52 + nod);
+  ctx.rotate((idle * Math.PI) / 880);
+  ctx.fillStyle = look.shirt;
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.4, w * 0.44, h * 0.24, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = look.skin;
+  ctx.fillRect(-w * 0.07, h * 0.02, w * 0.14, h * 0.16);
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.08, w * 0.19, h * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = look.hair;
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.22, w * 0.2, h * 0.14, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+  if (look.female) {
+    ctx.beginPath();
+    ctx.ellipse(-w * 0.2, 0.02 * h, w * 0.07, h * 0.2, 0.25, 0, Math.PI * 2);
+    ctx.ellipse(w * 0.2, 0.02 * h, w * 0.07, h * 0.2, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const blink = Math.sin(t * 0.85) > 0.96 ? 0.12 : 1;
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.ellipse(
+    -w * 0.06,
+    -h * 0.12,
+    w * 0.032,
+    h * 0.018 * blink,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.ellipse(
+    w * 0.06,
+    -h * 0.12,
+    w * 0.032,
+    h * 0.018 * blink,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.fillStyle = "#24180f";
+  ctx.beginPath();
+  ctx.arc(-w * 0.06, -h * 0.12, w * 0.012, 0, Math.PI * 2);
+  ctx.arc(w * 0.06, -h * 0.12, w * 0.012, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = look.hair;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.1, -h * 0.165);
+  ctx.lineTo(-w * 0.028, -h * 0.155);
+  ctx.moveTo(w * 0.028, -h * 0.155);
+  ctx.lineTo(w * 0.1, -h * 0.165);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(80,40,30,0.4)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -h * 0.1);
+  ctx.lineTo(-w * 0.01, -h * 0.018);
+  ctx.lineTo(w * 0.016, -h * 0.018);
+  ctx.stroke();
+  ctx.fillStyle = "#7a3038";
+  ctx.beginPath();
+  ctx.ellipse(
+    0,
+    h * 0.045,
+    w * 0.058,
+    h * 0.012 + open * h * 0.05,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+  ctx.fillStyle = "#2c0c10";
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.05, w * 0.04, open * h * 0.032, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+function stopTalkAvatar() {
+  if (!talkDrawRaf) return;
+  if (typeof cancelAnimationFrame === "function") {
+    cancelAnimationFrame(talkDrawRaf);
+  } else {
+    clearTimeout(talkDrawRaf);
+  }
+  talkDrawRaf = 0;
+}
+function initTalkAvatar() {
+  const canvas = $("#av-talk");
+  if (!canvas || !enc) return;
+  if (talkVideoUrl || packagedVisitVideo(enc)) {
+    canvas.classList.add("hidden");
+    stopTalkAvatar();
+
+    return;
+  }
+  if (!talkCanvas(canvas)) {
+    $("#avf .patient-photo")?.classList.remove("hidden");
+
+    return;
+  }
+  canvas.classList.remove("hidden");
+  canvas.width = 640;
+  canvas.height = 520;
+  $("#avf .patient-photo")?.classList.add("hidden");
+  $("#avf")?.classList.add("has-video");
+  stopTalkAvatar();
+  const frame =
+    typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame
+      : (fn) => setTimeout(fn, 40);
+  const tick = () => {
+    drawTalkingPerson(canvas, enc, mouthLevel);
+    talkDrawRaf = frame(tick);
+  };
+  talkDrawRaf = frame(tick);
+}
+function attachTalkVideo() {
+  const v = $("#av-video");
+  const clip = talkVideoUrl || packagedVisitVideo(enc);
+  if (!v || !clip) return;
+  if (!v.src || !String(v.src).includes(clip.replace(/^\//, ""))) v.src = clip;
+  v.classList.remove("hidden");
+  $("#av-talk")?.classList.add("hidden");
+  $("#avf")?.classList.add("has-video");
+  $("#avf .patient-photo")?.classList.add("hidden");
+  v.playbackRate = patientSpeaking ? 1 : 0.55;
+  v.muted = true;
+  v.loop = true;
+  playMedia(v);
+}
+async function warmTalkVideo() {
+  if (enc?.commonPresentation) return;
+  if (packagedVisitVideo(enc)) {
+    attachTalkVideo();
+
+    return;
+  }
+  if (
+    !enc ||
+    enc.status !== "active" ||
+    health.speech !== "elevenlabs-configured"
+  )
+    return;
+  const id = enc.id;
+  const tryLoad = async () => {
+    if (!enc || enc.id !== id || tab !== "enc") return;
+    try {
+      const r = await fetch(`/api/encounters/${id}/talking-video`);
+      if (r.status !== 200) return;
+      const blob = await r.blob();
+      if (talkVideoUrl) URL.revokeObjectURL(talkVideoUrl);
+      talkVideoUrl = URL.createObjectURL(blob);
+      attachTalkVideo();
+      clearInterval(talkVideoPoll);
+      talkVideoPoll = 0;
+    } catch {
+      /* Photo visemes remain until a clip is ready. */
+    }
+  };
+  await tryLoad();
+  if (talkVideoUrl || talkVideoPoll) return;
+  talkVideoPoll = setInterval(tryLoad, 8000);
+}
+function setMouth(level) {
+  mouthLevel = level;
+  $("#avf")?.style.setProperty("--mouth", level.toFixed(3));
+}
+function stopMouth() {
+  if (mouthRaf) {
+    if (typeof cancelAnimationFrame === "function") {
+      cancelAnimationFrame(mouthRaf);
+    } else {
+      clearTimeout(mouthRaf);
+    }
+  }
+  mouthRaf = 0;
+  clearInterval(mouthTimer);
+  mouthTimer = 0;
+  setMouth(0);
+}
+function stopPatientAudio() {
+  speechGeneration++;
+  patientSpeaking = false;
+  stopMouth();
   if (audio) {
     audio.pause();
     audio = null;
@@ -1223,8 +1553,34 @@ function stopAudio() {
     URL.revokeObjectURL(audioUrl);
     audioUrl = null;
   }
+  if (mediaSource) {
+    try {
+      mediaSource.disconnect();
+    } catch {
+      /* Already disconnected. */
+    }
+    mediaSource = null;
+  }
   window.speechSynthesis?.cancel();
-  $("#avf")?.classList.remove("speaking", "listening");
+  $("#avf")?.classList.remove("speaking");
+}
+function stopLive() {
+  listening = false;
+  clearTimeout(micRestartTimer);
+  clearTimeout(silenceTimer);
+  liveText = "";
+  const rec = recognition;
+  recognition = null;
+  try {
+    rec?.abort();
+  } catch {
+    /* A disconnected recognizer is already stopped. */
+  }
+  $("#avf")?.classList.remove("listening");
+}
+function stopAudio() {
+  stopPatientAudio();
+  stopLive();
   voiceState(
     "ready",
     enc?.status === "complete"
@@ -1239,46 +1595,112 @@ function voiceState(state, text) {
   $("#avf")?.classList.toggle("listening", state === "listening");
   if ($("#voice-status")) $("#voice-status").textContent = text;
 }
-async function speak(turn) {
-  stopAudio();
-  const generation = speechGeneration;
-  const updateVoice = (state, text) => {
-    if (generation === speechGeneration) voiceState(state, text);
+function visemesFromText(text) {
+  const seq = [];
+  for (const ch of String(text || "").toLowerCase()) {
+    if ("aeiou".includes(ch)) seq.push(ch === "o" || ch === "a" ? 0.92 : 0.7);
+    else if ("mbp".includes(ch)) seq.push(0.04);
+    else if ("w".includes(ch)) seq.push(0.35);
+    else if (/\s/.test(ch)) seq.push(0.08);
+    else seq.push(0.28);
+  }
+
+  return seq.length ? seq : [0.45, 0.2, 0.65, 0.18];
+}
+function startVisemes(generation, el) {
+  if (reducedMotion) return;
+  const seq = visemes.length ? visemes : visemesFromText("aa ee oo");
+  const frame =
+    typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame
+      : (fn) => setTimeout(fn, 32);
+  const tick = () => {
+    if (generation !== speechGeneration || !patientSpeaking) return;
+    const duration = el?.duration;
+    const t =
+      el && Number.isFinite(duration) && duration > 0
+        ? el.currentTime / duration
+        : (Date.now() % 900) / 900;
+    const i = Math.min(seq.length - 1, Math.floor(t * seq.length));
+    const target = seq[i];
+    mouthLevel += (target - mouthLevel) * 0.35;
+    setMouth(mouthLevel);
+    mouthRaf = frame(tick);
   };
-  if (muted || tab !== "enc") return;
-  if (health.speech === "elevenlabs-configured")
-    try {
-      voiceState("thinking", "Preparing patient voice…");
-      const response = await fetch(`/api/encounters/${enc.id}/speech`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnId: turn.id }),
-      });
-      if (!response.ok) throw new Error();
-      const blob = await response.blob();
+  mouthRaf = frame(tick);
+}
+function pulseTalkVideo(speaking) {
+  const v = $("#av-video");
+  if (!v || v.classList.contains("hidden") || !v.src) return;
+  v.playbackRate = speaking ? 1 : 0.55;
+  playMedia(v);
+}
+async function speak(turn) {
+  stopPatientAudio();
+  if (muted || tab !== "enc" || !turn) {
+    holdMic = false;
+    ignoreMicUntil = Date.now() + 250;
+    syncLive();
+
+    return;
+  }
+  const generation = speechGeneration;
+  patientSpeaking = true;
+  holdMic = true;
+  visemes = visemesFromText(turn.text);
+  stopLive();
+  const settle = (state, text) => {
+    if (generation !== speechGeneration) return;
+    patientSpeaking = false;
+    holdMic = false;
+    ignoreMicUntil = Date.now() + 280;
+    stopMouth();
+    pulseTalkVideo(false);
+    voiceState(state, text);
+    updateMicButton();
+    syncLive();
+  };
+  if (health.speech === "elevenlabs-configured") {
+    voiceState("thinking", "Preparing patient voice…");
+    audio = new Audio(`/api/encounters/${enc.id}/speech/${turn.id}/stream`);
+    audio.preload = "auto";
+    audio.onplay = () => {
       if (generation !== speechGeneration) return;
-      audioUrl = URL.createObjectURL(blob);
-      audio = new Audio(audioUrl);
-      audio.onplay = () =>
-        updateVoice("speaking", "Patient speaking · ElevenLabs");
-      audio.onended = () => updateVoice("ready", "Ready for your question");
-      audio.onerror = () =>
-        updateVoice("ready", "Audio unavailable; transcript remains available");
+      voiceState("speaking", "Patient speaking · ElevenLabs");
+      pulseTalkVideo(true);
+      startVisemes(generation, audio);
+    };
+    audio.onended = () => settle("listening", "Listening…");
+    audio.onerror = () =>
+      settle("ready", "Audio unavailable; transcript remains available");
+    try {
       await audio.play();
+
       return;
     } catch {
       if (generation !== speechGeneration) return;
+      stopMouth();
       voiceState("ready", "Cloud speech unavailable · browser voice fallback");
     }
+  }
   if ("speechSynthesis" in window) {
     const utter = new SpeechSynthesisUtterance(turn.text);
-    utter.onstart = () =>
-      updateVoice("speaking", "Patient speaking · browser voice");
-    utter.onend = () => updateVoice("ready", "Ready for your question");
+    utter.onstart = () => {
+      if (generation !== speechGeneration) return;
+      voiceState("speaking", "Patient speaking · browser voice");
+      pulseTalkVideo(true);
+      startVisemes(generation);
+    };
+    utter.onend = () => settle("listening", "Listening…");
     utter.onerror = () =>
-      updateVoice("ready", "Audio unavailable; use the transcript");
+      settle("ready", "Audio unavailable; use the transcript");
     speechSynthesis.speak(utter);
+
+    return;
   }
+  patientSpeaking = false;
+  holdMic = false;
+  syncLive();
 }
 async function mutate(action, payload) {
   const r = await api(`/api/encounters/${enc.id}/${action}`, "POST", payload);
@@ -1287,10 +1709,14 @@ async function mutate(action, payload) {
 }
 async function question(text) {
   if (busy || !text.trim() || enc?.status !== "active") return;
-  stopAudio();
+  stopPatientAudio();
+  holdMic = true;
   busy = true;
   message = "";
-  render();
+  liveText = "";
+  stopLive();
+  voiceState("thinking", "The patient is answering…");
+  updateMicButton();
   let delivered = false;
   try {
     await mutate("turn", { question: text, requestId: crypto.randomUUID() });
@@ -1298,145 +1724,154 @@ async function question(text) {
     delivered = true;
   } catch (e) {
     message = e.message;
-  } finally {
-    busy = false;
-    render();
   }
+  busy = false;
+  render();
   if (delivered && enc?.transcript.at(-1)?.role === "patient")
     speak(enc.transcript.at(-1));
+  else {
+    holdMic = false;
+    syncLive();
+  }
 }
 function updateMicButton() {
-  const button = $('[data-action="mic"]');
+  const button = $('.mic-btn[data-action="toggle-pause"]');
   if (!button) return;
-  button.textContent = recognition?.sendOnEnd
-    ? "Finishing…"
-    : listening
-      ? "Stop & send"
-      : "Tap to talk";
-  button.setAttribute("aria-pressed", String(listening));
-  button.disabled =
-    busy || !!recognition?.sendOnEnd || enc?.status !== "active";
+  const on = listening && !paused;
+  const waiting = (busy || patientSpeaking) && !on && !paused;
+  const copy = micCopy();
+  button.classList.toggle("on", on);
+  button.classList.toggle("wait", waiting);
+  button.classList.toggle("paused", paused);
+  button.setAttribute("aria-pressed", String(on));
+  button.setAttribute("aria-label", copy.label);
+  const strong = button.querySelector(".mic-copy strong");
+  const hint = button.querySelector(".mic-hint");
+  if (strong) strong.textContent = copy.label;
+  if (hint) hint.textContent = copy.hint;
 }
-function mic() {
-  if (busy || enc?.status !== "active") return;
-  if (listening && recognition) {
-    listening = false;
-    recognition.sendOnEnd = true;
+function setFaceAnchor() {
+  const avf = $("#avf");
+  if (!avf || !enc) return;
+  const file = (enc.imageUrl || "").split("/").pop();
+  const anchor = (faceAnchors &&
+    (faceAnchors[file] || faceAnchors.default)) || {
+    mouthTop: 0.66,
+    mouthHeight: 0.2,
+  };
+  avf.style.setProperty("--mouth-top", anchor.mouthTop);
+  avf.style.setProperty("--mouth-h", anchor.mouthHeight);
+}
+function togglePause() {
+  if (!enc || enc.status !== "active") return;
+  paused = !paused;
+  if (paused) {
+    stopPatientAudio();
+    stopLive();
+    voiceState("ready", "Paused · tap the patient to resume.");
+  } else {
+    voiceState("ready", "Resuming the conversation…");
+  }
+  $("#avf")?.classList.toggle("paused", paused);
+  updateMicButton();
+  syncLive();
+}
+function micIsHeld() {
+  return (
+    holdMic || patientSpeaking || busy || paused || Date.now() < ignoreMicUntil
+  );
+}
+function syncLive() {
+  if (tab !== "enc" || !enc || enc.status !== "active" || !liveSupported()) {
+    if (listening) stopLive();
+
+    return;
+  }
+  if (holdMic || patientSpeaking || busy || paused) {
+    if (listening) stopLive();
+
+    return;
+  }
+  if (Date.now() < ignoreMicUntil) {
     clearTimeout(micRestartTimer);
-    updateMicButton();
-    voiceState("thinking", "Finishing your question…");
-    try {
-      recognition.stop();
-    } catch {
-      recognition.onend();
-    }
+    micRestartTimer = setTimeout(syncLive, ignoreMicUntil - Date.now() + 20);
+
     return;
   }
+  if (listening || recognition) return;
+
+  startLive();
+}
+function startLive() {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Rec) {
-    message = "Microphone recognition is unavailable. Type your question.";
-    render();
-    return;
-  }
-  stopAudio();
-  const generation = speechGeneration;
+  if (!Rec) return;
   const rec = new Rec();
   recognition = rec;
   listening = true;
-  let prefix = formMemory.question.trim(),
-    restarts = 0,
-    fatalError = false;
-  const current = () =>
-    generation === speechGeneration &&
+  const prefix = liveText.trim();
+  const live = () =>
     tab === "enc" &&
     enc?.status === "active" &&
+    !micIsHeld() &&
     recognition === rec;
-  const fail = (error) => {
-    fatalError = true;
-    listening = false;
-    rec.sendOnEnd = false;
-    updateMicButton();
-    const reason =
-      error === "not-allowed" || error === "service-not-allowed"
-        ? "Microphone permission was denied. Allow microphone access for this site in your browser, then tap again."
-        : `Microphone unavailable (${error}). Your text is kept; type or try again.`;
-    message = reason;
-    voiceState("ready", reason);
-  };
   rec.lang = "en-US";
   rec.continuous = true;
   rec.interimResults = true;
   rec.onstart = () => {
-    if (current())
-      voiceState("listening", "Listening… Tap Stop & send when finished.");
+    if (live())
+      voiceState(
+        "listening",
+        "Listening… I'll answer after you pause 3 seconds.",
+      );
   };
   rec.onresult = (e) => {
-    if (
-      generation !== speechGeneration ||
-      tab !== "enc" ||
-      enc?.status !== "active" ||
-      recognition !== rec
-    )
-      return;
-    const text = Array.from(e.results)
+    if (!live()) return;
+    const heard = Array.from(e.results)
       .map((r) => r[0].transcript)
       .join(" ")
+      .replace(/\s+/g, " ")
       .trim();
-    formMemory.question = [prefix, text].filter(Boolean).join(" ");
-    if ($("#question")) $("#question").value = formMemory.question;
-    restarts = 0;
+    liveText = [prefix, heard].filter(Boolean).join(" ").trim();
+    if ($("#question")) $("#question").value = liveText;
+    formMemory.question = liveText;
+    const words = liveText.split(/\s+/).filter(Boolean).length;
+    clearTimeout(silenceTimer);
+    if (!words) return;
+    silenceTimer = setTimeout(commitUtterance, SILENCE_MS);
   };
   rec.onerror = (e) => {
-    if (!current()) return;
-    if (e.error !== "no-speech") fail(e.error);
+    if (!live() || e.error === "no-speech" || e.error === "aborted") return;
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      paused = true;
+      stopLive();
+      message =
+        "Microphone permission denied. Allow mic access, then tap the patient to resume.";
+      voiceState("ready", "Paused · microphone access needed.");
+      updateMicButton();
+    }
   };
   rec.onend = () => {
-    if (!current()) return;
-    if (fatalError) {
-      recognition = null;
-      return;
-    }
-    if (rec.sendOnEnd) {
-      recognition = null;
-      updateMicButton();
-      const text = formMemory.question.trim();
-      if (text) question(text);
-      else
-        voiceState(
-          "ready",
-          "No speech captured. Tap to talk again or type your question.",
-        );
-      return;
-    }
-    if (listening && restarts++ < 3) {
-      prefix = formMemory.question.trim();
-      micRestartTimer = setTimeout(() => {
-        if (!current() || !listening) return;
-        try {
-          rec.start();
-        } catch (e) {
-          fail(e.name || "start failed");
-          recognition = null;
-        }
-      }, 250);
-      return;
-    }
-    listening = false;
+    if (recognition !== rec) return;
     recognition = null;
-    updateMicButton();
-    voiceState(
-      "ready",
-      "Microphone paused after silence. Your text is kept; tap again or Send.",
-    );
+    listening = false;
+    if (!micIsHeld() && tab === "enc" && enc?.status === "active")
+      micRestartTimer = setTimeout(syncLive, 120);
   };
-  updateMicButton();
-  voiceState("listening", "Starting microphone…");
   try {
     rec.start();
-  } catch (e) {
-    fail(e.name || "start failed");
+  } catch {
     recognition = null;
+    listening = false;
   }
+  updateMicButton();
+}
+function commitUtterance() {
+  clearTimeout(silenceTimer);
+  const text = liveText.trim();
+  liveText = "";
+  if (!text || busy || enc?.status !== "active" || patientSpeaking) return;
+  if ($("#question")) $("#question").value = "";
+  question(text);
 }
 async function upload(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Upload files up to 5 MB.");
@@ -1670,8 +2105,9 @@ document.addEventListener("change", async (e) => {
 });
 document.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-action]");
-  if (!t || busy) return;
+  if (!t) return;
   const a = t.dataset.action;
+  if (busy && a !== "toggle-pause") return;
   try {
     if (a === "browse-patient") {
       $("#patient-upload")?.click();
@@ -1909,6 +2345,7 @@ document.addEventListener("click", async (e) => {
     if (a === "launch") {
       if (dirty) await save();
       stopAudio();
+      paused = false;
       formMemory.question = "";
       const r = await api("/api/encounters", "POST", {
         profileId: t.dataset.id,
@@ -1918,12 +2355,15 @@ document.addEventListener("click", async (e) => {
       localStorage.setItem("virtusp-active-v2", enc.id);
       section = "ov";
       tab = "enc";
+      resetTalkVideo();
       render();
+      warmTalkVideo();
       speak(enc.transcript.at(-1));
       return;
     }
     if (a === "resume") {
       stopAudio();
+      paused = false;
       formMemory.question = "";
       enc = (await api("/api/encounters/" + t.dataset.id)).encounter;
       localStorage.setItem("virtusp-active-v2", enc.id);
@@ -1934,6 +2374,8 @@ document.addEventListener("click", async (e) => {
           ? "rep"
           : "enc";
       repView = "summary";
+      resetTalkVideo();
+      if (tab === "enc") warmTalkVideo();
     }
     if (a === "section") {
       if (enc.status === "active")
@@ -1967,15 +2409,20 @@ document.addEventListener("click", async (e) => {
       tab = "rep";
       message = "Encounter saved.";
     }
-    if (a === "mic") {
-      mic();
+    if (a === "toggle-pause") {
+      togglePause();
       return;
     }
     if (a === "mute") {
       muted = !muted;
-      stopAudio();
+      stopPatientAudio();
+      voiceState(
+        "ready",
+        muted ? "Audio muted · the patient still listens." : "Listening…",
+      );
+      updateMicButton();
+      return;
     }
-    if (a === "pause") stopAudio();
     if (a === "add-fact")
       profile.facts.push({
         id: "fact-" + crypto.randomUUID(),
@@ -2083,6 +2530,14 @@ document.addEventListener("click", (e) => {
   turn.classList.add("flash");
   turn.scrollIntoView?.({ block: "center" });
 });
+document.addEventListener("keydown", (e) => {
+  if (tab !== "enc" || !enc || enc.status !== "active") return;
+  if (e.target.matches?.("input, textarea, select")) return;
+  if (e.code === "Space" || e.key === "Escape") {
+    e.preventDefault();
+    togglePause();
+  }
+});
 window.addEventListener("beforeunload", (e) => {
   stopAudio();
   if (dirty) {
@@ -2094,6 +2549,11 @@ async function boot() {
   try {
     document.documentElement.dataset.theme =
       localStorage.getItem("virtusp-theme") || "light";
+    try {
+      faceAnchors = await (await fetch("/img/faces.json")).json();
+    } catch {
+      faceAnchors = null;
+    }
     students = (await api("/api/students")).students;
     demoSession = (await api("/api/session")).session;
     if (!demoSession) {
@@ -2112,6 +2572,7 @@ async function boot() {
         localStorage.removeItem("virtusp-active-v2");
       }
     render();
+    if (enc?.status === "active") warmTalkVideo();
   } catch (e) {
     $("#app").innerHTML =
       `<div class="pn"><h1>Server unavailable</h1><p>${esc(e.message)}</p><p>Start this app with npm start; static-only hosting cannot run encounters.</p><button class="btn" onclick="location.reload()">Retry</button></div>`;

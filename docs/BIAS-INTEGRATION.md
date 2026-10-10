@@ -73,6 +73,8 @@ Live Sonnet 4.6 verification on 2026-10-10 completed stronger/weaker individual 
 
 Before rehearsal, faculty should review these judgments against descriptors, particularly what each scenario permits observing. The bias teammate should expand balanced strong/weak and non-bias contrast tests, calibrate ratings across individual/group modes, test repeated-run consistency and review confounds. Speech/UI teammates must rehearse actual layout/audio and matched voice/portrait. No probability, causal bias estimate or public-hosting authentication is supplied here.
 
+The merged hands-free/video checkpoint preserves common presentation: profiles with a `presentationKey` use the shared generic avatar and common voice selection; they do not select a named packaged clip or generate individual talking videos. Otherwise Omar's name would choose a clip while Alex's would not. HTTP/DOM tests cover this boundary while retaining ordinary individual clips. This protects the prepared demo design; physical audio/portrait rehearsal is still required.
+
 ## Other demo APIs
 
 - `GET/POST/DELETE /api/session`: current session, select role/student, or switch out. Student selection uses `{ "role":"student", "studentId":"existing-uuid" }`.

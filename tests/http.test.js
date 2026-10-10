@@ -8,6 +8,8 @@ const { createApp } = require("../server");
 test("HTTP lifecycle: publication, stale-edit regression, reusability, restart and protected reports", async () => {
   process.env.AI_ENABLED = "false";
   delete process.env.S3_BUCKET;
+  delete process.env.ELEVENLABS_API_KEY;
+  delete process.env.ELEVENLABS_VOICE_ID;
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "virtusp-test-"));
   let app = await createApp({ dataDir: dir });
   await new Promise((resolve) => app.server.listen(0, "127.0.0.1", resolve));
@@ -43,6 +45,7 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
     const encounter = (
       await request("/api/encounters", "POST", { profileId: p.id, version: 1 })
     ).data.encounter;
+    assert.equal(encounter.videoUrl, "/video/omar.mp4");
     assert.ok(!JSON.stringify(encounter).includes("LDL 195"));
     p.facts.find((f) => f.id === "concern").say =
       "I want to discuss medication concerns today.";
@@ -147,6 +150,36 @@ test("HTTP lifecycle: publication, stale-edit regression, reusability, restart a
         )
       ).status,
       200,
+    );
+    // Live realtime token needs ElevenLabs; without it the API reports 503.
+    assert.equal(
+      (await request(`/api/encounters/${denise.id}/live-token`, "POST", {}))
+        .status,
+      503,
+    );
+    const deniseFull = (await request(`/api/encounters/${denise.id}`)).data
+      .encounter;
+    const patientTurn = deniseFull.transcript.findLast(
+      (t) => t.role === "patient",
+    );
+    const studentTurn = deniseFull.transcript.find((t) => t.role === "student");
+    // Streaming speech is only offered for validated patient turns.
+    assert.equal(
+      (
+        await client(
+          base + `/api/encounters/${denise.id}/speech/${studentTurn.id}/stream`,
+        )
+      ).status,
+      403,
+    );
+    // A valid patient turn still needs ElevenLabs configured before it can stream.
+    assert.equal(
+      (
+        await client(
+          base + `/api/encounters/${denise.id}/speech/${patientTurn.id}/stream`,
+        )
+      ).status,
+      503,
     );
     await request(`/api/encounters/${newEnc.id}/complete`, "POST", {});
     await app.store.flush();
