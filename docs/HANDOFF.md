@@ -119,6 +119,25 @@ This checkpoint changes the feedback (Assessment) side only. Dialogue, authoring
 
 **Verification and limits.** 38 regression tests pass, including new `tests/feedback.test.js` and `tests/rubric.test.js`. The model-assisted parts were exercised live only through a Claude API key on a local development branch, not through Bedrock: `cloud.rephrase`, `cloud.checklist` and the revision pass, including their two new strict schemas in `lib/schemas.js`, **have not been run on Bedrock and should be checked with `npm run preflight` and a completed encounter before the demo.** The rubric model still receives the full case, so its free-text gaps can mention a detail the student never elicited.
 
+## Performance and bias-review views (2026-10-10, Rahil, local only so far)
+
+Two longitudinal views built from completed encounters, with no model call (`lib/insights.js`, `GET /api/insights`):
+
+- **My performance** (student workspace): rubric average with trend, rapport-and-empathy average, objective completion, visits completed, a seven-domain chart, a by-patient table and a searchable visit log linking to each visit's feedback. A student receives only their own visits, and never a visit whose group feedback is still held.
+- **Bias review** (faculty workspace, new tab beside Student results): pick a student and see how their rubric, rapport-and-empathy, objective and open-question figures differ by patient age band, gender and recorded ethnicity, plus trial-against-trial comparison for completed matched comparison groups. Each card opens a table of the groups and the visits behind them. Faculty notes and a mentorship flag are saved per student (`PUT /api/insights/notes/:studentId`). None of this is sent to a student session.
+
+Rating rule: the level comes from the widest gap in rubric average or rapport-and-empathy between patient groups (under 10 points minimal, 10–19 moderate, 20 or more notable). A group is rated only after two visits; matched comparison pairs are exempt. The thresholds are heuristics, not validated cut-offs. **A gap is a prompt for faculty review, not a finding of bias:** patients differ clinically except in matched groups, and samples are small. Socioeconomic status, weight and substance use are not recorded on profiles and are not compared.
+
+Six categories are compared: age, race and ethnicity, gender (from the patient record) and occupation, substance use, weight (read by keyword from the organizer row, approved facts and personality; `tagsOf` in `lib/insights.js`). The keyword reading can be wrong and the page labels those cards "Read from the case text". Faculty can override it with `profile.biasTags = { occupation, weight, substance }`; there is no editor for that yet. Students never receive these tags or the judgmental-wording quotes.
+
+The page layout follows the team's reference mock-up (`virtusp_virtual_standardized_patient_platform.html`) section for section, in the app's own theme and with recorded data only. Student page: profile banner, four overview cards, rubric radar with three communication-domain boxes, rubric domain competency bars, encounters log with search and filter, encounter pop-up. Faculty page: student switcher, student banner, six bias category cards with a deep-dive panel and transcript excerpts, notes with the mentorship flag, and suggested debrief prompts. Mock-up items with no data behind them (class percentile, diagnostic accuracy, physical exam, specialty, assignable training modules) are replaced by the nearest recorded measure rather than invented.
+
+What a student sees of this, by product decision on 2026-10-10: each visit's debrief pop-up carries an "Automated bias flag" naming the category (for example "Gender variance") with one sentence on the gap, when that visit sits in the lower-scoring group of a moderate or notable gap. It is built only from visits whose feedback has been released. The group comparison, excerpts, notes and prompts stay faculty-only. Faculty can also assign bias mitigation modules (`PUT /api/insights/modules/:student/:module`, six fixed titles in `lib/insights.js`); assigned ones list on the student's My performance page. Only the assignment is stored: the modules have no lesson content yet.
+
+The Assessment > Rubric tab was restyled at the same time: a radar and total beside the seven domain rows, each row coloured by score with a four-step bar. No rubric content changed.
+
+This is separate from the `biasResults` detector slot in `lib/demo.js`, which it does not write to. 59 regression tests pass, including `tests/insights.test.js`.
+
 ## Verified and unresolved findings
 
 - Organizer-linked corpus checkpoint: `npm run corpus:fetch` downloads pinned Hugging Face sources locally with original bytes, source manifests and hashes. Eight richer synthetic profiles and 271 conversation TXT files are installed under ignored `corpus/downloads/`. See [CORPUS.md](CORPUS.md) for Omar/Yvette upload documents, attribution and the challenge's three upload types. Alex Rivera is a coding-agent example, not an organizer case. Downloads do not overwrite existing profiles or train a model.
