@@ -32,6 +32,7 @@ const {
 } = require("./windows");
 
 const PERIODS = ["Hour", "Day", "Week", "Month", "Year"];
+const CACHE_SCHEMA = 2;
 
 function requiredEnv(name) {
   const value = process.env[name];
@@ -58,7 +59,7 @@ async function usage(client, filter, range, granularity) {
   return rows;
 }
 
-async function serviceNames(client, now) {
+async function dimensionValues(client, now, dimension) {
   const range = dailyRange(now);
   const names = [];
   let token;
@@ -66,7 +67,7 @@ async function serviceNames(client, now) {
     const page = await client.send(
       new GetDimensionValuesCommand({
         TimePeriod: { Start: range.start, End: range.end },
-        Dimension: "SERVICE",
+        Dimension: dimension,
         Context: "COST_AND_USAGE",
         NextPageToken: token,
       }),
@@ -79,24 +80,34 @@ async function serviceNames(client, now) {
   return names;
 }
 
+function accessDenied(err) {
+  const text = `${err && err.name ? err.name : ""} ${err && err.message ? err.message : err}`;
+  return /AccessDenied|not authorized|explicit deny/i.test(text);
+}
+
 async function projectTagActive(client) {
-  let token;
-  do {
-    const page = await client.send(
-      new ListCostAllocationTagsCommand({
-        Status: "Active",
-        TagKeys: ["Project"],
-        MaxResults: 100,
-        NextToken: token,
-      }),
-    );
-    const active = (page.CostAllocationTags || []).some(
-      (tag) => tag.TagKey === "Project" && tag.Status === "Active",
-    );
-    if (active) return true;
-    token = page.NextToken;
-  } while (token);
-  return false;
+  try {
+    let token;
+    do {
+      const page = await client.send(
+        new ListCostAllocationTagsCommand({
+          Status: "Active",
+          TagKeys: ["Project"],
+          MaxResults: 100,
+          NextToken: token,
+        }),
+      );
+      const active = (page.CostAllocationTags || []).some(
+        (tag) => tag.TagKey === "Project" && tag.Status === "Active",
+      );
+      if (active) return true;
+      token = page.NextToken;
+    } while (token);
+    return false;
+  } catch (err) {
+    if (accessDenied(err)) return false;
+    throw err;
+  }
 }
 
 async function loadDaily(client, filter, now) {
@@ -119,12 +130,14 @@ async function loadDaily(client, filter, now) {
 }
 
 async function collect(client, accountId, project, now) {
-  const names = await serviceNames(client, now);
+  const names = await dimensionValues(client, now, "SERVICE");
+  const usageTypes = await dimensionValues(client, now, "USAGE_TYPE");
   let choice = buildFilter({
     accountId,
     project,
     tagActive: await projectTagActive(client),
     serviceNames: names,
+    usageTypeNames: usageTypes,
   });
   if (!choice.filter) {
     return {
@@ -144,6 +157,7 @@ async function collect(client, accountId, project, now) {
       project,
       tagActive: false,
       serviceNames: names,
+      usageTypeNames: usageTypes,
     });
     if (!choice.filter) throw err;
     daily = await loadDaily(client, choice.filter, now);
@@ -238,7 +252,9 @@ async function readCache(client, name) {
   try {
     const out = await client.send(new GetParameterCommand({ Name: name }));
     const parsed = JSON.parse(out.Parameter && out.Parameter.Value);
-    if (!parsed || !parsed.costs || !parsed.updatedAt) return null;
+    if (!parsed || parsed.schema !== CACHE_SCHEMA || !parsed.costs || !parsed.updatedAt) {
+      return null;
+    }
     return parsed;
   } catch (err) {
     if (err && err.name === "ParameterNotFound") return null;
@@ -272,6 +288,7 @@ exports.handler = async () => {
   if (!cache || needsRefresh(cache.updatedAt, now, CACHE_MAX_AGE_MS)) {
     const collected = await collect(ce, accountId, project, now);
     cache = {
+      schema: CACHE_SCHEMA,
       updatedAt: now.toISOString(),
       scope: collected.scope,
       hourBasis: collected.hourBasis,

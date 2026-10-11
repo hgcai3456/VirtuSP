@@ -12,7 +12,9 @@ corpus/downloads/*
 corpus/downloads/virtual-patient-profiles-sample/*
 !corpus/downloads/virtual-patient-profiles-sample/studio/
 *.log
-.cursor/
+.cursor/*
+!.cursor/agents/
+!.cursor/hooks.json
 data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm

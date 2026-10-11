@@ -102,12 +102,12 @@ test("the first week of January still includes the previous days", () => {
   assert.equal(range.end, "2026-01-04");
 });
 
-test("tag filter includes Bedrock, and the service filter uses stack names only", () => {
+test("tag filter includes Bedrock, and the service filter keeps this stack", () => {
   const tagged = buildFilter({
     accountId: "389023343021",
     project: "virtusp",
     tagActive: true,
-    serviceNames: ["Amazon Bedrock", "Amazon Elastic Compute Cloud"],
+    serviceNames: ["Amazon Bedrock", "Amazon Elastic Compute Cloud - Compute"],
   });
   assert.equal(tagged.scope, "tag");
   assert.deepEqual(tagged.filter.And[1].Or[1].Dimensions.Values, [
@@ -120,21 +120,36 @@ test("tag filter includes Bedrock, and the service filter uses stack names only"
     tagActive: false,
     serviceNames: [
       "Amazon Elastic Container Service",
-      "Amazon Elastic Compute Cloud",
+      "Amazon Relational Database Service",
+      "Amazon Elastic Compute Cloud - Compute",
+      "AmazonCloudWatch",
       "Amazon Bedrock",
+    ],
+    usageTypeNames: [
+      "USW2-Fargate-vCPU-Hours:perCPU",
+      "InstanceUsage:db.r6i.xl",
+      "USW2-InstanceUsage:db.t4g.micro",
+      "USW2-PublicIPv4:InUseAddress",
     ],
   });
   assert.equal(services.scope, "services");
-  assert.deepEqual(services.filter.And[1].Dimensions.Values, [
+  assert.deepEqual(services.filter.And[1].Or[0].Dimensions.Values, [
     "Amazon Elastic Container Service",
+    "AmazonCloudWatch",
     "Amazon Bedrock",
+  ]);
+  assert.deepEqual(services.filter.And[1].Or[1].Dimensions.Values, [
+    "USW2-Fargate-vCPU-Hours:perCPU",
+    "USW2-InstanceUsage:db.t4g.micro",
+    "USW2-PublicIPv4:InUseAddress",
   ]);
 
   const none = buildFilter({
     accountId: "389023343021",
     project: "virtusp",
     tagActive: false,
-    serviceNames: ["Amazon Elastic Compute Cloud"],
+    serviceNames: ["Amazon Elastic Compute Cloud - Compute"],
+    usageTypeNames: ["USW2-BoxUsage:m8g.large"],
   });
   assert.equal(none.scope, "unavailable");
   assert.equal(none.filter, null);

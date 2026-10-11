@@ -152,6 +152,8 @@ These are planning figures, not a bill. Prices change, and a budget alarm will n
 
 ## Known gaps
 
+- `terraform` is not installed in this workspace, so `npm run obs:plan` stopped before creating a plan file. No observability resources were applied.
+- A local browser session on 2026-10-11 checked `observability.html`: a student session was denied, a faculty session showed **Local synthetic test telemetry** with request counts from that process, turn and feedback objectives stayed **Not assessed** with zero samples, alarms stayed **Not configured**, and an unknown encounter reference returned **No data**.
 - Application Signals has not been seen on a live service map.
 - Alarm email has not been confirmed.
 - The synthetic canary has not been started.

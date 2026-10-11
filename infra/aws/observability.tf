@@ -213,7 +213,7 @@ resource "aws_sns_topic" "observability" {
 }
 
 resource "aws_sns_topic_subscription" "observability" {
-  count     = length(aws_sns_topic.observability)
+  count     = var.observability_alarms_enabled && var.observability_alarm_email != "" ? 1 : 0
   topic_arn = aws_sns_topic.observability[0].arn
   protocol  = "email"
   endpoint  = var.observability_alarm_email

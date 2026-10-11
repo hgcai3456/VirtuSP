@@ -3,21 +3,23 @@
 // Period math for the AWS cost chart. Cost Explorer returns UnblendedCost
 // as a string. These helpers never call AWS.
 
+// Billing names, not the names in the service console. RDS and EC2 are matched
+// by usage type below so other databases and instances in the account are
+// left out. Cost allocation tags cannot be activated in this account.
 const STACK_SERVICES = Object.freeze([
   "Amazon Elastic Container Service",
   "Amazon Elastic Load Balancing",
-  "Amazon Relational Database Service",
   "Amazon Elastic File System",
   "Amazon CloudFront",
   "Amazon Simple Storage Service",
-  "Amazon CloudWatch",
+  "AmazonCloudWatch",
   "Amazon EC2 Container Registry (ECR)",
   "Amazon Elastic Container Registry",
-  "Amazon Virtual Private Cloud",
   "AWS Key Management Service",
   "AWS Secrets Manager",
   "AWS Cost Explorer",
   "AWS Lambda",
+  "CodeBuild",
   "AWS CodeBuild",
   "Amazon Bedrock",
 ]);
@@ -92,6 +94,15 @@ function isRangeError(err) {
 
 function isStackService(name) {
   return STACK_SERVICES.includes(name) || /bedrock/i.test(String(name));
+}
+
+function isStackUsage(name) {
+  const value = String(name);
+  return (
+    /Fargate/i.test(value) ||
+    /db\.t4g\.micro/i.test(value) ||
+    /PublicIPv4:InUseAddress/i.test(value)
+  );
 }
 
 function deduped(rows) {
@@ -173,7 +184,13 @@ function latestCompleteHour(rows, now) {
   return points[points.length - 1].value;
 }
 
-function buildFilter({ accountId, project, tagActive, serviceNames }) {
+function buildFilter({
+  accountId,
+  project,
+  tagActive,
+  serviceNames,
+  usageTypeNames,
+}) {
   const account = {
     Dimensions: { Key: "LINKED_ACCOUNT", Values: [accountId] },
   };
@@ -186,15 +203,24 @@ function buildFilter({ accountId, project, tagActive, serviceNames }) {
       : tag;
     return { scope: "tag", filter: { And: [account, scoped] } };
   }
-  const wanted = [...new Set(names.filter(isStackService))];
-  if (!wanted.length) return { scope: "unavailable", filter: null };
+  const services = [...new Set(names.filter(isStackService))];
+  const usage = [
+    ...new Set(
+      (Array.isArray(usageTypeNames) ? usageTypeNames : []).filter(isStackUsage),
+    ),
+  ];
+  const parts = [];
+  if (services.length) {
+    parts.push({ Dimensions: { Key: "SERVICE", Values: services } });
+  }
+  if (usage.length) {
+    parts.push({ Dimensions: { Key: "USAGE_TYPE", Values: usage } });
+  }
+  if (!parts.length) return { scope: "unavailable", filter: null };
   return {
     scope: "services",
     filter: {
-      And: [
-        account,
-        { Dimensions: { Key: "SERVICE", Values: wanted } },
-      ],
+      And: [account, parts.length === 1 ? parts[0] : { Or: parts }],
     },
   };
 }
@@ -218,6 +244,7 @@ module.exports = {
   isHourlyDisabled,
   isRangeError,
   isStackService,
+  isStackUsage,
   dailyRange,
   hourlyRange,
   periodCosts,

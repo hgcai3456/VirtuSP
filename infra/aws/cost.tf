@@ -1,15 +1,6 @@
-# Billing data is published from us-east-1. The chart itself stays in the stack region.
-
-provider "aws" {
-  alias  = "billing"
-  region = "us-east-1"
-}
-
-resource "aws_ce_cost_allocation_tag" "project" {
-  provider = aws.billing
-  tag_key  = "Project"
-  status   = "Active"
-}
+# Cost Explorer is queried from us-east-1 inside the function. This account's
+# service control policy denies cost-allocation tag changes, so the function
+# falls back to the stack's service names when the Project tag is not active.
 
 locals {
   aws_cost_namespace = "VirtuSP/AwsCost"
@@ -29,7 +20,7 @@ locals {
       width  = 24
       height = 4
       properties = {
-        markdown = "## AWS running cost\nUnblended Cost Explorer charges for this stack, in USD. **Hour** is the latest complete UTC hour. **Day** is the latest complete UTC day. **Week** is the last seven complete UTC days. **Month** and **year** are calendar to date and include today. The numbers and bars are the latest sample. The line is each hour. Charges are resources tagged `Project=${var.name}`, plus Amazon Bedrock in this account. Until that cost-allocation tag is active, the sample uses this stack's service names instead. If hourly Cost Explorer data is off, the hour is that day divided by 24. Cost Explorer can lag. This is account billing, not a model price estimate."
+        markdown = "## AWS running cost\nUnblended Cost Explorer charges, in USD. **Hour** is the latest complete UTC hour. **Day** is the latest complete UTC day. **Week** is the last seven complete UTC days. **Month** and **year** are calendar to date and include today. The numbers and bars are the latest sample. The line is each hour. This account cannot activate cost-allocation tags, so the sample is this stack's services plus Fargate, db.t4g.micro, and public IPv4 usage. Other EC2 instances and other databases are not included. If hourly data is off, the hour is that day divided by 24. Cost Explorer can lag. This is account billing, not a model price estimate."
       }
     },
     {
@@ -181,7 +172,11 @@ resource "aws_lambda_function" "aws_cost" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_group.aws_cost]
+  depends_on = [
+    aws_cloudwatch_log_group.aws_cost,
+    aws_iam_role_policy.aws_cost,
+    aws_iam_role_policy_attachment.aws_cost_logs,
+  ]
 }
 
 resource "aws_cloudwatch_event_rule" "aws_cost" {
