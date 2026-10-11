@@ -23,7 +23,7 @@ $providerArn = "arn:aws:iam::${account}:oidc-provider/token.actions.githubuserco
 if ($providerArn -notin $providers.Arn) {
   Invoke-Aws @('iam','create-open-id-connect-provider','--url','https://token.actions.githubusercontent.com','--client-id-list','sts.amazonaws.com','--output','json') | Out-Null
 }
-$trust = @{Version='2012-10-17';Statement=@(@{Effect='Allow';Principal=@{Federated=$providerArn};Action='sts:AssumeRoleWithWebIdentity';Condition=@{StringEquals=@{'token.actions.githubusercontent.com:aud'='sts.amazonaws.com';'token.actions.githubusercontent.com:sub'='repo:hgcai3456/VirtuSP:ref:refs/heads/main'}}})}
+$trust = @{Version='2012-10-17';Statement=@(@{Effect='Allow';Principal=@{Federated=$providerArn};Action='sts:AssumeRoleWithWebIdentity';Condition=@{StringEquals=@{'token.actions.githubusercontent.com:aud'='sts.amazonaws.com';'token.actions.githubusercontent.com:sub'='repo:hgcai3456@14112169/VirtuSP@1413194225:ref:refs/heads/main'}}})}
 $trustFile = Write-Json 'github-trust.json' $trust
 $roles = (Invoke-Aws @('iam','list-roles','--query','Roles[].RoleName','--output','json') | ConvertFrom-Json)
 if ('virtusp-github-deploy' -in $roles) {

@@ -1,6 +1,6 @@
 # AWS deployment
 
-Pushes to GitHub `main` run `.github/workflows/deploy.yml`. GitHub authenticates with OIDC as `virtusp-github-deploy`; its trust permits only `repo:hgcai3456/VirtuSP:ref:refs/heads/main`. No long-lived AWS keys are stored in GitHub.
+Pushes to GitHub `main` run `.github/workflows/deploy.yml`. GitHub authenticates with OIDC as `virtusp-github-deploy`; its trust permits only `repo:hgcai3456@14112169/VirtuSP@1413194225:ref:refs/heads/main`. This repository uses GitHub's immutable subject format, including owner and repository IDs. No long-lived AWS keys are stored in GitHub.
 
 The workflow starts `virtusp-image` in `us-west-2` with the pushed commit SHA. CodeBuild downloads `https://github.com/hgcai3456/VirtuSP.git` directly, runs `npm ci` and `npm test`, builds the root Dockerfile with `VIRTUSP_GIT_SHA`, and pushes a commit-tagged image. It no longer consumes the manually uploaded S3 source ZIP.
 
