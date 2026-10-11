@@ -461,6 +461,186 @@ th {
   text-align: left;
 }
 
+.patient-card {
+  position: relative;
+}
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--bd);
+  border-radius: 50%;
+  background: var(--pn);
+  color: var(--mu);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    opacity 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+.patient-card:hover .card-delete,
+.card-delete:focus-visible {
+  opacity: 1;
+}
+.card-delete:hover {
+  border-color: var(--risk);
+  color: var(--risk);
+}
+.card-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--pn) 96%, transparent);
+  text-align: center;
+}
+.card-confirm p {
+  margin: 0;
+}
+.card-confirm .row {
+  justify-content: center;
+}
+.btn.danger {
+  border-color: var(--risk);
+  background: var(--risk);
+  color: #fff;
+}
+.import-panel {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px dashed var(--bd);
+  border-radius: 12px;
+  background: var(--soft);
+}
+.import-panel > p {
+  margin: 8px 0 0;
+}
+.import-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px 20px;
+}
+.import-row .field {
+  flex: 1 1 320px;
+  margin: 0;
+}
+.import-row label.check {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.ehr-banner {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--soft);
+}
+.ehr-banner h3,
+.ehr-banner p {
+  margin: 0;
+}
+.ehr-banner .ehr-reason {
+  margin-top: 8px;
+}
+.ehr-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.ehr-section {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--pn);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ehr-section span {
+  font-size: 12px;
+  color: var(--mu);
+}
+.ehr-section.has {
+  border-left: 3px solid var(--ac);
+}
+.ehr-section.has span {
+  color: var(--ac);
+  font-weight: 600;
+}
+.ehr-section:hover {
+  border-color: var(--ac);
+}
+.draft-bar {
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--tone-amber);
+  border-radius: 8px;
+  background: var(--pn);
+}
+.import-progress {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ac);
+  border-radius: 8px;
+  background: var(--pn);
+}
+.import-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.import-detail {
+  display: grid;
+  gap: 2px;
+}
+.meter.indeterminate i {
+  animation: import-pulse 1.4s ease-in-out infinite;
+}
+@keyframes import-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter.indeterminate i {
+    animation: none;
+  }
+}
+.import-report {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ok);
+  border-radius: 8px;
+  background: var(--pn);
+}
+.import-report.is-error {
+  border-left-color: var(--risk);
+}
+.import-report p {
+  margin: 0 0 6px;
+}
 .patient-card.selected,
 .patient-card.on {
   border-color: var(--ac);

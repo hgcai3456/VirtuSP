@@ -299,3 +299,16 @@ Coordinate before editing shared files. Branch from the pushed checkpoint, fetch
 - Existing citations alone do not establish a claim's truth, order or fairness.
 - Keep the app local; shared hosting requires authentication, authorization and storage changes.
 - Never commit `.env`, data/recovery directories, `tmp/`, `output/` or real patient records. Preserve raw synthetic runs locally; share honest aggregates.
+
+## Conversational patient, file import and patient management (2026-10-10, Rahil)
+
+Everything here is optional and off unless configured; with no changes to `.env` the app behaves as before.
+
+- **Claude API as a provider.** `AI_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` sends the existing prompts to the Claude API instead of Bedrock (`lib/cloud.js`). Unset, Bedrock is used as before. Covered by `tests/provider.test.js`.
+- **Conversational patient.** With the Claude API as provider, a turn is one model call that plays the patient in character and reports which facts it conveyed (`cloud.dialogue`, `naturalTurn` in `lib/engine.js`). Chart values are never sent to it, a reply that states a figure not in the case is rejected, and any failure falls back to the staged select / approved-line pipeline. `DIALOGUE_MODE=strict` keeps the staged pipeline. Trade-off: the patient elaborates in its own words, so replies are no longer limited to faculty-approved wording.
+- **Import files or a folder** (`lib/importer.js`, `POST /api/import-files`, polled at `GET /api/import-files/:job`). Any mix of PDF, Word, text, CSV and images; a roster CSV gives one patient per row with portraits matched by file name. Needs `ANTHROPIC_API_KEY`. Results are drafts with origin `imported`, never published automatically. Facts the model added beyond the source are marked `AI draft (unverified)`.
+- **Delete and publish from the card.** `DELETE /api/profiles/:id` removes a draft and its versions; finished and running visits keep their own copy. It is refused for a bundled case, a case in a prepared group, or a case with an assessment waiting to start. Publishing from the card passes `acknowledge: true`, which counts as the faculty review confirmation.
+- **Chart.** Findings are filed under their own section; Overview is a short summary (age, gender, ethnicity, and for imported cases the reason for visit).
+- **`BUNDLED_PATIENTS=false`** removes the cases that ship with the app (roster, Denise, Marcus) from the library and from start-up seeding, hides nothing, and lets any patient be deleted. Unset, bundled cases behave as before.
+
+Not verified on Bedrock: none of the above was run with AWS credentials.
