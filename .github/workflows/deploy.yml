@@ -13,7 +13,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Verify GitHub identity
         shell: bash
@@ -36,7 +36,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          build=$(aws codebuild start-build --project-name virtusp-image --source-version "$GITHUB_SHA" --query 'build.id' --output text)
+          build=''
+          for attempt in $(seq 1 60); do
+            if build=$(aws codebuild start-build --project-name virtusp-image --source-version "$GITHUB_SHA" --query 'build.id' --output text 2> /tmp/virtusp-start-error); then
+              break
+            fi
+            cat /tmp/virtusp-start-error
+            grep -q AccountLimitExceededException /tmp/virtusp-start-error || exit 1
+            sleep 10
+          done
+          test -n "$build"
           echo "CodeBuild: $build"
           echo "Build ID: $build" >> "$GITHUB_STEP_SUMMARY"
           for attempt in $(seq 1 180); do
