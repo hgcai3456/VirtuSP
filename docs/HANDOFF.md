@@ -288,3 +288,9 @@ Presentation only; no route, data shape or scoring changed apart from one option
 - **Patient Studio.** Cards are four across on a wide screen. The import panel shows only while an import runs, after a result, or while drafts are waiting; note and redraft live under "Import options".
 - **Encounter history.** A table (newest first) with search and a patient filter, in place of the card list.
 - **Date of birth.** The importer stores `dob` (YYYY-MM-DD) only when the source states one; the encounter view exposes it in `overview.dob`.
+
+## Laptop-window fit and Bedrock conversation option (2026-10-11, Rahil)
+
+- **Short windows.** Below about 860px of height (a laptop at 100% zoom is roughly 1408x765) the workspace picker, the visit screen and the history table are tightened so the main controls fit without scrolling. Taller windows are unchanged.
+- **Workspace picker.** No side menu and no "VirtuSP" kicker there; the side menu applies once a workspace is chosen (`body.has-menu`).
+- **Conversational patient on Bedrock.** `DIALOGUE_MODE=natural` turns the one-call conversational patient on for any provider; `strict` keeps the staged pipeline. Unset, it stays on with the Claude API and off with Bedrock, so existing Bedrock deployments are unchanged. On Bedrock no output schema is sent (first-use compilation is too slow for a live turn); the reply shape is requested in the prompt and checked by the caller, and a bad reply falls back to the staged pipeline. **Not yet run against Bedrock:** the only credentials available had expired. Covered by a stubbed test in `tests/provider.test.js`.

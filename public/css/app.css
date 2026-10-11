@@ -575,12 +575,12 @@ th {
 }
 /* ---- EHR-style shell: menu down the side, patient banner across the top. */
 @media (min-width: 1000px) {
-  body {
+  body.has-menu {
     display: grid;
     grid-template-columns: 216px minmax(0, 1fr);
     align-items: start;
   }
-  body > header {
+  body.has-menu > header {
     position: sticky;
     top: 0;
     height: 100vh;
@@ -593,47 +593,47 @@ th {
     border-bottom: 0;
     overflow-y: auto;
   }
-  body > header .brand {
+  body.has-menu > header .brand {
     padding: 0 8px 12px;
     border-bottom: 1px solid var(--bd);
     font-size: 20px;
   }
-  body > header nav {
+  body.has-menu > header nav {
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 2px;
   }
-  body > header nav .btn {
+  body.has-menu > header nav .btn {
     width: 100%;
     padding: 9px 10px;
     border-color: transparent;
     background: none;
     text-align: left;
   }
-  body > header nav .btn:hover {
+  body.has-menu > header nav .btn:hover {
     background: var(--soft);
   }
-  body > header nav .btn.on {
+  body.has-menu > header nav .btn.on {
     border-color: var(--ac);
     background: var(--ac);
     color: #fff;
     font-weight: 600;
   }
   /* The account switch sits apart from the pages, at the foot of the menu. */
-  body > header nav [data-action="switch-role"] {
+  body.has-menu > header nav [data-action="switch-role"] {
     margin-top: 10px;
     border-top: 1px solid var(--bd);
     border-radius: 0 0 8px 8px;
     color: var(--mu);
   }
-  body > header .hdr-meta {
+  body.has-menu > header .hdr-meta {
     margin: auto 0 0;
   }
-  body > header .hdr-meta .btn {
+  body.has-menu > header .hdr-meta .btn {
     width: 100%;
   }
-  /* body > main outranks the plain main rules later in this file. */
-  body > main {
+  /* body.has-menu > main outranks the plain main rules later in this file. */
+  body.has-menu > main {
     max-width: none;
     min-width: 0;
     margin: 0;
@@ -760,7 +760,7 @@ th {
 }
 .history-table th,
 .history-table td {
-  padding: 10px 10px;
+  padding: 10px 7px;
   vertical-align: middle;
 }
 .history-table th:first-child,
@@ -4387,6 +4387,95 @@ summary:focus-visible {
   }
 }
 
+/* Short windows (a laptop at 100% zoom is about 765px tall): the workspace
+   picker and other choice pages fit without scrolling. */
+@media (max-height: 860px) and (min-width: 900px) {
+  .workspace-home {
+    min-height: 0;
+    justify-content: flex-start;
+    padding: 20px clamp(24px, 4vw, 56px);
+  }
+  .workspace-home h1 {
+    margin: 4px 0 6px;
+    font-size: 34px;
+  }
+  .workspace-lede {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .simulation-choices {
+    flex: none;
+    min-height: 0;
+    margin: 18px 0;
+  }
+  .role-choices {
+    margin: 18px 0 8px;
+  }
+  .role-choice-card {
+    gap: 8px;
+    padding: 22px 28px;
+  }
+  .choice-title {
+    font-size: 28px;
+  }
+  .choice-description {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+/* Short windows: the whole visit (video, microphone, question box and the
+   start of the transcript) fits under the patient banner without scrolling. */
+@media (max-height: 860px) and (min-width: 1000px) {
+  .pt-banner-main {
+    padding: 10px 16px;
+  }
+  .pt-photo {
+    width: 56px;
+    height: 56px;
+  }
+  .pt-banner-id h1 {
+    margin-bottom: 2px;
+    font-size: 20px;
+  }
+  .tabs.ehr-tabs button {
+    padding: 8px 14px;
+  }
+  .enc-grid .pn {
+    padding: 12px 16px;
+  }
+  .enc-talk .av-frame {
+    width: min(100%, 250px);
+    height: 190px;
+    margin: 8px auto;
+  }
+  .enc-talk .incoming-call {
+    flex-wrap: nowrap;
+    margin: 4px 0;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .enc-talk .incoming-call p.muted {
+    display: none;
+  }
+  .enc-talk .voice-controls {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .enc-talk .tr {
+    height: clamp(96px, calc(100vh - 690px), 260px);
+  }
+}
+@media (max-height: 860px) and (min-width: 1000px) {
+  .enc-talk .self-view {
+    width: 68px;
+    right: 6px;
+    bottom: 8px;
+  }
+}
 /* Teaching discovery stays independent of the encounter and avatar layouts. */
 .catalog-picker {
   margin: 22px 0;

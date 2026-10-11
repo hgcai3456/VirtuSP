@@ -24,6 +24,77 @@ test("AI_PROVIDER selects the Claude API only when explicitly set", () => {
       else delete process.env[key];
   }
 });
+test("The conversational patient runs on Bedrock only when opted in", async () => {
+  const engine = require("../lib/engine");
+  const saved = { ...process.env };
+  const original = { dialogue: cloud.dialogue, select: cloud.select };
+  const profile = {
+    id: "t1",
+    name: "Test Patient",
+    age: 40,
+    facts: [
+      {
+        id: "f1",
+        label: "Headache for three weeks",
+        say: "I've had a headache for three weeks.",
+        topic: "Headache",
+        kw: ["headache"],
+        type: "reported",
+        vis: "ask",
+        ehr: "hx",
+        gate: 0,
+        src: "Test",
+      },
+    ],
+    artifacts: [],
+    sources: [],
+    obj: [],
+    hints: [],
+  };
+  let calls = 0;
+  try {
+    process.env.AI_ENABLED = "true";
+    delete process.env.AI_PROVIDER;
+    cloud.dialogue = async (input) => {
+      calls++;
+      assert.equal(input.open[0].id, "f1");
+      return {
+        reply: "It's been about three weeks of headaches now.",
+        revealed: ["f1"],
+        withheld: [],
+        chartAsked: [],
+        emotion: "worried",
+        empathic: false,
+        openQuestion: true,
+        judgmental: false,
+      };
+    };
+    // Any staged-pipeline call fails fast, so the default path stays local.
+    cloud.select = async () => {
+      throw new Error("no credentials in this test");
+    };
+    // Default on Bedrock: the staged pipeline, no conversational call.
+    delete process.env.DIALOGUE_MODE;
+    const staged = engine.create(profile);
+    await engine.ask(staged, "What brings you in?", "r1");
+    assert.equal(calls, 0);
+    // Opted in: one conversational call, credited to the Bedrock provider.
+    process.env.DIALOGUE_MODE = "natural";
+    const natural = engine.create(profile);
+    await engine.ask(natural, "What brings you in?", "r2");
+    assert.equal(calls, 1);
+    const reply = natural.transcript.at(-1);
+    assert.equal(reply.provider, "bedrock");
+    assert.match(reply.text, /three weeks/);
+    assert.deepEqual(reply.factIds, ["f1"]);
+    assert.ok(natural.disclosed.f1);
+  } finally {
+    Object.assign(cloud, original);
+    for (const key of ["AI_ENABLED", "AI_PROVIDER", "DIALOGUE_MODE"])
+      if (key in saved) process.env[key] = saved[key];
+      else delete process.env[key];
+  }
+});
 test("A missing action may be worded naturally but must still be stated", () => {
   const enc = {
     events: [{ id: "E1" }],

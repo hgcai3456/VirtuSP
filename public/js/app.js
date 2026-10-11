@@ -22,7 +22,11 @@ async function changeDiscipline(discipline) {
   } else catalogDiscipline = discipline;
 }
 const appHeader = $("body > header");
-const sideMenu = () => !!window.matchMedia?.("(min-width: 1000px)").matches;
+// The menu is a side panel on a wide screen once a workspace is chosen; the
+// workspace picker itself keeps the plain top bar.
+const sideMenu = () =>
+  document.body.classList.contains("has-menu") &&
+  !!window.matchMedia?.("(min-width: 1000px)").matches;
 function updateHeaderHeight() {
   document.documentElement.style.setProperty(
     "--app-header-height",
@@ -1743,7 +1747,7 @@ function past() {
   }</div>`;
 }
 function rolePicker() {
-  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
+  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
 }
 function assignmentCards(items) {
   return items
@@ -2153,6 +2157,10 @@ function biasBoard() {
   <div class="hub-row"><section class="hp span-7"><h3 class="hp-rule">${hubIcon("pen")}<span>Faculty observation notes and debrief agenda</span></h3><label for="board-notes" class="fld">Specific reflection prompts for student session</label><textarea id="board-notes" rows="4" maxlength="5000" placeholder="Note specific moments where the student displayed variance in communication or thoroughness…">${esc(notes)}</textarea><div class="notes-foot"><label class="check"><input type="checkbox" id="board-flag" ${current.notes.flagged ? "checked" : ""}> Flag for 1-on-1 faculty mentorship review</label><div class="notes-save"><span class="muted small">${esc(saved)}</span>${button("Save faculty evaluation notes", "save-board-notes", "", "pri")}</div></div></section><section class="hp span-5 modules"><div><h3 class="hp-rule">${hubIcon("book")}<span>Assign bias mitigation modules</span></h3><p class="muted small">Targeted training modules assigned directly to the student's My performance page:</p><div class="mod-list">${current.modules.map((m) => `<div class="mod ${m.assignedAt ? "is-on" : ""}"><span><b>${esc(m.code)}:</b> ${esc(m.title)}${m.suggested ? ' <span class="lv level-moderate">Suggested</span>' : ""}${m.assignedAt ? `<br><small class="muted">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</small>` : ""}</span><button type="button" class="mod-add" data-action="module-toggle" data-module="${esc(m.id)}" data-assigned="${m.assignedAt ? "true" : "false"}">${m.assignedAt ? "Assigned ✓" : "Assign"}</button></div>`).join("")}</div></div><p class="mod-note">${hubIcon("shield")} Bias review is shown to faculty only. Students see the modules assigned to them, not why they were suggested.</p></section></div>${visitDialog(current)}</div>`;
 }
 function render() {
+  if (document.body.classList.contains("has-menu") !== !!demoSession) {
+    document.body.classList.toggle("has-menu", !!demoSession);
+    updateHeaderHeight();
+  }
   if (!demoSession) {
     $("#nav").innerHTML = "";
     $("#app").innerHTML =
