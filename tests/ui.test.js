@@ -70,6 +70,20 @@ test('failed question remains typed and its retry keeps the request ID', async()
   await b.run('sendQuestion()'); assert.equal(b.nodes.get('#q').value,'What brings you in today?'); const id=b.run('pendingRequest.id'); assert.equal(b.nodes.get('#sendBtn').disabled,false);
   b.context.fetch=saved; await b.run('sendQuestion()'); assert.equal(b.nodes.get('#q').value,''); assert.equal(b.run('enc.turns'),1); assert.ok(id);
 });
+test('HTML service outages preserve publication drafts and explain safe recovery', async()=>{
+  const b=await browser(); b.run("newPatient(); setStudio('name','Synthetic outage regression'); setStudio('complaint','Synthetic headache'); runValidate();");
+  const saved=b.context.fetch;
+  b.context.fetch=async()=>({ok:false,status:503,json:async()=>{throw new SyntaxError('Unexpected token <');}});
+  await b.run('publish(sel)');
+  assert.match(b.run('msg'),/HTTP 503/);
+  assert.match(b.run('msg'),/check for a saved version before retrying/);
+  assert.doesNotMatch(b.run('msg'),/Unexpected token/);
+  assert.equal(b.run('rel.some(r => r.p.id === sel)'),false);
+  assert.match(b.run('drafts[sel]'),/Synthetic headache/);
+  assert.equal(b.run('window.__publishing'),false);
+  b.context.fetch=saved; await b.run('publish(sel)');
+  assert.match(b.run('msg'),/Published Synthetic outage regression v1/);
+});
 test('team handoff and plan survive a later server turn',async()=>{
   const b=await browser(); await b.run("launch('denise',1)"); await b.run("ask('What brings you in today?')"); await b.run("encounterAction('plan','Ask about adherence')"); await b.run("encounterAction('handoff','thirst fatigue. R: Clarify adherence with faculty.')"); await b.run("ask('Do you smoke?')"); assert.equal(b.run('enc.plan.length'),1); assert.equal(b.run('enc.ho.tot'),1);
   assert.equal(b.run('enc.ho.text'),'thirst fatigue. R: Clarify adherence with faculty.');

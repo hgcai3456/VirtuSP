@@ -446,7 +446,14 @@ function log(type, text) {
 let pendingRequest = null;
 async function api(url, body) {
   const response = await fetch(url, {method: body === undefined ? 'GET' : 'POST', headers: {'Content-Type': 'application/json'}, body: body === undefined ? undefined : JSON.stringify(body)});
-  const result = await response.json();
+  let result;
+  try { result = await response.json(); }
+  catch {
+    const publication = url === '/api/cases' && body !== undefined;
+    throw new Error(`Service returned an unexpected response (HTTP ${response.status}). ` + (publication
+      ? 'Your draft is preserved. Wait for service recovery, then reload Patient Studio to check for a saved version before retrying publication.'
+      : 'Wait for service recovery and retry; start a fresh visit if the server restarted.'));
+  }
   if (!response.ok) throw new Error(result.error || 'Request failed');
   return result;
 }
