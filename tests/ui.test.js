@@ -27,6 +27,39 @@ test('newly authored chief complaint answers the suggested opening question', as
   await b.run("encounterAction('handoff','Mild headache for two days');");
   assert.equal(b.run('enc.ho.inc'),1);
 });
+test('authored objectives credit their own evidence independent of order', async()=>{
+  const b=await browser();
+  b.run("newPatient(); setStudio('complaint','Synthetic headache'); setStudio('labs','Training marker | 7 | units | 4-10'); setStudio('patientSays','I take a training tablet once daily.'); setStudio('chartSays','Training tablet twice daily.'); setStudio('objText','Look for a chart discrepancy\\nGather the chief complaint\\nReview available labs'); runValidate();");
+  assert.equal(b.run('currentProfile().obj[0].ty'),'mm');
+  await b.run('publish(sel)'); await b.run('launch(sel,1)');
+  await b.run("ask('What brings you in today?')");
+  assert.equal(b.run('grade(enc.p.obj[1]).c'),1);
+  assert.equal(b.run('grade(enc.p.obj[0]).c'),null);
+  assert.equal(b.run('objectiveEvents(enc.p.obj[0]).length'),0);
+  assert.equal(b.run('grade(enc.p.obj[2]).c'),0);
+  await b.run("openSec('labs')");
+  assert.equal(b.run('grade(enc.p.obj[2]).c'),0);
+  await b.run("recordSectionReview('labs')");
+  assert.equal(b.run('grade(enc.p.obj[2]).c'),1);
+  await b.run("ask('What medications do you take?')"); await b.run("openSec('notes')");
+  assert.equal(b.run('grade(enc.p.obj[0]).c'),0.5);
+  assert.equal(b.run('objectiveEvents(enc.p.obj[0])[0].type'),'mismatch');
+  await b.run("reconcile('Clarify the discrepancy between patient and chart.')");
+  assert.equal(b.run('grade(enc.p.obj[0]).c'),1);
+});
+test('custom and unavailable objectives stay unassessed until faculty maps evidence', async()=>{
+  const b=await browser();
+  b.run("newPatient(); setStudio('complaint','Synthetic headache'); setStudio('objText','Review available labs\\nDiscuss training safety\\nGather the chief complaint'); runValidate();");
+  assert.equal(b.run('currentProfile().obj[0].ty'),'manual');
+  assert.equal(b.run('currentProfile().obj[1].ty'),'manual');
+  await b.run('publish(sel)'); await b.run('launch(sel,1)'); await b.run("ask('What brings you in today?')");
+  assert.equal(b.run('grade(enc.p.obj[0]).c'),null);
+  assert.equal(b.run('grade(enc.p.obj[1]).c'),null);
+  assert.equal(b.run('grade(enc.p.obj[2]).c'),1);
+  await b.run("ask('That sounds difficult, I understand your concern.')");
+  assert.equal(b.run('objectiveEvents(enc.p.obj[1]).length'),0);
+  assert.match(b.run('vRep()'),/No faculty evidence mapping/);
+});
 test('feedback requires review and links to recorded evidence events', async()=>{
   const b=await browser(); await b.run("launch('denise',1)"); await b.run("openSec('labs')"); assert.equal(b.run('grade(enc.p.obj[2]).c'),0);
   await b.run("recordSectionReview('labs')"); assert.equal(b.run('grade(enc.p.obj[2]).c'),1);
@@ -38,6 +71,8 @@ test('failed question remains typed and its retry keeps the request ID', async()
   b.context.fetch=saved; await b.run('sendQuestion()'); assert.equal(b.nodes.get('#q').value,''); assert.equal(b.run('enc.turns'),1); assert.ok(id);
 });
 test('team handoff and plan survive a later server turn',async()=>{
-  const b=await browser(); await b.run("launch('denise',1)"); await b.run("ask('What brings you in today?')"); await b.run("encounterAction('plan','Ask about adherence')"); await b.run("encounterAction('handoff','thirst fatigue')"); await b.run("ask('Do you smoke?')"); assert.equal(b.run('enc.plan.length'),1); assert.equal(b.run('enc.ho.tot'),1);
+  const b=await browser(); await b.run("launch('denise',1)"); await b.run("ask('What brings you in today?')"); await b.run("encounterAction('plan','Ask about adherence')"); await b.run("encounterAction('handoff','thirst fatigue. R: Clarify adherence with faculty.')"); await b.run("ask('Do you smoke?')"); assert.equal(b.run('enc.plan.length'),1); assert.equal(b.run('enc.ho.tot'),1);
+  assert.equal(b.run('enc.ho.text'),'thirst fatigue. R: Clarify adherence with faculty.');
+  assert.match(b.run('vTeam()'),/R: Clarify adherence with faculty\./);
 });
 test('typing remains available when microphone and speech APIs are absent',async()=>{const b=await browser(); await b.run("launch('denise',1)"); assert.match(b.run('vEnc()'),/id="typeRow"\s*>/); assert.equal(b.run('window.__convo'),false); assert.match(b.run('vEnc()'),/img\/patient.svg/);});

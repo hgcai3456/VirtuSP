@@ -228,15 +228,18 @@ function hydrate(p) {
   if (p.objText && !p.obj.length) {
     const lines = String(p.objText).split('\n').map((s) => s.trim()).filter(Boolean);
     const w = Math.floor(100 / Math.max(lines.length, 1));
-    p.obj = lines.map((t, i) => ({
-      id: 'o' + i,
-      t,
-      w: i === 0 ? 100 - w * (lines.length - 1) : w,
-      ty: i === 1 ? 'review' : 'fact',
-      f: p.facts[0] ? [p.facts[0].id] : [],
-      s: i === 1 ? ['labs'] : undefined,
-      tip: 'Ask about this directly and review the chart.'
-    }));
+    p.obj = lines.map((t, i) => {
+      let mapping = {ty: 'manual', tip: 'Faculty must map this objective to the required evidence before it can be assessed.'};
+      const title = t.toLowerCase();
+      if (title === 'gather the chief complaint' && p.facts.some(f => f.id === 'cc')) {
+        mapping = {ty: 'fact', f: ['cc'], tip: 'Ask why the patient came in.'};
+      } else if (title === 'review available labs' && p.facts.some(f => f.vis === 'chart' && f.sec === 'labs')) {
+        mapping = {ty: 'review', s: ['labs'], tip: 'Open Labs, then explicitly record review of the section.'};
+      } else if (title === 'look for a chart discrepancy' && p.mm && p.mm.a) {
+        mapping = {ty: 'mm', tip: 'Elicit the patient report, open the conflicting chart source, and document reconciliation.'};
+      }
+      return {id: 'o' + i, t, w: i === 0 ? 100 - w * (lines.length - 1) : w, ...mapping};
+    });
   }
   if (!p.obj.length) {
     p.obj = [{ id: 'o0', t: 'Gather the chief complaint', w: 100, ty: 'fact', f: p.facts[0] ? [p.facts[0].id] : ['cc'], tip: 'Start with why they came in.' }];
@@ -323,6 +326,7 @@ function validate(p) {
     err('No learning objectives', 'obj');
   }
   (p.obj || []).forEach((o) => {
+    if (o.ty === 'manual') warn('Objective is not assessed until faculty maps its required evidence', o.id);
     (o.f || []).forEach((i) => {
       if (!ids.has(i)) {
         err('Objective references unknown fact ' + i, o.id);
@@ -679,7 +683,9 @@ function grade(o) {
   const evidence = [];
   let credit = null;
 
-  if (o.ty === 'fact') {
+  if (o.ty === 'manual') {
+    return {c: null, E: ['No faculty evidence mapping; this objective is not assessed.']};
+  } else if (o.ty === 'fact') {
     const got = (o.f || []).filter((i) => disclosed.has(i));
     credit = got.length / Math.max((o.f || []).length, 1);
     got.forEach((i) => evidence.push(`${i}: "${disclosed.get(i).q}"`));
@@ -985,7 +991,7 @@ function objCard(o, i) {
       <div><label>Weight</label><input type="number" value="${esc(o.w)}" oninput="setObj(${i},'w',this.value)"></div>
       <div><label>Type</label>
         <select onchange="setObj(${i},'ty',this.value)">
-          ${['fact', 'review', 'mm', 'emp', 'ho'].map((s) => `<option ${o.ty === s ? 'selected' : ''}>${s}</option>`).join('')}
+          ${['manual', 'fact', 'review', 'mm', 'emp', 'ho'].map((s) => `<option ${o.ty === s ? 'selected' : ''}>${s}</option>`).join('')}
         </select>
       </div>
       <div><label>Fact IDs</label><input value="${esc((o.f || []).join(', '))}" oninput="setObj(${i},'f',this.value)"></div>
@@ -1270,7 +1276,7 @@ function vTeam() {
     <div class="pn">
       <h2>Role and SBAR handoff</h2>
       <select id="rl" onchange="changeRole(this.value)">${ROLES.map((r) => `<option ${r === enc.role ? 'selected' : ''}>${r}</option>`).join('')}</select>
-      <textarea id="sb" rows="9" style="margin-top:8px">${esc(sbar())}</textarea>
+      <textarea id="sb" rows="9" style="margin-top:8px">${esc(enc.ho && enc.ho.text != null ? enc.ho.text : sbar())}</textarea>
       <div class="row" style="margin-top:8px"><button class="btn pri" type="button" onclick="submitHO()">Submit handoff</button></div>
       <p>${enc.ho ? `<span class="ok">Submitted: ${enc.ho.inc}/${enc.ho.tot} documented facts included. Omitted: ${esc(enc.ho.om.join('; ') || 'none')}</span>` : ''}</p>
       <h3>Care plan</h3>
@@ -1294,7 +1300,7 @@ function vTeam() {
 async function submitHO() {const box = $('#sb'); if(box) {await encounterAction('handoff',box.value); render();}}
 
 function objectiveEvents(o) {
-  return enc.ev.filter(e => o.ty === 'fact' ? e.type === 'disclose' && (o.f || []).some(id => e.text.startsWith(id + ' released')) : o.ty === 'review' ? e.type === 'review' && (o.s || []).some(s => e.text === 'Recorded review of ' + s) : o.ty === 'mm' ? ['mismatch','reconcile'].includes(e.type) : o.ty === 'ho' ? e.type === 'handoff' : e.type === 'empathy');
+  return enc.ev.filter(e => o.ty === 'fact' ? e.type === 'disclose' && (o.f || []).some(id => e.text.startsWith(id + ' released')) : o.ty === 'review' ? e.type === 'review' && (o.s || []).some(s => e.text === 'Recorded review of ' + s) : o.ty === 'mm' ? ['mismatch','reconcile'].includes(e.type) : o.ty === 'ho' ? e.type === 'handoff' : o.ty === 'emp' && e.type === 'empathy');
 }
 function vRep() {
   if (!enc) {
