@@ -40,7 +40,9 @@ async function main() {
   try {
     await faculty("/api/session", "POST", { role: "faculty" });
     const people = (await faculty("/api/students")).students,
-      group = (await faculty("/api/groups")).groups[0];
+      group = (await faculty("/api/groups")).groups.find(
+        (g) => g.id === "dyslipidemia-diverse-backgrounds",
+      );
     const a = (
       await faculty("/api/assignments", "POST", {
         groupId: group.id,
@@ -54,7 +56,7 @@ async function main() {
     const attempt = (
       await student(`/api/assignments/${a.id}/start`, "POST", {})
     ).attempt;
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < attempt.trials.length; i++) {
       let e = (await student(`/api/attempts/${attempt.id}/next`, "POST", {}))
         .encounter;
       const providers = [];
@@ -81,7 +83,7 @@ async function main() {
       );
       e = (await student(`/api/encounters/${e.id}/complete`, "POST", {}))
         .encounter;
-      if (i === 0) assert.equal(e.assessment, null);
+      if (i < attempt.trials.length - 1) assert.equal(e.assessment, null);
       else assert.ok(e.assessment);
       const assessment = (await faculty(`/api/encounters/${e.id}`)).encounter
         .assessment;

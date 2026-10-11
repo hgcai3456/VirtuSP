@@ -439,9 +439,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("launch", '[data-id="omar"]');
     await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
     click("answer-call");
-    await wait(() =>
-      doc.getElementById("avf")?.classList.contains("video-call"),
-    );
+    await wait(() => !!doc.getElementById("question"));
     window.speechSynthesis.cancel();
     await wait(() => {
       const r = recognizers.at(-1);
@@ -538,6 +536,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
         .querySelector('[data-action="section"][data-section="labs"]')
         ?.classList.contains("on"),
     );
+    assert.equal(doc.querySelector('[data-action="review"]'), null);
+    assert.equal(doc.querySelector('[data-action="review-section"]'), null);
     click("complete");
     // Feedback opens on a short summary; the rubric is one of its views.
     await wait(() => !!doc.querySelector(".rep-tabs"));
@@ -583,7 +583,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
-    assert.ok(doc.querySelector(".mic-btn"));
+    assert.ok(doc.querySelector('.mic-btn[data-action="toggle-pause"]'));
     assert.deepEqual(errors, []);
   } finally {
     window.close();

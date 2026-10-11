@@ -65,6 +65,26 @@ function profile() {
     rapport: ["I understand this is difficult"],
   };
 }
+test("Released chart access is observed without review buttons or fabricated comprehension", async () => {
+  process.env.AI_ENABLED = "false";
+  const p = profile();
+  p.obj = [{ id: "access", t: "Access lipid record", w: 100, ty: "review", s: ["labs"] }];
+  const enc = engine.create(p);
+  engine.openSection(enc, "labs");
+  assert.equal(objectives(enc)[0].credit, 0, "Opening a locked section gives no access credit");
+  assert.throws(() => engine.viewArtifact(enc, "report"), /not released/);
+  await engine.ask(enc, "Please show the report", "show-report");
+  assert.equal(objectives(enc)[0].credit, 0, "Automatic release is not student access");
+  engine.viewArtifact(enc, "report");
+  const objective = objectives(enc)[0];
+  assert.equal(objective.credit, 1);
+  assert.match(objective.observation, /understanding is assessed separately/);
+  assert.ok(enc.events.some(e => e.type === "view" && objective.evidence.includes(e.id)));
+  assert.equal(enc.reviewed.length, 0);
+  assert.equal(enc.reviewedSections.length, 0);
+  engine.openSection(enc, "labs");
+  assert.ok(enc.events.some(e => e.type === "view" && e.section === "labs"));
+});
 test("Server gates, chart visibility and unknowns do not leak hidden facts", async () => {
   process.env.AI_ENABLED = "false";
   const enc = engine.create(profile());
