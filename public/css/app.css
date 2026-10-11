@@ -553,6 +553,15 @@ th {
 .import-panel > p {
   margin: 8px 0 0;
 }
+.import-panel > .draft-bar:first-child {
+  margin-top: 0;
+}
+.import-options {
+  margin: 8px 0 0;
+}
+.import-options .import-row {
+  margin-top: 8px;
+}
 .import-row {
   display: flex;
   flex-wrap: wrap;
@@ -612,6 +621,238 @@ th {
 }
 .ehr-section:hover {
   border-color: var(--ac);
+}
+/* ---- EHR-style shell: menu down the side, patient banner across the top. */
+@media (min-width: 1000px) {
+  body.has-menu {
+    display: grid;
+    grid-template-columns: 216px minmax(0, 1fr);
+    align-items: start;
+  }
+  body.has-menu > header {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 14px;
+    padding: 18px 12px;
+    border-right: 1px solid var(--bd);
+    border-bottom: 0;
+    overflow-y: auto;
+  }
+  body.has-menu > header .brand {
+    padding: 0 8px 12px;
+    border-bottom: 1px solid var(--bd);
+    font-size: 20px;
+  }
+  body.has-menu > header nav {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+  body.has-menu > header nav .btn {
+    width: 100%;
+    padding: 9px 10px;
+    border-color: transparent;
+    background: none;
+    text-align: left;
+  }
+  body.has-menu > header nav .btn:hover {
+    background: var(--soft);
+  }
+  body.has-menu > header nav .btn.on {
+    border-color: var(--ac);
+    background: var(--ac);
+    color: #fff;
+    font-weight: 600;
+  }
+  /* The account switch sits apart from the pages, at the foot of the menu. */
+  body.has-menu > header nav [data-action="switch-role"] {
+    margin-top: 10px;
+    border-top: 1px solid var(--bd);
+    border-radius: 0 0 8px 8px;
+    color: var(--mu);
+  }
+  body.has-menu > header .hdr-meta {
+    margin: auto 0 0;
+  }
+  body.has-menu > header .hdr-meta .btn {
+    width: 100%;
+  }
+  /* body.has-menu > main outranks the plain main rules later in this file. */
+  body.has-menu > main {
+    max-width: none;
+    min-width: 0;
+    margin: 0;
+  }
+  .toast {
+    top: 12px;
+  }
+  .enc-talk {
+    top: calc(var(--pt-banner-height, 150px) + 14px);
+  }
+  .pt-banner {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+  /* Scrolled-to content stops below the patient banner, not under it. */
+  .ehr-panel,
+  .enc-grid .fx,
+  .enc-grid .bubble {
+    scroll-margin-top: calc(var(--pt-banner-height, 150px) + 14px);
+  }
+}
+.pt-banner {
+  margin-bottom: 14px;
+  padding: 0;
+}
+.pt-banner-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+}
+.pt-photo {
+  width: 68px;
+  height: 68px;
+  flex: none;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--soft);
+}
+.pt-banner-id {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.pt-banner-id h1 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+.pt-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 26px;
+  margin: 0;
+}
+.pt-facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mu);
+}
+.pt-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.pt-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.tabs.ehr-tabs {
+  gap: 0;
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: 0 10px;
+  overflow-x: auto;
+  border-top: 1px solid var(--bd);
+  background: var(--soft);
+  border-radius: 0 0 14px 14px;
+}
+.tabs.ehr-tabs button {
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--mu);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tabs.ehr-tabs button:hover {
+  color: var(--tx);
+}
+.tabs.ehr-tabs button.on {
+  border-bottom-color: var(--ac);
+  background: none;
+  color: var(--ac);
+}
+.history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.history-head h1,
+.history-head p {
+  margin: 0;
+}
+.history-head .log-tools {
+  margin: 0;
+}
+.history-table {
+  font-size: 14px;
+}
+.history-table .pt-cell {
+  white-space: nowrap;
+}
+.history-table th,
+.history-table td {
+  padding: 10px 7px;
+  vertical-align: middle;
+}
+.history-table th:first-child,
+.history-table td:first-child {
+  padding-left: 14px;
+}
+.history-table .when {
+  white-space: nowrap;
+  color: var(--mu);
+}
+.history-table .progress {
+  min-width: 0;
+}
+.history-table .progress .meter {
+  width: 70px;
+  flex: none;
+}
+.history-table .act .row {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+.history-table .act .btn {
+  padding: 5px 10px;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.visit-status {
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 10%, transparent);
+  color: var(--tone);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.visit-status.is-done {
+  --tone: var(--ok);
+}
+.visit-status.is-open {
+  --tone: var(--tone-amber);
 }
 .draft-bar {
   justify-content: space-between;
@@ -1392,21 +1633,47 @@ main {
   position: sticky;
   top: 85px;
 }
+.visit-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.visit-heading h1 {
+  margin: 0;
+}
+.visit-timer {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: var(--mu);
+  letter-spacing: 0.04em;
+}
 .av-frame {
-  width: min(100%, 340px);
-  height: 280px;
-  margin: 12px auto;
+  width: min(100%, 280px);
+  height: auto;
+  margin: 8px auto 12px;
   position: relative;
   overflow: hidden;
   border-radius: 18px;
-  background: var(--soft);
+  background: transparent;
+  box-shadow: none;
 }
-.av-frame .patient-photo,
+.av-frame .patient-photo {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(16, 39, 42, 0.1);
+}
 .av-frame .patient-call,
 .av-frame .patient-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .av-frame .patient-call,
@@ -1416,10 +1683,10 @@ main {
   display: none;
 }
 .av-frame.video-call .patient-call {
-  display: block;
+  display: none;
 }
 .av-frame.video-call.face-ready .patient-photo {
-  visibility: hidden;
+  visibility: visible;
 }
 .av-frame.ringing {
   animation: call-ring 1.4s ease-out infinite;
@@ -1462,52 +1729,6 @@ main {
   transform: scaleX(-1);
   background: #17262b;
 }
-.self-view .btn {
-  width: 100%;
-  border-radius: 0;
-}
-.media-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin: 8px 0;
-}
-.media-bar .muted,
-#face-status,
-#latency-status {
-  margin: 4px 0;
-}
-.volume-label,
-.camera-device-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9rem;
-}
-#transcript.captions-off {
-  display: none;
-}
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-#avf:focus-visible {
-  outline: 3px solid #0b6e6a;
-  outline-offset: 2px;
-}
-.av-frame.speaking {
-  box-shadow: 0 0 0 3px #0b6e6a;
-}
-.av-frame.listening {
-  box-shadow: 0 0 0 3px #1d4e89;
-}
-.self-label {
-  display: block;
-  color: #fff;
-  font-size: 11px;
-  line-height: 1.3;
-  padding: 4px 6px;
-}
 @keyframes call-ring {
   70% {
     box-shadow: 0 0 0 12px rgba(226, 59, 59, 0);
@@ -1530,10 +1751,9 @@ select:focus-visible,
 }
 .av-live {
   display: none;
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
+  margin: 8px auto 0;
+  width: fit-content;
+  position: static;
   align-items: center;
   gap: 6px;
   background: #17262bbd;
@@ -1551,7 +1771,7 @@ select:focus-visible,
   border-radius: 50%;
   background: #e23b3b;
 }
-.av-frame.video-call .av-live {
+.enc-talk .av-live {
   display: inline-flex;
 }
 .av-frame .voice-bars {
@@ -1562,12 +1782,14 @@ select:focus-visible,
 .av-frame.listening {
   box-shadow: 0 0 0 3px var(--ac);
 }
-.av-frame .av-still {
+.av-frame .av-talk,
+.av-frame .patient-video,
+.av-frame .patient-call {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 .av-frame .patient-video,
@@ -1733,6 +1955,35 @@ select:focus-visible,
 .voice-secondary {
   justify-content: flex-start;
   flex-wrap: wrap;
+}
+.presence-panel {
+  width: min(100%, 340px);
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--soft);
+  border: 1px solid var(--bd);
+}
+.presence-panel .panel-kicker {
+  margin-bottom: 4px;
+}
+.presence-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.presence-flag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--soft);
+  border: 1px solid var(--bd);
+  color: var(--tx);
+  font-size: 12px;
+}
+.presence-review {
+  margin-top: 16px;
 }
 .mic-btn {
   display: inline-flex;
@@ -4040,10 +4291,15 @@ summary:focus-visible {
   margin: 10px 0;
   font-size: 0.9rem;
 }
-.simulation-assignment summary {
+.simulation-assignment summary,
+.simulation-assignment > p {
   color: var(--ac);
   cursor: pointer;
   font-weight: 600;
+}
+.simulation-assignment > p {
+  cursor: default;
+  margin: 4px 0;
 }
 .simulation-assignment label {
   display: grid;
@@ -4164,4 +4420,235 @@ summary:focus-visible {
   font-size: 0.85rem;
   max-height: 360px;
   overflow: auto;
+}
+
+/* Patient cards: four across on a wide screen so a row fits at 100% zoom,
+   stepping down to three, two and one as the window narrows. */
+@media (min-width: 1000px) {
+  .patient-grid,
+  .studio .patient-grid,
+  .student-assignments .patient-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1000px) and (max-width: 1250px) {
+  .patient-grid,
+  .studio .patient-grid,
+  .student-assignments .patient-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Short windows (a laptop at 100% zoom is about 765px tall): the workspace
+   picker and other choice pages fit without scrolling. */
+@media (max-height: 860px) and (min-width: 900px) {
+  .workspace-home {
+    min-height: 0;
+    justify-content: flex-start;
+    padding: 20px clamp(24px, 4vw, 56px);
+  }
+  .workspace-home h1 {
+    margin: 4px 0 6px;
+    font-size: 34px;
+  }
+  .workspace-lede {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .simulation-choices {
+    flex: none;
+    min-height: 0;
+    margin: 18px 0;
+  }
+  .role-choices {
+    margin: 18px 0 8px;
+  }
+  .role-choice-card {
+    gap: 8px;
+    padding: 22px 28px;
+  }
+  .choice-title {
+    font-size: 28px;
+  }
+  .choice-description {
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+/* Short windows: the whole visit (video, microphone, question box and the
+   start of the transcript) fits under the patient banner without scrolling. */
+@media (max-height: 860px) and (min-width: 1000px) {
+  .pt-banner-main {
+    padding: 10px 16px;
+  }
+  .pt-photo {
+    width: 56px;
+    height: 56px;
+  }
+  .pt-banner-id h1 {
+    margin-bottom: 2px;
+    font-size: 20px;
+  }
+  .tabs.ehr-tabs button {
+    padding: 8px 14px;
+  }
+  .enc-grid .pn {
+    padding: 12px 16px;
+  }
+  .enc-talk .av-frame {
+    width: min(100%, 250px);
+    height: 190px;
+    margin: 8px auto;
+  }
+  .enc-talk .incoming-call {
+    flex-wrap: nowrap;
+    margin: 4px 0;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .enc-talk .incoming-call p.muted {
+    display: none;
+  }
+  .enc-talk .voice-controls {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+  .enc-talk .tr {
+    height: clamp(96px, calc(100vh - 690px), 260px);
+  }
+}
+@media (max-height: 860px) and (min-width: 1000px) {
+  .enc-talk .self-view {
+    width: 68px;
+    right: 6px;
+    bottom: 8px;
+  }
+}
+/* Teaching discovery stays independent of the encounter and avatar layouts. */
+.catalog-picker {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.catalog-picker h2 { margin: 0 0 6px; }
+.objective-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.objective-choices .btn { white-space: normal; text-align: left; }
+.catalog-options { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.catalog-options label { display: grid; gap: 6px; }
+.catalog-options select { width: min(100%, 280px); }
+.catalog-options > .muted { font-size: .85rem; max-width: 360px; }
+.catalog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalog-fields fieldset { border: 1px solid var(--bd); border-radius: 8px; padding: 12px; min-width: 0; }
+.catalog-fields legend { font-weight: 600; padding: 0 4px; }
+.catalog-check { display: flex; align-items: start; gap: 8px; margin: 8px 0; }
+.catalog-check input { width: auto; margin-top: 3px; }
+.faculty-feedback .rubric-split { display: block; }
+.faculty-feedback .rubric-top { margin-bottom: 16px; }
+.faculty-feedback .domain-more { display: none; }
+.faculty-feedback .domain-row .why { white-space: normal; }
+.faculty-feedback .evidence { margin: 10px 0; }
+.bias-limits { margin-top: 18px; }
+@media (max-width: 650px) {
+  .catalog-fields { grid-template-columns: 1fr; }
+  .catalog-picker { padding: 12px; }
+  .catalog-options label, .catalog-options select { width: 100%; }
+}
+
+/* Use the portrait's vertical shape instead of a wide letterboxed well. */
+.patient-grid,
+.studio .patient-grid,
+.student-assignments .patient-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 260px));
+  align-items: start;
+}
+.patient-card { padding: 10px; gap: 8px; }
+.patient-card > .patient-photo-well,
+.studio .patient-card > .patient-photo-well,
+.student-assignments .patient-card > .patient-photo-well {
+  height: auto;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  background: transparent;
+}
+.patient-card .patient-photo-well img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.patient-card .patient-name { margin: 5px 0; line-height: 1.3; }
+.patient-age {
+  display: inline-block;
+  font-family: "Segoe UI", sans-serif;
+  font-size: .72em;
+  font-weight: 400;
+  color: var(--mu);
+  white-space: nowrap;
+  margin-left: 4px;
+}
+.patient-actions { gap: 6px; }
+.patient-actions .btn { padding: 8px 10px; font-size: .85rem; }
+.simulation-assignment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+.simulation-assignment > p { grid-column: 1 / -1; font-size: .85rem; }
+.simulation-assignment label { margin: 0; gap: 3px; font-size: .8rem; }
+.simulation-assignment select,
+.simulation-assignment .btn { padding: 8px; font-size: .85rem; }
+.group-patients { line-height: 1.6; }
+.assigned-work {
+  margin: 20px 0;
+  padding: 18px;
+  border: 2px solid var(--ac);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.assigned-work > h2 { margin-top: 0; }
+.assignment-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  background: var(--ac);
+  color: white;
+  border-radius: 20px;
+  font-size: .8rem;
+}
+.open-assessments { border-top: 1px solid var(--bd); margin-top: 28px; padding-top: 20px; }
+.faculty-learning-topics { margin: 22px 0; padding: 18px; border: 1px solid var(--bd); border-radius: 12px; }
+.toast {
+  position: relative;
+  top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.toast.hidden { display: none; }
+.toast-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .patient-grid,
+  .studio .patient-grid,
+  .student-assignments .patient-grid { grid-template-columns: 1fr; }
+  .patient-card { max-width: 300px; width: 100%; }
+  .assigned-work { padding: 12px; }
 }

@@ -308,3 +308,114 @@ test("Faculty notes are saved per student and validated", () => {
   assert.throws(() => insights.saveNotes(s, "nobody", { text: "x" }));
   assert.throws(() => insights.saveNotes(s, "s1", { text: 5 }));
 });
+
+test("Practice prompts require a real student recipient and an explicit assignment decision", () => {
+  const s = store([], {
+    facultyNotes: { [insights.UNASSIGNED]: { text: "Retain legacy demo notes." } },
+    moduleAssignments: { [insights.UNASSIGNED]: { age: { assignedAt: "2026-10-10T12:00:00Z" } } },
+  });
+  const before = structuredClone(s.state);
+  for (const id of [null, undefined, "", insights.UNASSIGNED])
+    assert.throws(() => insights.assignModule(s, id, "age", true), { status: 400 });
+  for (const id of ["missing", "constructor", "__proto__"])
+    assert.throws(() => insights.assignModule(s, id, "age", true), { status: 404 });
+  for (const assigned of [undefined, null, "true", "false", 0, 1, {}])
+    assert.throws(() => insights.assignModule(s, "s1", "age", assigned), { status: 400 });
+  assert.deepEqual(s.state, before, "Rejected requests do not change assignments or legacy notes");
+  assert.equal(insights.facultyView(s, anchors).students.find((x) => x.student.id === null).notes.text, "Retain legacy demo notes.");
+});
+
+test("Faculty practice-prompt assignments identify the recipient, persist and remain private to that student", async () => {
+  const fs = require("node:fs/promises"), os = require("node:os"), path = require("node:path");
+  const { createApp } = require("../lib/http");
+  const { cookieClient } = require("./http-client");
+  process.env.AI_ENABLED = "false";
+  delete process.env.S3_BUCKET;
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "virtusp-module-recipient-"));
+  let app, base;
+  const open = async () => {
+    app = await createApp({ dataDir: dir });
+    await new Promise((r) => app.server.listen(0, "127.0.0.1", r));
+    base = `http://127.0.0.1:${app.server.address().port}`;
+  };
+  const faculty = cookieClient(() => base), student = cookieClient(() => base), other = cookieClient(() => base);
+  const call = async (client, url, method = "GET", body) => {
+    const response = await client(url, {
+      method, headers: { "Content-Type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+    return { status: response.status, ...(await response.json()) };
+  };
+  let people;
+  const logins = async () => {
+    await call(faculty, "/api/session", "POST", { role: "faculty" });
+    await call(student, "/api/session", "POST", { role: "student", studentId: people[0].id });
+    await call(other, "/api/session", "POST", { role: "student", studentId: people[1].id });
+  };
+  try {
+    await open();
+    people = (await call(student, "/api/students")).students;
+    await logins();
+    const route = `/api/insights/modules/${people[0].id}/age`;
+    assert.equal((await call(student, route, "PUT", { assigned: true })).status, 403);
+    assert.equal((await call(faculty, "/api/insights/modules/unassigned/age", "PUT", { assigned: true })).status, 400);
+    assert.equal((await call(faculty, "/api/insights/modules/missing/age", "PUT", { assigned: true })).status, 404);
+    assert.equal((await call(faculty, route, "PUT", {})).status, 400);
+    assert.equal((await call(faculty, route, "PUT", { assigned: "false" })).status, 400);
+    assert.deepEqual((await call(student, "/api/insights")).me.modules, []);
+    const assigned = await call(faculty, route, "PUT", { assigned: true });
+    assert.equal(assigned.status, 200);
+    assert.deepEqual(assigned.student, people[0]);
+    const timestamp = assigned.modules.find((m) => m.id === "age").assignedAt;
+    assert.ok(timestamp);
+    // Patient names on assigned simulations must come from the pinned release,
+    // even when faculty later rename and publish the cases in the catalog.
+    const patients = (await call(student, "/api/profiles")).profiles.slice(0, 2);
+    const group = await call(faculty, "/api/groups", "POST", {
+      title: "Pinned-name practice", kind: "practice", profileIds: patients.map((p) => p.id),
+    });
+    assert.equal(group.status, 201);
+    const simulation = await call(faculty, "/api/assignments", "POST", {
+      groupId: group.group.id, studentId: people[0].id,
+    });
+    assert.equal(simulation.status, 201);
+    const pinnedCases = structuredClone(simulation.assignment.cases);
+    const renamed = structuredClone(app.store.latest(patients[0].id).p);
+    renamed.name = "New name after assignment";
+    assert.equal((await call(faculty, `/api/profiles/${renamed.id}`, "PUT", { profile: renamed })).status, 200);
+    assert.equal((await call(faculty, `/api/profiles/${renamed.id}/publish`, "POST", { acknowledge: true })).status, 201);
+    const pinnedNames = (await call(student, "/api/assignments")).assignments.find((a) => a.id === simulation.assignment.id).cases;
+    assert.deepEqual(pinnedNames.map((p) => p.name), patients.map((p) => p.name));
+    assert.deepEqual(app.store.state.assignments[simulation.assignment.id].cases, pinnedCases, "Name projection must not alter the saved assignment");
+    assert.deepEqual((await call(other, "/api/assignments")).assignments, []);
+    const again = await call(faculty, route, "PUT", { assigned: true });
+    assert.equal(again.modules.find((m) => m.id === "age").assignedAt, timestamp);
+    const own = await call(student, "/api/insights");
+    assert.equal(own.me.modules.length, 1);
+    assert.equal(own.me.modules[0].id, "age");
+    assert.equal(own.me.modules[0].suggested, undefined);
+    assert.equal(own.me.student.id, people[0].id);
+    const someoneElse = await call(other, "/api/insights");
+    assert.deepEqual(someoneElse.me.modules, []);
+    assert.ok(!JSON.stringify(someoneElse).includes(timestamp));
+    await app.store.flush();
+    await new Promise((r) => app.server.close(r));
+    await open();
+    await logins();
+    const recovered = await call(student, "/api/insights");
+    assert.equal(recovered.me.modules[0].assignedAt, timestamp);
+    const recoveredNames = (await call(student, "/api/assignments")).assignments.find((a) => a.id === simulation.assignment.id).cases;
+    assert.deepEqual(recoveredNames.map((p) => p.name), patients.map((p) => p.name));
+    assert.deepEqual((await call(other, "/api/insights")).me.modules, []);
+    const removed = await call(faculty, route, "PUT", { assigned: false });
+    assert.equal(removed.status, 200);
+    assert.deepEqual(removed.student, people[0]);
+    assert.deepEqual((await call(student, "/api/insights")).me.modules, []);
+  } finally {
+    if (app?.server.listening) {
+      await app.store.flush();
+      await new Promise((r) => app.server.close(r));
+    }
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

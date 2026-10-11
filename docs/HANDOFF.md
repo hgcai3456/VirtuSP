@@ -88,6 +88,24 @@ The agent recorded 34 of 34 passes. The same check is `tests/appointment-regress
 
 `GET /api/live` reports that the process answered HTTP and does not open the database. `GET /api/ready` runs `SELECT 1` on the server's ground-truth connection, with a 200ms busy timeout that is restored afterward, and returns 503 `{ ok: false }` when that connection cannot answer. The driver message and file path are omitted. `GET /api/health` keeps its counts and provider fields and uses the connection's normal busy timeout; a database error on that request is also 503 and omits both the driver message and the counts, so a failure is not reported as an empty library. `tests/health.test.js` and `test/api.test.js` passed. The container probe in `infra/aws` calls `/api/live`, so a brief shared EFS lock does not replace tasks. The image `HEALTHCHECK` and the load balancer call `/api/ready`, so a task that cannot read the library stops receiving traffic. The live target group now uses `/api/ready`. The running task command still requests `/`. These are engineering checks, not clinical validation.
 
+## Patient card cleanup and faculty authoring visibility (2026-10-11)
+
+Patient cards no longer show origin labels (including AI-synthetic) or description/greeting captions. Saved-library cards are compact too; descriptions, original sources and provenance remain stored and editable. Individual Edit/Start actions sit above assignment controls. Edit and quick AI generation remain faculty-only; the workspace switch label now names Student or Faculty explicitly. Navigation and role changes return to the top, keeping the Patient Studio toolbar visible.
+
+All **119 tests pass**, including faculty editing/quick generation, absence of student authoring, and page-navigation scroll reset. The six catalog categories are implementation-selected discovery shortcuts based on mentor goals, not prescribed rubric domains or clinically approved objectives. All objectives remains the default; category expansion is paused pending human review. Noncoding market, finance, clinical and pitch work is now human-owned; the earlier research handoff is reference material, not a request to start more Codex research. EMR/avatar ownership remains unchanged.
+
+## Objective-first discovery and parallel handoff (2026-10-10)
+
+Built on teammate main `546fc20`, preserving the EMR side menu, camera/presence and visit timer. Faculty/student catalogs now start with learning objective categories, with an optional learner discipline filter. Assigned work is always visible. Faculty select a student and Assign directly on each individual/group card, without expanding a panel. Faculty feedback is a vertical view with objectives, rubric reasoning, interview review and cited evidence directly readable; students keep their tabs and delayed group feedback.
+
+Teaching metadata is optional `catalog` on profiles/groups. Runnable listings and group defaults use published cases, not newer drafts; assignments stay pinned. Legacy categories use authored objective titles only, never clinical facts or answer keys. Faculty should review/correct classification; empty categories remain available under All. Student discipline persists in the existing store and is returned only in their own session preference projection. Public alias listings contain ID/alias only. Quick AI generation receives an optional selected learning objective without making it required.
+
+Verification: **119 automated tests pass**, including metadata/version preservation, ownership, student preference restart/privacy, objective filters across both case types, assigned-work visibility, zero-input generation and faculty inline/student-held feedback. Headless Chrome checks at 1440px and 600px found no horizontal overflow or browser errors. Test/preview state is isolated under ignored `tmp/`; no live AI generation or clinical calibration is claimed.
+
+See [OBJECTIVE-WORKFLOW.md](OBJECTIVE-WORKFLOW.md) for behavior/interfaces, [MEDICAL-STUDENT-HANDOFF.md](MEDICAL-STUDENT-HANDOFF.md) for the ready-to-send clinical/market/demo request, and [RESEARCH-AGENT-HANDOFF.md](RESEARCH-AGENT-HANDOFF.md) for a copyable independent-agent prompt. EMR styling, avatars, speech/model/data fixes, timer and failsafe remain with their owners. The Team pane remains until its replacement controls are coordinated.
+
+Incoming provider/import risks remain outside this checkpoint: the optional Anthropic conversational branch supplies guarded truths to the model and allows it to bypass gates; mocked replies also accepted unsupported nonnumeric diagnoses and question-supplied doses. Keep the established Bedrock/staged path for the current local configuration while the model owner resolves this. The new mixed-file importer stores summaries rather than retaining original text/PDF bytes, requires an Anthropic key and combines non-CSV folders into one patient. `BUNDLED_PATIENTS=false` removes some existing drafts/releases and unused assignments at startup. Do not enable that destructive cleanup on saved faculty work. These are reviewed code/probe findings, not evidence that the model will always fail.
+
 ## Session origin (2026-10-10)
 
 The workspace picker loaded on CloudFront, then `POST /api/session` returned 403 `Cross-origin requests are not allowed.` The browser sends `Origin` on that call, and the server only accepted localhost. A request is now accepted when its origin host matches `Host` or `X-Forwarded-Host`, and still rejected for any other host. `npx cucumber-js --config tests/e2e/cucumber.js --profile session` passed 19 steps, and `tests/session-origin.test.js` covers the CloudFront host, a forwarded host, and a foreign origin. The public site now accepts that CloudFront origin. These are engineering checks, not clinical validation.
@@ -107,6 +125,10 @@ The app is containerized and running on the existing ECS Fargate service in us-w
 A local run on 2026-10-10 wrote 16 profile rows, 16 artifact rows and 4 files (36 objects) to `virtusp-reports-389023343021` under `virtusp/profiles/`, and the same rows to local SQLite. The `virtusp` RDS instance is private and did not accept a connection from this machine, so those PostgreSQL rows still wait for a task inside the VPC. These are storage checks, not clinical validation.
 
 ## Current checkpoint
+
+Encounter camera and timer (2026-10-10): the student camera and on-device presence sampling start only on the Encounter page while a visit is active. Leaving that page stops the camera. A live clock sits on the patient banner and keeps running from visit start; completed visits store `durationSec` and show the same elapsed time on feedback. Presence flags stay on the Body language feedback tab. Chat starts immediately (no Answer banner). The student camera is a PIP over the full patient photo, without Camera on / Student encounter labels. These are engineering checks, not clinical validation.
+
+Presence coaching (2026-10-10): visits now flag eye contact toward the camera, upright posture, frequent head turns, um/uh fillers, and long mid-sentence pauses. Vision runs on-device from the student camera (Chrome FaceDetector, optional MediaPipe). No video frames are uploaded and no paid vision API is used. Flags appear on feedback only. They do not change rubric scores. These are prototype signals, not clinical validation.
 
 History retrieval repair (2026-10-10): roster facts previously reached the semantic selector as repeated chart-section codes (`hx`, `meds`, etc.). All roster facts now have neutral authored topics; legacy encounter versions recover matching metadata without rewriting clinical snapshots. Selector distinguishes patient interview from chart-only records, and the offline/provider-failure path understands broad medication, diet and symptom questions. Medical-history questions without an approved history remain unknown rather than small talk. Guarded and guardrail-blocked requests cannot fall through to a generic medication answer.
 
@@ -344,3 +366,27 @@ Everything here is optional and off unless configured; with no changes to `.env`
 - **`BUNDLED_PATIENTS=false`** removes the cases that ship with the app (roster, Denise, Marcus) from the library and from start-up seeding, hides nothing, and lets any patient be deleted. Unset, bundled cases behave as before.
 
 Not verified on Bedrock: none of the above was run with AWS credentials.
+
+## EHR-style layout (2026-10-10, Rahil)
+
+Presentation only; no route, data shape or scoring changed apart from one optional field.
+
+- **Side menu.** At 1000px and wider the top bar becomes a panel down the left (`body > header` in `public/css/app.css`); below that it is the top bar as before. `--app-header-height` is 0 in side-menu mode.
+- **Visit screen.** `patientBanner()` puts the photo, name, age (or date of birth when recorded), gender, ethnicity, a short patient ID and the visit status across the top, with the chart sections as tabs beneath it and "Finish & get feedback" on the right. The banner is pinned while scrolling; `--pt-banner-height` is measured so content below it is offset correctly at any zoom. Selecting a tab returns the page to the top.
+- **Patient Studio.** Cards are four across on a wide screen. The import panel shows only while an import runs, after a result, or while drafts are waiting; note and redraft live under "Import options".
+- **Encounter history.** A table (newest first) with search and a patient filter, in place of the card list.
+- **Date of birth.** The importer stores `dob` (YYYY-MM-DD) only when the source states one; the encounter view exposes it in `overview.dob`.
+
+## Compact cards and named assignments (2026-10-11)
+
+Patient portraits fill vertical frames; cards are narrower and age sits beside the name. Multi-patient catalog and assignment cards show their patient names directly, using published/pinned case versions. Faculty cards keep Edit, quick AI generation and visible assignment controls, plus the assigned recipients. Stored clinical descriptions and histories are unchanged.
+
+Student entry separates **Assigned to you by faculty** from **Open simulations**. Bias-board follow-ups are **Faculty learning topics**, distinct from runnable simulations. Assignment requires a real student, returns their alias and persists privately through restart. Legacy unassigned encounters remain reviewable but cannot receive new assignments. **Assign a patient simulation** on the board opens Patient Studio with the recipient preselected. Role changes clear cached faculty board data. Notifications identify recipients and can be dismissed; they no longer stick over the board.
+
+Verified with **121 passing npm tests** and Chrome desktop/mobile checks, including recipient selection, unassigned rejection, student isolation, fixed-version names, complete group trials and dismissible notices. Paid AI/cloud inference was not part of these workflow tests. See [OBJECTIVE-WORKFLOW.md](OBJECTIVE-WORKFLOW.md) for the current path. Human reviewers own further market/cost research; preserve concurrent research-document edits. Restart the Node backend after pulling, then refresh the browser.
+
+## Laptop-window fit and Bedrock conversation option (2026-10-11, Rahil)
+
+- **Short windows.** Below about 860px of height (a laptop at 100% zoom is roughly 1408x765) the workspace picker, the visit screen and the history table are tightened so the main controls fit without scrolling. Taller windows are unchanged.
+- **Workspace picker.** No side menu and no "VirtuSP" kicker there; the side menu applies once a workspace is chosen (`body.has-menu`).
+- **Conversational patient on Bedrock.** `DIALOGUE_MODE=natural` turns the one-call conversational patient on for any provider; `strict` keeps the staged pipeline. Unset, it stays on with the Claude API and off with Bedrock, so existing Bedrock deployments are unchanged. On Bedrock no output schema is sent (first-use compilation is too slow for a live turn); the reply shape is requested in the prompt and checked by the caller, and a bad reply falls back to the staged pipeline. **Not yet run against Bedrock:** the only credentials available had expired. Covered by a stubbed test in `tests/provider.test.js`.
