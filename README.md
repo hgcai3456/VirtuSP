@@ -55,6 +55,6 @@ Cloud evaluation makes real calls using event access. It generates ignored JSON 
 | `data/`             | Ignored local recovery and attachments                                                      |
 | `scripts/`          | Preflight, AWS storage setup, backup/recovery and evaluation                                |
 
-[Architecture](docs/ARCHITECTURE.md) · [Short demo and four-minute pitch](docs/DEMO.md) · [Implementation status](docs/STATUS.md)
+[Architecture](docs/ARCHITECTURE.md) · [Short demo and four-minute pitch](docs/DEMO.md) · [Implementation status](docs/STATUS.md) · [Research and review drafts](docs/RESEARCH.md)
 
 This is a local synthetic-data teaching prototype. Live model results and faculty review must be reported separately from engineering tests. No public hosting, autonomous agent runtime, managed retrieval or model training is included in this iteration.
