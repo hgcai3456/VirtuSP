@@ -63,6 +63,12 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
       403,
     );
     const group = (await call(faculty, "/api/groups")).data.groups[0];
+    const studentGroups = (await call(learner, "/api/groups")).data.groups;
+    for (const g of studentGroups) {
+      for (const field of ["purpose", "kind", "differences", "limitations", "sourceNote", "variedFactIds", "demographicVariations"])
+        assert.equal(Object.hasOwn(g, field), false, field);
+      assert.ok(g.cases.every(c => c.name));
+    }
     assert.equal(group.preparationStatus, "ready");
     const profiles = [];
     for (const c of group.cases) {

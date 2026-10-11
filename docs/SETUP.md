@@ -90,6 +90,19 @@ Restore creates `data-recovery-<timestamp>/`, preserving existing data. Set `VIR
 
 ## Troubleshooting
 
+### Share the current synthetic demo patients
+
+Pull main, stop the Node server, then run:
+
+```powershell
+npm run demo:sync
+npm start
+```
+
+This imports [shared-demo.json](../corpus/shared-demo.json): 12 synthetic profiles (including Marlene) and two prepared groups. Portrait mappings/assets are committed alongside it. It excludes student aliases, encounters, assessments, assignments, credentials and runtime database files. The command creates an ignored backup, adds missing cases, appends a version when published case content differs, and preserves older versions and active attempts. Faculty drafts and differing local group edits are retained and reported. Running it twice does not create duplicate releases. It uses local JSON storage and makes no cloud calls. Existing additional local cases remain available.
+
+The authored portrait assets are listed in [PORTRAITS.md](PORTRAITS.md). Unknown cases without an uploaded or authored portrait show a neutral avatar rather than an unrelated person's face.
+
 | Symptom                                    | Next step                                                                               |
 | ------------------------------------------ | --------------------------------------------------------------------------------------- |
 | Invalid or expired token                   | Refresh all three temporary credential values, including session token. Restart.        |

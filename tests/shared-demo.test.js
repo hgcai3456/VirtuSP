@@ -1,0 +1,28 @@
+"use strict";
+const test = require("node:test"), assert = require("node:assert/strict");
+const { mergeBundle } = require("../lib/shared-demo");
+const bundle = require("../corpus/shared-demo.json");
+test("Shared demo contains only case definitions and merges without losing local work", () => {
+  assert.deepEqual(Object.keys(bundle).sort(), ["description","groups","profiles","schema","synthetic"]);
+  assert.equal(bundle.profiles.length,12);
+  assert.ok(bundle.profiles.some(p => p.name === "Marlene Okafor"));
+  const empty={schema:2,drafts:{},releases:[],groups:{},encounters:{keep:{transcript:[{text:"Retain this"}]}},students:{a:{id:"a",alias:"Local alias"}},assignments:{keep:{id:"keep"}},attempts:{keep:{status:"active"}},files:{}};
+  const initial=mergeBundle(empty,bundle).state;
+  assert.equal(initial.releases.length,12);
+  assert.deepEqual(initial.encounters,empty.encounters);
+  assert.deepEqual(initial.students,empty.students);
+  assert.deepEqual(initial.assignments,empty.assignments);
+  assert.deepEqual(initial.attempts,empty.attempts);
+  assert.equal(mergeBundle(initial,bundle).state.releases.length,12);
+  const id=bundle.profiles[0].id;
+  initial.drafts[id].summary="Faculty's newer unsaved-in-release draft";
+  const next=structuredClone(bundle);
+  next.profiles[0].intro="Another authored opening";
+  const merged=mergeBundle(initial,next);
+  assert.equal(merged.state.drafts[id].summary,initial.drafts[id].summary);
+  assert.deepEqual(merged.state.releases.slice(0,12), initial.releases);
+  assert.equal(merged.state.releases.at(-1).p.version,2);
+  assert.ok(merged.report.preservedDrafts.length);
+  for(const p of merged.state.releases.map(r=>r.p).filter(p=>p.comparisonOnly)) assert.equal(p.reviewAcknowledged,false);
+  assert.throws(()=>mergeBundle(initial,{...bundle,synthetic:false}),/synthetic/);
+});

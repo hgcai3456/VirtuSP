@@ -1,6 +1,6 @@
 # Objective-first scenario workflow
 
-Students see **Assigned to you by faculty** first, with a distinct border and Faculty assigned badges. **Open simulations** appears separately below it. Select a learning objective, optionally narrow by learner discipline, then start an individual patient or a multi-patient assessment. Faculty uses the same filters and can assign directly from each card: select a student, then click **Assign**. Cards retain an **Assigned to** recipient list after assigning. There is no disclosure panel to open before assigning. Group names are supplemented by an always-visible list of patient names; assigned lists use the pinned published versions.
+Students see **Assigned to you by faculty** first, with a distinct border and Faculty assigned badges. **Open simulations** appears separately below it. Select a learning objective, optionally narrow by learner discipline, then start an individual patient or a multi-patient assessment. Faculty uses the same filters and can assign directly from each card: select a student under **Assign to**, then click **Assign**. Confirmation names the recipient in a dismissible notice; cards omit the redundant assignment heading and recipient list. There is no disclosure panel to open before assigning. Group names are supplemented by an always-visible list of patient names; assigned lists use the pinned published versions.
 
 The categories are communication/empathy, patient history, medication review/shared decisions, nutrition counseling, mobility/fall safety, and urgent referral. They are discovery labels, not diagnoses, scoring rules or a claim that a case is suitable for every discipline. An empty result means a matching published case has not been categorized; it does not create clinical facts. The urgent-referral demonstration still needs a qualified reviewer to author/review an appropriate case.
 
@@ -31,6 +31,8 @@ Noncoding research is now owned by the human medical reviewer. Existing handoff 
 ## Assignment UX checkpoint, 2026-10-11
 
 Patient cards now use compact portrait-shaped frames without letterboxing. Name and age share a heading; Edit and quick AI authoring remain faculty controls. This only changes presentation, not the stored descriptions, profiles or encounter facts.
+
+The Saved patient library section has been removed from Patient Studio at the user's request. Its older profiles, published versions, uploads and encounter histories remain stored. The frontend no longer loads that extra listing; the existing faculty-only saved-profile API remains available for recovery.
 
 Bias-board follow-up items are called **learning topics**, because they are reflection prompts rather than runnable courses or patient simulations. Assigning requires a real student and returns the recipient's name. Topics appear on that student's assessments page and My performance page; they are private to that student. The board offers **Assign a patient simulation** to return to Patient Studio with the selected student preselected. Unassigned legacy encounters remain reviewable, but cannot receive topic assignments. Existing legacy topic assignments are preserved rather than reassigned to an arbitrary student.
 

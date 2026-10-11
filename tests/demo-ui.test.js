@@ -87,6 +87,8 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.equal(d.querySelector('#nav [data-tab="team"]'), null);
+    assert.ok(d.querySelector('#nav [data-tab="rep"]'));
     assert.ok(d.querySelector('.patient-name .patient-age'));
     assert.equal(d.querySelectorAll('.patient-card [data-action="pick"]').length, 8);
     assert.equal(d.querySelector(".case-caption"), null);
@@ -96,22 +98,21 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.ok(
       !d.querySelector(".patient-grid").textContent.includes("Marcus Ramirez"),
     );
-    assert.ok(d.querySelector(".saved-patient-library"));
-    assert.match(
-      d.querySelector(".saved-patient-library").textContent,
-      /Yvette Armstrong, 64/,
-    );
+    assert.equal(d.querySelector(".saved-patient-library"), null);
+    assert.ok(!d.querySelector("#app").textContent.includes("Saved patient library"));
+    assert.ok(!d.querySelector(".simulation-assignment").textContent.includes("Assign this simulation"));
+    assert.equal(d.querySelector(".assignment-recipients"), null);
     const savedYvette = Object.values(app.store.state.drafts).find(
       (p) => p.name === "Yvette Armstrong" && p.age === 64,
     );
-    click("pick", `[data-id="${savedYvette.id}"]`);
+    const retained = await (await client(`/api/profiles/${savedYvette.id}`)).json();
+    assert.match(retained.profile.summary, /Hypertension/);
+    assert.ok(retained.profile.facts.some((f) => f.label.includes("155/110")));
+    const currentYvette = d.querySelector('.patient-card img[alt="Yvette Armstrong"]').closest('.patient-card').querySelector('[data-action="pick"]');
+    const currentSummary = app.store.state.drafts[currentYvette.dataset.id].summary;
+    currentYvette.click();
     await wait(() => !!d.getElementById("field-summary"));
-    assert.match(d.getElementById("field-summary").value, /Hypertension/);
-    assert.ok(
-      [...d.querySelectorAll('[data-path$=".label"]')].some((el) =>
-        el.value.includes("155/110"),
-      ),
-    );
+    assert.equal(d.getElementById("field-summary").value, currentSummary);
     click("close-patient");
     await wait(() => !d.querySelector("#patient-dialog"));
     assert.equal(d.getElementById("studio-group"), null);
@@ -183,6 +184,12 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     click("choose-role", '[data-role="student"]');
     await wait(() => !!d.querySelector(".student-assignments"));
+    assert.equal(d.querySelector('#nav [data-tab="team"]'), null);
+    assert.ok(d.querySelector('#nav [data-tab="rep"]'));
+    assert.equal(d.querySelector('.group-details'), null);
+    assert.ok(!d.querySelector('#app').textContent.includes('Similar conditions, different demographics'));
+    assert.ok(!d.querySelector('#app').textContent.includes('Exploratory comparison'));
+    assert.ok(!d.querySelector('#app').textContent.includes('About this assessment'));
     assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Student workspace/);
     assert.match(
       d.querySelector("#app").textContent,

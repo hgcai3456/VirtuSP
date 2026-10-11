@@ -35,7 +35,9 @@ The supplied [bias rubric](../corpus/bias_evaluation_rubric.json) names race, ge
 
 This is an **exploratory varied-background comparison**, not a controlled single-variable experiment. Age, affordability and schedules can legitimately change care. Possible indicators must cite recorded student actions from at least two trials and acknowledge alternative explanations. Trial order, repeated-case learning and model variation remain confounds. See [BIAS-INTEGRATION.md](BIAS-INTEGRATION.md). Bias points are never added to standard rubric scores.
 
-All four cases share a generic portrait and common voice-selection key. The speech teammate should review presentation before rehearsal: common presentation reduces one source of variation but can be incongruent with authored identity. No separate demographic videos or accents were introduced here.
+Each case now has an explicitly mapped synthetic portrait matching its authored age and visual character. The original common voice-selection key remains; the speech teammate should review voice/portrait presentation before rehearsal. Portrait variation is another possible comparison confound. See [PORTRAITS.md](PORTRAITS.md) for assets and generation prompts. No demographic videos or accents were added.
+
+Comparison purpose, demographic differences and limitations remain faculty-only in both the catalog UI and API. Students see group titles, patient names, trial counts and neutral completion instructions. Assigned/active encounters serve portraits from their pinned profile snapshot, even after a draft or later release changes.
 
 ## Cleanup and remaining work
 

@@ -120,7 +120,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("new");
     assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
     assert.equal(
-      doc.querySelectorAll('.patient-dialog input[data-path="reviewAcknowledged"]').length,
+      doc.querySelectorAll(
+        '.patient-dialog input[data-path="reviewAcknowledged"]',
+      ).length,
       1,
     );
     assert.equal(
@@ -351,7 +353,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "Extraction is only a preview",
     );
     assert.equal(
-      doc.querySelectorAll('.patient-dialog input[data-path="reviewAcknowledged"]').length,
+      doc.querySelectorAll(
+        '.patient-dialog input[data-path="reviewAcknowledged"]',
+      ).length,
       1,
     );
     assert.ok(
@@ -391,7 +395,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
-    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    await wait(
+      () =>
+        !!doc.getElementById("question") &&
+        !doc.getElementById("question").disabled,
+    );
     assert.equal(doc.querySelector(".incoming-call"), null);
     assert.match(doc.getElementById("visit-timer").textContent, /^\d{2}:\d{2}/);
     await wait(() =>
@@ -431,7 +439,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("submit-patient");
     await wait(() => !doc.getElementById("patient-dialog"));
     click("launch", '[data-id="omar"]');
-    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    await wait(
+      () =>
+        !!doc.getElementById("question") &&
+        !doc.getElementById("question").disabled,
+    );
     await new Promise((resolve) => setTimeout(resolve, 20));
     window.speechSynthesis.cancel();
     await wait(() => {
@@ -532,21 +544,30 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     assert.equal(doc.querySelector('[data-action="review"]'), null);
     assert.equal(doc.querySelector('[data-action="review-section"]'), null);
     click("complete");
-    // Faculty can read all feedback and evidence without changing tabs.
-    await wait(() => !!doc.querySelector(".faculty-feedback"));
-    assert.equal(doc.querySelector(".rep-tabs"), null);
+    // Faculty read the same tabbed feedback as students, plus a bias tab.
+    await wait(() => !!doc.querySelector(".rep-tabs"));
+    assert.equal(doc.querySelector(".faculty-feedback"), null);
     assert.ok(doc.querySelector(".warn").textContent.includes("provisional"));
     assert.ok(doc.querySelector(".warn").textContent.includes("not assessed"));
     assert.equal(doc.querySelector(".score-num").textContent.includes("/28"), false);
     assert.ok(doc.querySelector(".score-num").textContent.includes("0/7"));
     assert.ok(doc.querySelector(".plan"));
-    assert.equal(doc.querySelectorAll(".domain-row[open]").length, 7);
+    assert.ok(doc.querySelector('.rep-tabs [data-view="bias"]'));
+    click("rep-view", '[data-view="rubric"]');
+    await wait(() => doc.querySelectorAll(".domain-row").length === 7);
     assert.ok(doc.querySelector(".meter"));
-    assert.ok(doc.querySelector(".annotated .turn"));
-    assert.ok(doc.querySelector(".domain-detail .evidence[open]"));
+    assert.ok(doc.querySelector(".domain-detail .evidence"));
+    click("rep-view", '[data-view="interview"]');
+    await wait(() => !!doc.querySelector(".annotated .turn"));
+    click("rep-view", '[data-view="bias"]');
+    await wait(() => !!doc.querySelector(".bias-panel"));
     click("nav", '[data-tab="studio"]');
     click("launch", '[data-id="riley"]');
-    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    await wait(
+      () =>
+        !!doc.getElementById("question") &&
+        !doc.getElementById("question").disabled,
+    );
     assert.equal(doc.querySelector(".incoming-call"), null);
     assert.equal(doc.body.textContent.includes("Text message"), false);
     assert.equal(doc.body.textContent.includes("Patient is texting"), false);

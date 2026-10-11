@@ -854,6 +854,34 @@ th {
 .visit-status.is-open {
   --tone: var(--tone-amber);
 }
+.visit-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.visit-switch label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mu);
+}
+.visit-switch select {
+  width: auto;
+  max-width: 100%;
+  min-width: 280px;
+}
+.visit-switch-bar {
+  margin-bottom: 14px;
+  padding: 10px 16px;
+}
+.visit-switch-bar .visit-switch {
+  margin: 0;
+}
+.visit-switch-bar:empty {
+  display: none;
+}
 .draft-bar {
   justify-content: space-between;
   align-items: center;
@@ -2371,10 +2399,12 @@ table.objectives td:nth-child(3) {
   margin: 18px 0 4px;
 }
 :root {
-  --risk: #b3372f;
+  /* Level colours: a clear red and a gold, in place of brick and brown,
+     each dark enough to read as text on white. */
+  --risk: #c8323c;
   --tone-teal: #0b6e6e;
   --tone-indigo: #4553b8;
-  --tone-amber: #a8560b;
+  --tone-amber: #9a6700;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -2762,7 +2792,7 @@ table.objectives td:nth-child(3) {
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--tone);
+  background: color-mix(in srgb, var(--tone) 82%, #fff);
 }
 .hc.tone-teal .hc-bar i {
   background: linear-gradient(90deg, var(--tone-teal), var(--ok));
@@ -4645,6 +4675,16 @@ summary:focus-visible {
   border-radius: 8px;
   cursor: pointer;
 }
+/* Conversation content determines the panel height; page scrolling stays usable. */
+.enc-talk { position: static; }
+.enc-talk .tr {
+  height: auto;
+  max-height: none;
+  min-height: 120px;
+  overflow: visible;
+  padding: 12px;
+}
+.enc-talk .bubble { overflow-wrap: anywhere; }
 @media (max-width: 560px) {
   .patient-grid,
   .studio .patient-grid,

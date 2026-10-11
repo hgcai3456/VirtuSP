@@ -379,6 +379,14 @@ Presentation only; no route, data shape or scoring changed apart from one option
 
 ## Compact cards and named assignments (2026-10-11)
 
+Student privacy/portrait follow-up: student group projections omit comparison purpose, type, demographic differences, source notes and limitations. Faculty still receives the full setup. Student cards contain neutral instructions and patient names only. Transcript bubbles no longer show provider/fact-ID labels such as “approved”; diagnostic metadata remains stored. Conversation panels grow with content and scroll with the page.
+
+Portraits use explicit mappings in `corpus/portrait-map.json`, distinct generated portraits for the four comparison cases, and a matching existing synthetic portrait for Marlene. Unmapped cases use a neutral avatar. Assigned/active image endpoints resolve the encounter's immutable profile snapshot and enforce ownership; draft edits cannot change an old encounter's uploaded portrait. Static videos match explicit IDs only and are suppressed for uploaded replacement portraits. See [PORTRAITS.md](PORTRAITS.md).
+
+`corpus/shared-demo.json` contains the 12 current synthetic published cases and two groups, without runtime identities, encounters, assessment data or credentials. Teammates stop the server and run `npm run demo:sync` after pulling, then restart. Imports back up local JSON, preserve pinned versions/histories and edited drafts, and report group conflicts. It does not silently replace another faculty member's work. Verification: 125 tests pass before browser rehearsal; no paid Bedrock or ElevenLabs calls were made for these checks. Preserve concurrent research-document edits.
+
+Follow-up UI cleanup: removed the repeated “Assign this simulation to student” and “Assigned to” text from cards; the **Assign to** selector and Assign button remain, with named confirmation. Removed the Saved patient library section and its frontend fetch. Older profiles, releases, uploads and histories remain stored and recoverable through the existing faculty API. Edit and AI generation remain in the main catalog.
+
 Patient portraits fill vertical frames; cards are narrower and age sits beside the name. Multi-patient catalog and assignment cards show their patient names directly, using published/pinned case versions. Faculty cards keep Edit, quick AI generation and visible assignment controls, plus the assigned recipients. Stored clinical descriptions and histories are unchanged.
 
 Student entry separates **Assigned to you by faculty** from **Open simulations**. Bias-board follow-ups are **Faculty learning topics**, distinct from runnable simulations. Assignment requires a real student, returns their alias and persists privately through restart. Legacy unassigned encounters remain reviewable but cannot receive new assignments. **Assign a patient simulation** on the board opens Patient Studio with the recipient preselected. Role changes clear cached faculty board data. Notifications identify recipients and can be dismissed; they no longer stick over the board.
@@ -390,3 +398,19 @@ Verified with **121 passing npm tests** and Chrome desktop/mobile checks, includ
 - **Short windows.** Below about 860px of height (a laptop at 100% zoom is roughly 1408x765) the workspace picker, the visit screen and the history table are tightened so the main controls fit without scrolling. Taller windows are unchanged.
 - **Workspace picker.** No side menu and no "VirtuSP" kicker there; the side menu applies once a workspace is chosen (`body.has-menu`).
 - **Conversational patient on Bedrock.** `DIALOGUE_MODE=natural` turns the one-call conversational patient on for any provider; `strict` keeps the staged pipeline. Unset, it stays on with the Claude API and off with Bedrock, so existing Bedrock deployments are unchanged. On Bedrock no output schema is sent (first-use compilation is too slow for a live turn); the reply shape is requested in the prompt and checked by the caller, and a bad reply falls back to the staged pipeline. **Not yet run against Bedrock:** the only credentials available had expired. Covered by a stubbed test in `tests/provider.test.js`.
+
+## Instant finish, tabbed faculty feedback, quieter visit screen (2026-10-11, Rahil)
+
+- **Finishing a visit returns at once.** `POST /api/encounters/:id/complete` closes the visit with `assessQuick` (objectives, findings, interview review, placeholder rubric, `assessment.pending: true`) and runs the full `assess` in the background (`engine.complete(..., { background: true })`, `finishLater` in `lib/http.js`). The page polls and fills in the rubric and wording suggestions when they arrive; a restart mid-way is picked up the next time the visit is opened. `engine.complete` without the option still awaits the full assessment, so tests and other callers are unchanged. Wording suggestions are now requested alongside the rubric, not after it.
+- **Faculty feedback uses the student tabs.** The single long faculty page is replaced by the same Summary / Objectives & findings / Interview / Rubric / Body language tabs, with Bias review as an extra faculty tab. `tests/frontend.test.js` was updated to match. This reverses the earlier "faculty read everything without changing tabs" choice, at the product owner's request.
+- **Assessment and Team are never empty.** With no visit open they load the most recent one, and both carry a visit switcher.
+- **Less internal detail on screen.** The visit transcript no longer shows provider and fact-id tags, the voice status no longer names the speech vendor, and the provider/model footer on feedback is faculty only. History shows who ran each visit in place of the case version.
+- **Level colours.** `--risk` and `--tone-amber` are a clear red and a gold in place of brick and brown.
+
+## Team panel removed (2026-10-11)
+
+Removed Team from Faculty and Student navigation, its renderer, and its unused form handlers. The supplied Patient Encounter Performance Rubric requires communication, synthesis, shared plans and safe closure; it does not prescribe a separate teamwork workspace or written SBAR form. Encounter, chart Notes, Assessment, visit selection, and all seven rubric domains remain available.
+
+Existing notes, handoffs, care plans, event evidence, published profiles and encounter histories are unchanged. Their backend APIs and historical scoring remain compatible. Legacy faculty objectives explicitly requiring a structured handoff or reconciliation note are separate from the seven-domain rubric and still use those recorded events; removing this panel does not silently award their completion or rewrite immutable cases.
+
+Verified with **125 passing npm checks**, including Faculty/Student navigation without Team and the existing encounter-to-feedback workflow. No paid inference or local patient-data changes were made. Refresh the browser to load the navigation change. Preserve the concurrent medical-review document edits.
