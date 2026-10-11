@@ -1,13 +1,33 @@
 "use strict";
 const $ = (s) => document.querySelector(s);
 const appHeader = $("body > header");
+const sideMenu = () => !!window.matchMedia?.("(min-width: 1000px)").matches;
 function updateHeaderHeight() {
   document.documentElement.style.setProperty(
     "--app-header-height",
-    `${Math.ceil(appHeader.getBoundingClientRect().height)}px`,
+    sideMenu()
+      ? "0px"
+      : `${Math.ceil(appHeader.getBoundingClientRect().height)}px`,
   );
 }
+window
+  .matchMedia?.("(min-width: 1000px)")
+  .addEventListener?.("change", updateHeaderHeight);
 updateHeaderHeight();
+// The pinned patient banner changes height with zoom and wrapping, so what
+// sits below it is offset by its measured height, not a fixed number.
+function updateBannerHeight() {
+  const banner = $(".pt-banner");
+  document.documentElement.style.setProperty(
+    "--pt-banner-height",
+    `${banner ? Math.ceil(banner.getBoundingClientRect().height) : 0}px`,
+  );
+}
+if (typeof MutationObserver !== "undefined")
+  new MutationObserver(updateBannerHeight).observe($("#app"), {
+    childList: true,
+  });
+window.addEventListener("resize", updateBannerHeight);
 if (typeof ResizeObserver !== "undefined")
   new ResizeObserver(updateHeaderHeight).observe(appHeader);
 else window.addEventListener("resize", updateHeaderHeight);
@@ -492,7 +512,10 @@ function importPanel() {
           ? `<p><b>Import failed.</b> ${esc(r.error)}</p>`
           : `${r.added.length ? `<p><b>Drafted:</b> ${names(r.added)}</p>` : ""}${r.replaced.length ? `<p><b>Redrafted:</b> ${names(r.replaced)}</p>` : ""}${r.updated.length ? `<p><b>Already in the library, roster details refreshed:</b> ${names(r.updated)}. Tick "Redraft" to rebuild their cases.</p>` : ""}${notes([...r.added, ...r.replaced])}`
       }${r.skipped?.length ? `<details class="evidence"><summary>Skipped ${r.skipped.length} file${r.skipped.length > 1 ? "s" : ""}</summary><ul>${r.skipped.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></details>` : ""}${button("Dismiss", "import-dismiss")}</div>`;
-  return `<section class="import-panel" id="import-drop"><div class="import-row"><div class="field"><label for="import-note">Note for the importer (optional)</label><input id="import-note" maxlength="4000" value="${esc(importNote)}" placeholder="e.g. Build the patient named Maria; focus on medication adherence"></div><label class="check"><input type="checkbox" id="import-redraft" ${importRedraft ? "checked" : ""}> Redraft patients already in the library</label></div><p class="muted small">Import files, import a folder, or drop either on this page. PDF, Word, text, CSV and images are read. A roster CSV makes one patient per row and matches portraits by name. Imports arrive as drafts for you to review and publish.</p>${drafts ? `<div class="row draft-bar"><span><b>${drafts} draft${drafts > 1 ? "s" : ""}</b> not published yet. Students can only start published patients.</span>${button(drafts > 1 ? `Publish all ${drafts} drafts` : "Publish the draft", "publish-drafts", "", "pri")}</div>` : ""}<div id="import-progress" class="import-progress" role="status" aria-live="polite" ${importing ? "" : "hidden"}>${importing ? '<div class="import-status"><b>Sending the files…</b></div><div class="meter indeterminate"><i style="width:100%"></i></div>' : ""}</div>${report}</section>`;
+  // Nothing to show until there is something to act on: an import running,
+  // a result to read, or drafts waiting to be published.
+  if (!importing && !r && !drafts) return "";
+  return `<section class="import-panel" id="import-drop">${drafts ? `<div class="row draft-bar"><span><b>${drafts} draft${drafts > 1 ? "s" : ""}</b> not published yet. Students can only start published patients.</span>${button(drafts > 1 ? `Publish all ${drafts} drafts` : "Publish the draft", "publish-drafts", "", "pri")}</div>` : ""}<div id="import-progress" class="import-progress" role="status" aria-live="polite" ${importing ? "" : "hidden"}>${importing ? '<div class="import-status"><b>Sending the files…</b></div><div class="meter indeterminate"><i style="width:100%"></i></div>' : ""}</div>${report}<details class="evidence import-options" ${importNote || importRedraft ? "open" : ""}><summary>Import options</summary><div class="import-row"><div class="field"><label for="import-note">Note for the importer (optional)</label><input id="import-note" maxlength="4000" value="${esc(importNote)}" placeholder="e.g. Build the patient named Maria; focus on medication adherence"></div><label class="check"><input type="checkbox" id="import-redraft" ${importRedraft ? "checked" : ""}> Redraft patients already in the library</label></div><p class="muted small">Import files, import a folder, or drop either on this page. PDF, Word, text, CSV and images are read. A roster CSV makes one patient per row and matches portraits by name. Imports arrive as drafts for you to review and publish.</p></details></section>`;
 }
 function card(p, faculty = true) {
   const imported = ["imported", "organizer"].includes(p.origin);
@@ -1090,8 +1113,8 @@ function encounter() {
     ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  return `${emergency}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" muted playsinline hidden></video><span class="self-label" id="self-label">You</span></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
- <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
+  return `${emergency}${patientBanner()}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" muted playsinline hidden></video><span class="self-label" id="self-label">You</span></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div></section>
+ <section class="pn ehr-panel"><div class="panel-kicker">Clinical record · ${esc((sections.find(([s]) => s === section) || sections[0])[1])}</div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
   return ["ecg", "ct", "image"].includes(a.kind);
@@ -1113,6 +1136,45 @@ function conversationFiles() {
 
   return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
+// The strip across the top of a visit: who the patient is, the state of the
+// visit, and the chart sections as tabs.
+function patientBanner() {
+  const age = (dob) => {
+    const born = new Date(dob + "T00:00:00");
+    const now = new Date();
+    return (
+      now.getFullYear() -
+      born.getFullYear() -
+      (now < new Date(now.getFullYear(), born.getMonth(), born.getDate())
+        ? 1
+        : 0)
+    );
+  };
+  const dob = enc.overview?.dob;
+  const facts = [
+    dob
+      ? [
+          "DOB",
+          `${new Date(dob + "T00:00:00").toLocaleDateString()} (${age(dob)} y)`,
+        ]
+      : ["Age", enc.age == null ? "Not recorded" : enc.age + " years"],
+    ["Gender", enc.gender || "Not recorded"],
+    ...(enc.overview?.ethnicity || enc.ethnicity
+      ? [["Ethnicity", enc.overview?.ethnicity || enc.ethnicity]]
+      : []),
+    [
+      "Patient ID",
+      String(enc.profileId || "")
+        .slice(0, 8)
+        .toUpperCase(),
+    ],
+    [
+      "Visit",
+      `${enc.status === "complete" ? "Completed" : "In progress"} · ${new Date(enc.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`,
+    ],
+  ];
+  return `<section class="pn pt-banner" aria-label="Patient"><div class="pt-banner-main"><img class="pt-photo" src="${esc(enc.imageUrl)}" alt=""><div class="pt-banner-id"><h1>${esc(enc.name)}</h1><dl class="pt-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div><div class="pt-banner-actions">${enc.groupProgress ? `<span class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</span>` : ""}${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></div><nav class="tabs ehr-tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></section>`;
+}
 function chart() {
   // Overview is a summary; each finding is filed under its own chart section,
   // as in the earlier prototype, instead of everything listed on one tab.
@@ -1126,7 +1188,7 @@ function chart() {
       .filter(Boolean)
       .join(" · ");
     const found = enc.disclosed.length;
-    return `<div class="ehr-banner"><h3>${esc(enc.name)}</h3>${who ? `<p>${esc(who)}</p>` : ""}${enc.overview?.reason ? `<p class="ehr-reason"><b>Reason for visit:</b> ${esc(enc.overview.reason)}</p>` : ""}</div><p class="muted small">${found ? `${found} finding${found > 1 ? "s" : ""} released so far` : "No findings released yet"}${enc.artifacts.length ? ` · ${released} of ${enc.artifacts.length} documents` : ""}. Findings are filed under the tabs above as you ask about them or open the chart.</p>`;
+    return `${enc.overview?.reason ? `<div class="ehr-banner"><p class="ehr-reason"><b>Reason for visit:</b> ${esc(enc.overview.reason)}</p></div>` : ""}<p class="muted small">${found ? `${found} finding${found > 1 ? "s" : ""} released so far` : "No findings released yet"}${enc.artifacts.length ? ` · ${released} of ${enc.artifacts.length} documents` : ""}. Findings are filed under the tabs above as you ask about them or open the chart.</p>`;
   }
   const facts = enc.disclosed.filter(
     (f) => f.ehr === section || f.releaseSection === section,
@@ -1578,8 +1640,39 @@ function transcriptView(a, c) {
   });
   return `<h2>Annotated transcript</h2><p class="muted">Each question, the reply, what it achieved and where the feedback refers to it. Question tags come from automated classification.</p><div class="sc"><table class="fb-table annotated"><thead><tr><th>Question and reply</th><th>What it achieved</th><th>Cited in feedback</th></tr></thead><tbody>${rows.join("") || '<tr><td colspan="3" class="muted">No questions were asked.</td></tr>'}</tbody></table></div>`;
 }
+// Every visit as one row, newest first, with search and a patient filter.
 function past() {
-  return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+  const visits = [...history].sort(
+    (x, y) => new Date(y.createdAt || 0) - new Date(x.createdAt || 0),
+  );
+  const patients = [...new Set(visits.map((e) => e.name))].sort();
+  const done = visits.filter((e) => e.status === "complete").length;
+  const when = (e) =>
+    e.createdAt
+      ? new Date(e.createdAt).toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "–";
+  const rubric = (e) =>
+    e.feedbackHeld
+      ? '<span class="muted">Held until all trials finish</span>'
+      : e.total == null
+        ? '<span class="muted">–</span>'
+        : `<div class="progress"><div class="meter"><i style="width:${e.denominator ? (e.total / e.denominator) * 100 : 0}%"></i></div><span>${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}</span></div>`;
+  const rows = visits
+    .map(
+      (e) =>
+        `<tr data-patient="${esc(e.name)}"><td class="when">${esc(when(e))}</td><td><div class="pt-cell">${patientAvatar(e.name, e.profileId)}<span><b>${esc(e.name)}</b><br><span class="muted small">Version ${esc(e.version ?? "–")}</span></span></div></td><td><span class="visit-status ${e.status === "complete" ? "is-done" : "is-open"}">${e.status === "complete" ? "Completed" : "In progress"}</span></td><td>${e.turns}</td><td>${e.findingsTotal ? `${e.findingsElicited}/${e.findingsTotal}` : "–"}</td><td>${pct(e.objectivePercent)}</td><td>${rubric(e)}</td><td class="act"><div class="row">${button(e.status === "complete" ? "View" : "Resume", "resume", `data-id="${esc(e.id)}"`)}<a class="btn" href="/api/encounters/${esc(e.id)}/export" title="Download the full record of this visit">Download</a></div></td></tr>`,
+    )
+    .join("");
+  return `<div class="pn history-page"><div class="history-head"><div><h1>Encounter history</h1><p class="muted">${visits.length ? `${visits.length} visit${visits.length > 1 ? "s" : ""} · ${done} completed · ${visits.length - done} in progress` : "Visits appear here once one is started."}</p></div>${visits.length ? `<div class="log-tools"><input id="visit-search" type="search" placeholder="Search patient, date…" aria-label="Search visits"><select id="visit-patient" aria-label="Filter by patient"><option value="">All patients</option>${patients.map((p) => `<option>${esc(p)}</option>`).join("")}</select></div>` : ""}</div>${
+    visits.length
+      ? `<div class="sc"><table class="hub-table history-table" id="visit-log"><thead><tr><th>Started</th><th>Patient</th><th>Status</th><th>Questions</th><th>Findings</th><th>Objectives</th><th>Rubric</th><th class="act">Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : "<p>No encounters yet.</p>"
+  }</div>`;
 }
 function rolePicker() {
   return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
@@ -3595,7 +3688,14 @@ document.addEventListener("click", async (e) => {
       render();
       // A shorter tab can otherwise leave its first note behind the sticky
       // chart header at the previous tab's scroll position.
-      $(".ehr-panel")?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      // With the banner and its tabs pinned, the page returns to the top so
+      // the visit and the chart both start just below them.
+      if (sideMenu()) window.scrollTo?.({ top: 0, behavior: "instant" });
+      else
+        $(".ehr-panel")?.scrollIntoView?.({
+          block: "start",
+          behavior: "instant",
+        });
       return;
     }
     if (a === "expand-doc") {

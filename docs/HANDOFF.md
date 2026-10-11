@@ -256,3 +256,13 @@ Everything here is optional and off unless configured; with no changes to `.env`
 - **`BUNDLED_PATIENTS=false`** removes the cases that ship with the app (roster, Denise, Marcus) from the library and from start-up seeding, hides nothing, and lets any patient be deleted. Unset, bundled cases behave as before.
 
 Not verified on Bedrock: none of the above was run with AWS credentials.
+
+## EHR-style layout (2026-10-10, Rahil)
+
+Presentation only; no route, data shape or scoring changed apart from one optional field.
+
+- **Side menu.** At 1000px and wider the top bar becomes a panel down the left (`body > header` in `public/css/app.css`); below that it is the top bar as before. `--app-header-height` is 0 in side-menu mode.
+- **Visit screen.** `patientBanner()` puts the photo, name, age (or date of birth when recorded), gender, ethnicity, a short patient ID and the visit status across the top, with the chart sections as tabs beneath it and "Finish & get feedback" on the right. The banner is pinned while scrolling; `--pt-banner-height` is measured so content below it is offset correctly at any zoom. Selecting a tab returns the page to the top.
+- **Patient Studio.** Cards are four across on a wide screen. The import panel shows only while an import runs, after a result, or while drafts are waiting; note and redraft live under "Import options".
+- **Encounter history.** A table (newest first) with search and a patient filter, in place of the card list.
+- **Date of birth.** The importer stores `dob` (YYYY-MM-DD) only when the source states one; the encounter view exposes it in `overview.dob`.
