@@ -50,9 +50,8 @@ function toRelative(filePath, root) {
   if (drive) raw = drive[1];
   const windowsAbs = path.win32.isAbsolute(raw);
   const posixAbs = path.posix.isAbsolute(raw);
-  let abs = path.resolve(root, raw);
-  if (windowsAbs) abs = path.resolve(raw);
-  else if (posixAbs) abs = path.resolve(raw);
+  const absolute = windowsAbs ? true : posixAbs;
+  const abs = absolute ? path.resolve(raw) : path.resolve(root, raw);
   const rel = path.relative(root, abs).replace(/\\/g, "/");
   if (!rel || rel.startsWith("..")) return null;
   return rel;
@@ -103,7 +102,6 @@ function findOccurrences(source, needle) {
     const span = text.split("\n").length;
     for (let line = start; line < start + span; line += 1) lines.push(line);
     from = at + text.length;
-    if (from <= at) break;
   }
   if (count === 0 || count >= 9) return [];
   return lines;
@@ -227,15 +225,14 @@ function isSkippableLine(text) {
   if (!trimmed) return true;
   if (trimmed.startsWith("//")) return true;
   if (trimmed.startsWith("/*")) return true;
-  if (trimmed.startsWith("*")) return true;
   if (trimmed.startsWith("*/")) return true;
+  if (trimmed.startsWith("*")) return true;
   return false;
 }
 
 function overlapHasCode(buf, lineStart, lineEnd, range) {
   const start = Math.max(lineStart, range.startOffset);
   const end = Math.min(lineEnd, range.endOffset);
-  if (end <= start) return false;
   return !isSkippableLine(buf.subarray(start, end).toString("utf8"));
 }
 
@@ -281,7 +278,6 @@ function gapsForFile(absPath, spec, records) {
   const uncovered = [];
   for (const line of [...lineSet].sort((a, b) => a - b)) {
     const span = spans[line - 1];
-    if (!span) continue;
     if (lineUncovered(source, span[0], span[1], ranges)) uncovered.push(line);
   }
   return { missing: false, lines: uncovered, unmapped: false, loaded: Boolean(record) };
@@ -396,9 +392,12 @@ function runUnitTests(root, deps = {}) {
   const args = deps.testArgs || TEST_ARGS;
   const timeoutMs = deps.timeoutMs || 540000;
   try {
+    const childEnv = { ...process.env, NODE_V8_COVERAGE: coverageDir };
+    delete childEnv.NODE_CHANNEL_FD;
+    delete childEnv.NODE_TEST_CONTEXT;
     const result = spawnSync(process.execPath, args, {
       cwd: root,
-      env: { ...process.env, NODE_V8_COVERAGE: coverageDir },
+      env: childEnv,
       encoding: "utf8",
       maxBuffer: 20 * 1024 * 1024,
       timeout: timeoutMs,

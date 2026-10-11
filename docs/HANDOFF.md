@@ -1,5 +1,9 @@
 # Teammate and agent handoff
 
+## Unit-test agent (2026-10-10)
+
+`.cursor/agents/unit-tester.md` writes unit tests after a JavaScript change in `lib/`, `agents/`, `scripts/`, `public/js/`, or `server.js`. The stop hook in `.cursor/hooks.json` runs `npm test` and checks coverage of the changed lines. It sends the agent back until those lines and branches are covered and every unit test passes. The same result three times stops the loop. `VIRTUSP_SKIP_UNIT_TEST_AGENT=1` turns the hook off. `npm test` passed 165 tests and failed 0. These checks are not clinical validation.
+
 ## AWS running cost (2026-10-10)
 
 The CloudWatch dashboard `virtusp` charts unblended Cost Explorer charges for this stack: the latest complete UTC hour, the latest complete UTC day, the last seven complete UTC days, the calendar month to date, and the calendar year to date. A line shows each hour. The same charts are on `virtusp-cost`. A function in `infra/aws/cost.tf` queries Cost Explorer about once an hour and republishes the five figures every five minutes. This account's service control policy denies cost-allocation tag changes, and hourly Cost Explorer data is off, so the hour is the latest complete day divided by 24 and the sample is the stack's service names plus Fargate, `db.t4g.micro`, and public IPv4 usage. Other EC2 instances and other databases are left out. A run on 2026-10-11 returned hour $0.001461, day $0.035057, week $0.154520, month $0.154558, and year $14.624818. Fargate and the t4g database had not appeared in Cost Explorer yet, so those bars will rise when those usage types post. `node --test tests/aws-cost.test.js` passed 11 tests. The dashboards were updated without replacing the running ECS task. These are billing figures, not clinical validation.
