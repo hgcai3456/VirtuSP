@@ -6,8 +6,11 @@ const marker = 'virtusp-integration';
 const hook = [
   '#!/bin/sh',
   '# ' + marker + ': the live server, database, and agents must still agree.',
+  '# virtusp-appointment: every commit replays the doctor and patient appointment.',
+  'set -e',
   'root=$(git rev-parse --show-toplevel) || exit 1',
   'cd "$root" || exit 1',
+  'npm run test:appointment',
   'npm run test:integration',
   ''
 ].join('\n');

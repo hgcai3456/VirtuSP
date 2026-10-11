@@ -2438,3 +2438,45 @@ summary:focus-visible {
     flex-wrap: wrap;
   }
 }
+.avatar-panel {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.avatar-panel[hidden] {
+  display: none;
+}
+.avatar-kicker,
+.avatar-version,
+.avatar-captions {
+  margin: 0;
+}
+.avatar-media,
+#avatar-remote-audio {
+  width: 100%;
+  max-height: 360px;
+  background: #102026;
+  border-radius: 12px;
+}
+.avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.avatar-actions .btn {
+  min-height: 44px;
+}
+.avatar-captions {
+  min-height: 1.4em;
+}
+@media (max-width: 680px) {
+  .avatar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-panel .avatar-media {
+    transition: none;
+  }
+}

@@ -158,13 +158,17 @@ describe('db', { concurrency: false }, () => {
         journals: 2,
         medical_data: 2,
         conversations: 0,
-        conversation_turns: 0
+        conversation_turns: 0,
+        pathology_results: 0,
+        pathology_evaluations: 0
       });
       assert.deepEqual(counts(null), {
         journals: 0,
         medical_data: 0,
         conversations: 0,
-        conversation_turns: 0
+        conversation_turns: 0,
+        pathology_results: 0,
+        pathology_evaluations: 0
       });
 
       const all = listMedicalData([box.db, other.db]);

@@ -85,7 +85,7 @@ test("Visit memory keeps only recent exchanges and never the gated wording", asy
   assert.ok(!JSON.stringify(enc.learned).includes("evening dose"));
 });
 
-test("The dialogue model receives spoken memory and not a withheld fact", async () => {
+test("An approved line skips paraphrase and visit memory still hides the withheld fact", async () => {
   const saved = { ...cloud };
   const prior = process.env.AI_ENABLED;
   process.env.AI_ENABLED = "true";
@@ -98,36 +98,21 @@ test("The dialogue model receives spoken memory and not a withheld fact", async 
       judgmental: false,
     });
     let calls = 0;
-    cloud.paraphrase = async (identity, allowed, question, history, deflections, memory) => {
+    cloud.paraphrase = async () => {
       calls += 1;
-      if (calls === 2) {
-        assert.equal(question, "What brings you in?");
-        assert.deepEqual(memory.exchanges.at(-1), {
-          question: "What brings you in?",
-          reply: "I feel tired.",
-          factIds: ["concern"],
-        });
-        assert.ok(!JSON.stringify(memory).includes("evening dose"));
-      }
-      return { text: "I feel tired.", factIds: ["concern"] };
+      return { text: "I feel tired and have chest pain.", factIds: ["concern"] };
     };
-    cloud.verify = async () => ({
-      supported: true,
-      claims: [
-        {
-          claim: "Tired",
-          factId: "concern",
-          quote: "I feel tired.",
-          inferred: false,
-        },
-      ],
-    });
+    cloud.verify = async () => ({ supported: false });
     const enc = engine.create(profile());
+    await engine.ask(enc, "Do you skip doses?", "held");
     await engine.ask(enc, "What brings you in?", "seed");
     await engine.ask(enc, "What brings you in?", "model");
     assert.equal(enc.transcript.at(-1).text, "I feel tired.");
     assert.equal(enc.transcript.at(-1).provider, "bedrock");
-    assert.equal(calls, 2);
+    assert.equal(calls, 0);
+    const memory = JSON.stringify(engine.interactionMemory(enc));
+    assert.ok(!memory.includes("evening dose"));
+    assert.ok(!memory.includes("I miss"));
   } finally {
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";

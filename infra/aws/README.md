@@ -32,6 +32,8 @@ terraform apply
 
 The service stays unhealthy until an image exists in ECR. That is expected on the first apply.
 
+The container probe is `GET /api/live` (the process answered HTTP). The image `HEALTHCHECK` and the load balancer use `GET /api/ready`, which runs `SELECT 1` on the ground-truth SQLite connection and returns 503 when it cannot. Neither response includes the database error. Publish a new image and apply the task definition and target group before the running service uses these paths.
+
 ## Publish the image and load the schema
 
 From the repository root, on Windows:

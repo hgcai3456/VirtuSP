@@ -51,6 +51,7 @@ describe('api', { concurrency: false }, () => {
     const health = await call('GET', '/api/health/');
     assert.equal(health.statusCode, 200);
     assert.equal(parsed(health).ok, true);
+    assert.equal(parsed(health).checks.database, 'up');
     assert.equal(parsed(health).journals, 1);
 
     const journals = await call('GET', '/api/journals');
@@ -152,7 +153,7 @@ describe('api', { concurrency: false }, () => {
 
   test('uses the error status when a database call fails', async () => {
     const denied = mockRes();
-    await handleApi(mockReq({ method: 'GET', url: '/api/health' }), denied, {
+    await handleApi(mockReq({ method: 'GET', url: '/api/journals' }), denied, {
       prepare() {
         const err = new Error('unavailable');
         err.status = 503;
@@ -162,12 +163,46 @@ describe('api', { concurrency: false }, () => {
     assert.equal(denied.statusCode, 503);
 
     const plain = mockRes();
-    await handleApi(mockReq({ method: 'GET', url: '/api/health' }), plain, {
+    await handleApi(mockReq({ method: 'GET', url: '/api/journals' }), plain, {
       prepare() {
         throw new Error('bad');
       }
     });
     assert.equal(plain.statusCode, 400);
     assert.equal(parsed(plain).error, 'bad');
+  });
+
+  test('health reports the database without repeating driver errors', async () => {
+    const down = mockRes();
+    await handleApi(mockReq({ method: 'GET', url: '/api/health' }), down, {
+      prepare() {
+        throw new Error('SQLITE_CANTOPEN: /secret/virtusp.sqlite');
+      }
+    });
+    assert.equal(down.statusCode, 503);
+    const body = parsed(down);
+    assert.equal(body.ok, false);
+    assert.equal(body.checks.database, 'down');
+    assert.equal(body.journals, undefined);
+    assert.doesNotMatch(JSON.stringify(body), /secret|SQLITE/);
+
+    const ready = mockRes();
+    await handleApi(mockReq({ method: 'GET', url: '/api/ready' }), ready, {
+      prepare() {
+        throw new Error('SQLITE_CANTOPEN: /secret/virtusp.sqlite');
+      }
+    });
+    assert.equal(ready.statusCode, 503);
+    assert.equal(parsed(ready).ok, false);
+    assert.doesNotMatch(JSON.stringify(parsed(ready)), /secret|SQLITE/);
+
+    const live = mockRes();
+    await handleApi(mockReq({ method: 'GET', url: '/api/live' }), live, {
+      prepare() {
+        throw new Error('should not be called');
+      }
+    });
+    assert.equal(live.statusCode, 200);
+    assert.deepEqual(parsed(live), { ok: true });
   });
 });

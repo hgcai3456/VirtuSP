@@ -81,7 +81,7 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     await wait(() => !!d.getElementById("demo-student"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
-    await wait(() => d.querySelectorAll(".patient-card").length === 7);
+    await wait(() => d.querySelectorAll(".patient-card").length === 8);
     assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
     assert.ok(!d.querySelector("#app").textContent.includes("Marcus Ramirez"));
     assert.ok(d.getElementById("studio-group"));
@@ -148,7 +148,7 @@ test("Ready faculty assignment, assigned-first student entry, open choices and r
     click("nav", '[data-tab="open-assessments"]');
     await wait(() => d.querySelectorAll(".simulation-choice").length === 2);
     click("nav", '[data-tab="studio"]');
-    assert.equal(d.querySelectorAll(".patient-card").length, 7);
+    assert.equal(d.querySelectorAll(".patient-card").length, 8);
     assert.equal(d.querySelector('[data-action="pick"]'), null);
     click("nav", '[data-tab="student-home"]');
     await wait(() => !!d.querySelector(".student-assignments"));

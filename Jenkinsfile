@@ -89,6 +89,18 @@ pipeline {
             }
         }
 
+        stage('Appointment conversation') {
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    // One synthetic visit: the student speaks as the doctor. Fails unless every turn passes.
+                    runCmd('npm run test:appointment')
+                }
+            }
+        }
+
         stage('Integration tests') {
             options {
                 timeout(time: 20, unit: 'MINUTES')

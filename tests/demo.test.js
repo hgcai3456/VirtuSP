@@ -44,7 +44,7 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     });
     assert.equal(
       (await call(learner, "/api/profiles")).data.profiles.length,
-      7,
+      8,
     );
     for (const endpoint of [
       "/api/faculty-results",
