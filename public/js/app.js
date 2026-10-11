@@ -1,5 +1,22 @@
 "use strict";
 const $ = (s) => document.querySelector(s);
+const teaching = window.VirtuCatalog;
+let catalogObjective = "", catalogDiscipline = "";
+function catalogMatches(item) {
+  return teaching.matches(item.catalog || { objectives: [], disciplines: [] }, catalogObjective, catalogDiscipline);
+}
+function catalogPicker() {
+  return `<section class="catalog-picker" aria-labelledby="catalog-title"><h2 id="catalog-title">What would you like to practice?</h2><p class="muted">Choose a learning objective, then select a matching simulation.</p><div class="objective-choices" role="group" aria-label="Learning objective">${[{id:"",label:"All objectives"}, ...teaching.objectives].map(o => button(o.label, "filter-objective", `data-objective="${o.id}" aria-pressed="${catalogObjective === o.id}"`, catalogObjective === o.id ? "pri" : "")).join("")}</div><div class="catalog-options"><label for="catalog-discipline">Learner discipline (optional)<select id="catalog-discipline"><option value="">All disciplines</option>${teaching.disciplines.map(d => `<option value="${d.id}" ${catalogDiscipline === d.id ? "selected" : ""}>${esc(d.label)}</option>`).join("")}</select></label>${catalogObjective || catalogDiscipline ? button("Clear filters", "clear-catalog") : ""}<span class="muted">This filters scenarios; it does not change the assessment rubric.</span></div></section>`;
+}
+function catalogFields(selected, scope = "profile") {
+  return `<div class="catalog-fields">${[["objectives", "Learning objective categories", teaching.objectives], ["disciplines", "Appropriate learner disciplines (optional)", teaching.disciplines]].map(([key, label, options]) => `<fieldset><legend>${label}</legend>${options.map(o => `<label class="catalog-check"><input type="checkbox" data-catalog-field="${key}" data-catalog-scope="${scope}" value="${o.id}" ${selected[key].includes(o.id) ? "checked" : ""}>${esc(o.label)}</label>`).join("")}</fieldset>`).join("")}</div>`;
+}
+async function changeDiscipline(discipline) {
+  if (demoSession?.role === "student") {
+    const result = await api("/api/student-preferences", "PUT", { discipline });
+    catalogDiscipline = result.preferences.discipline;
+  } else catalogDiscipline = discipline;
+}
 const appHeader = $("body > header");
 const sideMenu = () => !!window.matchMedia?.("(min-width: 1000px)").matches;
 function updateHeaderHeight() {
@@ -323,7 +340,7 @@ async function save() {
 function assignmentControl(kind, id, ready = true) {
   if (!ready)
     return `<p class="muted">${kind === "group" ? "Publish compatible cases" : "Publish this patient"} before assigning.</p>`;
-  return `<details class="simulation-assignment" data-simulation="${esc(id)}"><summary>Assign this simulation to student</summary><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</details>`;
+  return `<section class="simulation-assignment" data-simulation="${esc(id)}" aria-label="Assign ${esc(kind === "group" ? "group" : "patient")} simulation"><p>Assign this simulation to student</p><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</section>`;
 }
 // ---- Importing case files or a whole folder, and deleting a patient.
 const IMPORT_TYPES = [
@@ -521,8 +538,8 @@ function card(p, faculty = true) {
 
 function studio() {
   if (demoSession?.role === "student")
-    return `<div class="pn"><div class="panel-kicker">Individual simulation</div><h1>Choose a patient</h1><p class="muted">Start a visit and receive your assessment when you finish.</p><div class="patient-grid">${list.map((p) => card(p, false)).join("") || "<p>No published practice patients are available yet.</p>"}</div></div>`;
-  const preferred = [...list].sort(
+    return `<div class="pn"><div class="panel-kicker">Individual simulation</div><h1>Choose a patient</h1>${catalogPicker()}<p class="muted">Start a visit and receive your assessment when you finish.</p><div class="patient-grid">${list.filter(catalogMatches).map((p) => card(p, false)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all published cases.</p>'}</div></div>`;
+  const preferred = list.filter(catalogMatches).sort(
     (a, b) =>
       (b.id === profile?.id) - (a.id === profile?.id) ||
       (a.name === "Omar Sinclair"
@@ -537,7 +554,7 @@ function studio() {
             : 0),
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}${button(importing ? "Importing…" : "Import files", "import-files")}${button("Import folder", "import-folder")}<input id="files-import" type="file" multiple hidden><input id="folder-import" type="file" webkitdirectory hidden></div></div>${importPanel()}
- <h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ ${catalogPicker()}<h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all cases.</p>'}</div>
  ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3><p>${esc(p.description || "Open the case to review its saved findings and documents.")}</p>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
  </div>`;
@@ -545,13 +562,13 @@ function studio() {
 function groupCards(faculty = false) {
   return (
     groups
-      .filter((g) => faculty || g.preparationStatus === "ready")
+      .filter((g) => (faculty || g.preparationStatus === "ready") && catalogMatches(g))
       .sort((a, b) => (b.kind === "comparison") - (a.kind === "comparison"))
       .map((g) => {
         const assignment = assignments.find((a) => a.groupId === g.id);
         return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">AI-synthetic · ${g.trialCount} patients</p><p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
       })
-      .join("") || "<p>No ready group assessments yet.</p>"
+      .join("") || `<p class="catalog-empty">${catalogObjective || catalogDiscipline ? "No groups match. Clear filters to see all assessments." : "No ready group assessments yet."}</p>`
   );
 }
 function studioGroups() {
@@ -646,6 +663,7 @@ function editor() {
     )
     .join("");
   return `<div class="editor"><p class="muted">Only a name, at least one patient-known finding and your review acknowledgment are needed. Leave unsupplied details blank; optional objectives and documents can be added later.</p><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
+  <section class="patient-category"><h2>Learning goal first</h2><p class="muted">Categorize the teaching goals so learners can find this case. Leave disciplines unchecked to make it suitable for any learner. These tags do not change grading or clinical facts.</p>${catalogFields(teaching.forProfile(profile))}</section>
   ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare case", "prepare") : ""}
   <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Case description (faculty only)", "summary", { type: "textarea" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
   ${group("facts", "History and clinical information", `<p class="muted">Patient wording is approved phrasing for a finding; dialogue may paraphrase it.</p>${facts}${button("Add finding", "add-fact")}`)}
@@ -664,6 +682,7 @@ function openPatientDialog(mode, selected = profile) {
     notice: "",
     validationError: null,
     openSections: {},
+    learningObjective: catalogObjective,
   };
   profile =
     mode !== "edit"
@@ -897,6 +916,7 @@ function refreshGeneratedReports() {
 function aiPatientForm() {
   const d = patientDialog;
   return `<dialog id="patient-dialog" class="patient-dialog ai-patient-dialog" aria-labelledby="patient-dialog-title"><form id="patient-form"><div class="patient-dialog-head"><div><div class="panel-kicker">Faculty workspace</div><h1 id="patient-dialog-title">AI Generate a new Patient</h1></div>${button("Cancel", "close-patient")}</div><div class="patient-form-body"><fieldset ${busy ? "disabled" : ""}>
+  ${!d.generated ? `<section class="form-section"><label for="ai-objective">What should the learner practice? (optional)</label><select id="ai-objective"><option value="">Choose a learning objective</option>${teaching.objectives.map(o => `<option value="${o.id}" ${d.learningObjective === o.id ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select><p class="muted">A learning objective helps AI design a focused case. Briefs and random generation still work without one.</p></section>` : ""}
   ${!d.generated ? `<section class="form-section ai-brief"><h2>What kind of patient would you like?</h2><label for="patient-description">A short brief is enough</label><textarea id="patient-description" rows="4" maxlength="8000" placeholder="For example: an adult with high cholesterol who is worried about starting medication.">${esc(d.description)}</textarea><div class="row">${button(draftDictating ? "Stop dictation" : "Dictate brief", "dictate-patient", `aria-pressed="${draftDictating}" ${liveSupported() ? "" : "disabled"}`)}${!liveSupported() ? '<span class="muted">Dictation is available in supported Chrome/Edge browsers.</span>' : ""}</div><p class="muted">AI builds the history, character, clinical findings, chart reports and learning objectives. Added details are fictional.</p></section>${patientDocuments(d)}` : d.editGenerated ? editor() + button("Back to summary", "edit-ai-details") : aiCaseReview()}
   </fieldset></div><div class="patient-dialog-footer"><p class="form-notice ${d.notice ? "" : "hidden"}" role="status">${esc(d.notice)}</p><div class="row">${d.generated ? `${button("Change brief", "change-ai-brief")}${button("Regenerate", "regenerate-ai")}${button("Save draft", "save-patient")}${button("Create & publish patient", "submit-patient", "", "pri")}` : `${d.hasGenerated ? button("Back to generated case", "back-ai-review") : ""}${button("Random patient", "random-ai")}${button(busy ? "Generating…" : "Generate patient", "generate-ai", "", "pri")}`}</div></div></form></dialog>${d.validationError ? `<dialog id="publication-error" class="submission-error" role="alertdialog" aria-labelledby="publication-error-title" aria-describedby="publication-error-message"><h2 id="publication-error-title">Before publishing</h2><p id="publication-error-message">${esc(d.validationError.text)}</p>${button("Back to form", "dismiss-publication-error", "", "pri")}</dialog>` : ""}`;
 }
@@ -914,6 +934,7 @@ async function generatePatient(random = false) {
         ? []
         : d.files.map(({ id, role, section }) => ({ id, role, section })),
       random,
+      learningObjective: d.learningObjective || "",
     });
     profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
     profile.reviewAcknowledged = false;
@@ -969,7 +990,7 @@ async function parsePatient() {
     });
     if (r.draftError) throw new Error(r.warning);
     // Previewing must never create a library entry or change an existing identity.
-    profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
+    profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt, ...(profile.catalog ? { catalog: profile.catalog } : {}) };
     dirty = true;
     d.notice =
       /-draft$/.test(r.provider) && r.provider !== "local-organizer"
@@ -1434,7 +1455,7 @@ function rubricOverview(a) {
 function rubricView(a) {
   // One line per domain; the detail opens on demand.
   const domain = (d) =>
-    `<details class="domain-row ${scoreTone(d.score)}"><summary><span class="rating">${d.score === null ? "N/A" : d.score + "/4"}</span><span class="domain-main"><span class="domain-title"><b>${d.domain}. ${esc(d.name)}</b>${d.label ? `<span class="level-chip">${esc(d.label)}</span>` : ""}</span><span class="muted why">${esc(d.reason)}</span></span><span class="domain-more" aria-hidden="true">Details</span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+    `<details class="domain-row ${scoreTone(d.score)}" ${demoSession?.role === "faculty" ? "open" : ""}><summary><span class="rating">${d.score === null ? "N/A" : d.score + "/4"}</span><span class="domain-main"><span class="domain-title"><b>${d.domain}. ${esc(d.name)}</b>${d.label ? `<span class="level-chip">${esc(d.label)}</span>` : ""}</span><span class="muted why">${esc(d.reason)}</span></span><span class="domain-more" aria-hidden="true">Details</span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
   const fields = a.rubric?.evidenceFields || {
     strengths: "Strengths demonstrated",
     gaps: "Missed opportunities",
@@ -1505,7 +1526,9 @@ function assessment() {
   ];
   if (!views.some(([k]) => k === repView)) repView = "summary";
   const body =
-    repView === "findings"
+    demoSession?.role === "faculty"
+      ? `<div class="faculty-feedback">${summaryView(a, c)}${c ? findingsView(a, c) : ""}${rubricView(a)}${c ? flowView(a, c) : ""}${presenceReview()}</div>`
+      : repView === "findings"
       ? findingsView(a, c)
       : repView === "interview"
         ? flowView(a, c)
@@ -1521,7 +1544,7 @@ function assessment() {
   return `<div class="pn"><div class="panel-kicker">Encounter feedback</div><h1>${esc(enc.name)} · feedback on this attempt</h1>
   <div class="score-hero"><div><div class="score-num">${a.total}/${a.denominator}</div><div class="muted">rubric${provisional ? " (provisional)" : ""}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
   ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
-  <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
+  ${demoSession?.role === "faculty" ? "" : `<div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>`}
   ${biasEvidenceView()}${body}
   ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis, "encounter", enc.id, enc.status === "complete") : ""}
   <div class="row rep-actions">${enc.attemptId ? button("Assigned tests", "nav", 'data-tab="tests"', "pri") : button("Try this patient again", "retry", "", "pri")}${button("All attempts", "nav", `data-tab="history"`)}<a class="btn" href="/api/encounters/${esc(enc.id)}/export">Download record</a></div>
@@ -1552,7 +1575,7 @@ function evidence(ids) {
     start: "Encounter started",
     complete: "Encounter completed",
   };
-  return `<details class="evidence"><summary>Evidence (${ids.length})</summary>${
+  return `<details class="evidence" ${demoSession?.role === "faculty" ? "open" : ""}><summary>Evidence (${ids.length})</summary>${
     ids.length
       ? ids
           .map((id) => {
@@ -1732,10 +1755,10 @@ function studentHome() {
   const alias =
     students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
   const assigned = assignments.filter((a) => a.origin !== "open");
-  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div><div class="row">${button("My performance", "nav", 'data-tab="performance"')}${button("My attempts", "nav", 'data-tab="history"')}</div></div>${assignmentCards(assigned) || '<p class="muted">No assessments assigned yet. Choose any available simulation below.</p>'}<h2 class="catalog-heading">Select an AI patient</h2><p class="muted">Individual assessment · feedback after your visit.</p><div class="patient-grid">${list.map((p) => card(p, false)).join("") || "<p>No published patients yet.</p>"}</div><section class="group-catalog"><h2 class="catalog-heading">Multi-patient assessment</h2><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards()}</section></section>`;
+  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div><div class="row">${button("My performance", "nav", 'data-tab="performance"')}${button("My attempts", "nav", 'data-tab="history"')}</div></div>${assignmentCards(assigned) || '<p class="muted">No assessments assigned yet. Choose any available simulation below.</p>'}${catalogPicker()}<h2 class="catalog-heading">Select an AI patient</h2><p class="muted">Individual assessment · feedback after your visit.</p><div class="patient-grid">${list.filter(catalogMatches).map((p) => card(p, false)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all published cases.</p>'}</div><section class="group-catalog"><h2 class="catalog-heading">Multi-patient assessment</h2><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards()}</section></section>`;
 }
 function studentGroups() {
-  return `<div class="pn"><h1>Multi-patient assessments</h1><p class="muted">All ready simulations are available. Complete every trial to unlock group feedback.</p>${groupCards()}</div>`;
+  return `<div class="pn"><h1>Multi-patient assessments</h1>${catalogPicker()}<p class="muted">All ready simulations are available. Complete every trial to unlock group feedback.</p>${groupCards()}</div>`;
 }
 
 function publishedForGroups() {
@@ -1760,7 +1783,7 @@ function groupBuilder() {
 }
 function testCatalog() {
   if (demoSession.role === "student") return studentGroups();
-  return `<div class="pn groups-page"><h1>Multi-patient assessments</h1><p class="muted">Assign a ready simulation from its card. Every published simulation is also available to all students.</p>${groupCards(true)}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
+  return `<div class="pn groups-page"><h1>Multi-patient assessments</h1>${catalogPicker()}<p class="muted">Assign a ready simulation from its card. Every published simulation is also available to all students.</p>${groupCards(true)}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
     assignments
       .filter((a) => a.origin !== "open")
       .map(
@@ -1796,7 +1819,7 @@ function biasPanel(result, type, id, ready) {
         .join("")
     : "";
   const findings = scored ? scored.comparisons : r.findings;
-  return `<section class="bias-panel"><h3>Bias assessment · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}</p>${ready ? button(r.status === "complete" ? "Recheck bias assessment" : "Run bias assessment", "analyze-bias", `data-type="${esc(type)}" data-id="${esc(id)}"`, "pri") : '<p class="muted">Available after this encounter or all group trials finish.</p>'} <a href="/api/bias/rubric/file" target="_blank" rel="noopener">View source rubric</a><p class="muted">Five separate performance ratings: 1 Unsatisfactory to 4 Exemplary. Higher is stronger performance. No combined bias score.</p>${tables}${findings.length ? `<h4>Possible bias indicators for faculty review</h4>${findings.map((f) => `<p>${esc(f.text)}</p>${citations(f.evidence)}`).join("")}` : r.status === "complete" ? "<p>No additional indicators reported; this does not establish absence of bias.</p>" : ""}<details><summary>Limits of this analysis</summary>${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from the student's seven-domain assessment. Encounter differences alone do not establish bias.</p></details></section>`;
+  return `<section class="bias-panel"><h3>Bias assessment · Faculty review</h3><p>${r.status === "pending" ? "Awaiting analysis" : r.status === "unavailable" ? "Analysis unavailable" : "Analysis complete"}</p>${ready ? button(r.status === "complete" ? "Recheck bias assessment" : "Run bias assessment", "analyze-bias", `data-type="${esc(type)}" data-id="${esc(id)}"`, "pri") : '<p class="muted">Available after this encounter or all group trials finish.</p>'} <a href="/api/bias/rubric/file" target="_blank" rel="noopener">View source rubric</a><p class="muted">Five separate performance ratings: 1 Unsatisfactory to 4 Exemplary. Higher is stronger performance. No combined bias score.</p>${tables}${findings.length ? `<h4>Possible bias indicators for faculty review</h4>${findings.map((f) => `<p>${esc(f.text)}</p>${citations(f.evidence)}`).join("")}` : r.status === "complete" ? "<p>No additional indicators reported; this does not establish absence of bias.</p>" : ""}<section class="bias-limits"><h4>Limits of this analysis</h4>${r.limitations.map((l) => `<p class="muted">${esc(l)}</p>`).join("")}<p class="muted">Separate from the student's seven-domain assessment. Encounter differences alone do not establish bias.</p></section></section>`;
 }
 function biasEvidenceView() {
   if (demoSession?.role !== "faculty" || !selectedEvidenceId) return "";
@@ -3204,6 +3227,19 @@ for (const type of ["dragenter", "dragover", "dragleave", "drop"])
   );
 document.addEventListener("input", async (e) => {
   const t = e.target;
+  if (t.id === "ai-objective") {
+    patientDialog.learningObjective = t.value;
+    return;
+  }
+  if (t.dataset.catalogField && t.dataset.catalogScope === "profile") {
+    profile.catalog = teaching.normalize(Object.fromEntries(["objectives", "disciplines"].map(key => [key, Array.from(document.querySelectorAll(`[data-catalog-scope="profile"][data-catalog-field="${key}"]:checked`)).map(el => el.value)])));
+    profile.reviewAcknowledged = false;
+    const acknowledgment = $("#field-reviewAcknowledged");
+    if (acknowledgment) acknowledgment.checked = false;
+    dirty = true;
+    if ($("#save-status")) $("#save-status").textContent = "Unsaved changes";
+    return;
+  }
   if (t.id === "demo-student") loginStudent = t.value;
   if (t.id === "assign-student") selectedStudent = t.value;
   if (t.id === "new-student-alias") newStudentAlias = t.value;
@@ -3294,6 +3330,11 @@ document.addEventListener("submit", (e) => {
 });
 document.addEventListener("change", async (e) => {
   try {
+    if (e.target.id === "catalog-discipline") {
+      await changeDiscipline(e.target.value);
+      render();
+      return;
+    }
     if (e.target.dataset.uploadIndex !== undefined) {
       patientDialog.files[Number(e.target.dataset.uploadIndex)][
         e.target.dataset.uploadKey
@@ -3339,6 +3380,17 @@ document.addEventListener("click", async (e) => {
   const a = t.dataset.action;
   if (busy && a !== "toggle-pause") return;
   try {
+    if (a === "filter-objective") {
+      catalogObjective = t.dataset.objective;
+      render();
+      return;
+    }
+    if (a === "clear-catalog") {
+      await changeDiscipline("");
+      catalogObjective = "";
+      render();
+      return;
+    }
     if (a === "assign-simulation") {
       const studentId = t
         .closest(".simulation-assignment")
@@ -3392,6 +3444,8 @@ document.addEventListener("click", async (e) => {
         studentId: loginStudent || students[0]?.id,
       });
       demoSession = r.session;
+      catalogObjective = "";
+      catalogDiscipline = r.preferences?.discipline || "";
       tab = demoSession.role === "student" ? "student-home" : "studio";
       await refresh();
       busy = false;
@@ -3403,6 +3457,8 @@ document.addEventListener("click", async (e) => {
       stopDraftDictation();
       await api("/api/session", "DELETE");
       demoSession = null;
+      catalogObjective = "";
+      catalogDiscipline = "";
       enc = null;
       profile = null;
       patientDialog = null;
@@ -3988,7 +4044,9 @@ async function boot() {
       faceAnchors = null;
     }
     students = (await api("/api/students")).students;
-    demoSession = (await api("/api/session")).session;
+    const entry = await api("/api/session");
+    demoSession = entry.session;
+    catalogDiscipline = entry.preferences?.discipline || "";
     if (!demoSession) {
       await refresh();
       render();

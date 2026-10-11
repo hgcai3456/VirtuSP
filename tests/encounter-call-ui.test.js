@@ -89,6 +89,7 @@ test("Each published patient can be answered and spoken with", async () => {
     el.click();
   };
   try {
+    window.eval(await fs.readFile("public/js/catalog.js", "utf8"));
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => doc.querySelectorAll('[data-action="launch"]').length >= 7);
     const launches = [...doc.querySelectorAll('[data-action="launch"]')];

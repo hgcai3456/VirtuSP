@@ -77,6 +77,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     el.dispatchEvent(new w.Event("input", { bubbles: true }));
   };
   try {
+    w.eval(await fs.readFile("public/js/catalog.js", "utf8"));
     w.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => !!d.getElementById("demo-student"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
@@ -147,6 +148,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
       !d.querySelector("#app").textContent.includes("Review & publish"),
     );
     assert.ok(d.querySelector('[data-action="assign-simulation"]'));
+    assert.equal(d.querySelector(".simulation-assignment").tagName, "SECTION", "Assignment controls are directly visible, not in a collapsed details element");
     const assign = d.querySelector(
       '[data-action="assign-simulation"][data-id="omar-dyslipidemia-comparison"]',
     );
@@ -186,6 +188,19 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelectorAll(".patient-card").length, 8);
     assert.equal(d.querySelector('[data-action="add-student"]'), null);
     assert.equal(d.querySelector('[data-action="create-group"]'), null);
+    click("filter-objective", '[data-objective="urgent-referral"]');
+    assert.equal(d.querySelectorAll(".patient-card").length, 0);
+    assert.equal(d.querySelectorAll(".faculty-group").length, 0);
+    assert.ok(d.querySelector(".assignment-card"), "Assigned work must remain visible even when it does not match the selected objective");
+    const discipline = d.getElementById("catalog-discipline");
+    discipline.value = "pa";
+    discipline.dispatchEvent(new w.Event("change", { bubbles: true }));
+    await wait(() => app.store.state.students[Object.values(app.store.state.students)[0].id].discipline === "pa");
+    await wait(() => d.getElementById("catalog-discipline")?.value === "pa");
+    assert.ok(d.querySelector(".assignment-card"));
+    click("clear-catalog");
+    await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.equal(d.getElementById("catalog-discipline").value, "");
     click("start-test");
     await wait(() => !!d.getElementById("question"));
     click("complete");

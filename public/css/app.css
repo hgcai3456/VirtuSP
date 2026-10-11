@@ -4239,10 +4239,15 @@ summary:focus-visible {
   margin: 10px 0;
   font-size: 0.9rem;
 }
-.simulation-assignment summary {
+.simulation-assignment summary,
+.simulation-assignment > p {
   color: var(--ac);
   cursor: pointer;
   font-weight: 600;
+}
+.simulation-assignment > p {
+  cursor: default;
+  margin: 4px 0;
 }
 .simulation-assignment label {
   display: grid;
@@ -4380,4 +4385,36 @@ summary:focus-visible {
   .student-assignments .patient-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+/* Teaching discovery stays independent of the encounter and avatar layouts. */
+.catalog-picker {
+  margin: 22px 0;
+  padding: 18px;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.catalog-picker h2 { margin: 0 0 6px; }
+.objective-choices { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.objective-choices .btn { white-space: normal; text-align: left; }
+.catalog-options { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.catalog-options label { display: grid; gap: 6px; }
+.catalog-options select { width: min(100%, 280px); }
+.catalog-options > .muted { font-size: .85rem; max-width: 360px; }
+.catalog-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.catalog-fields fieldset { border: 1px solid var(--bd); border-radius: 8px; padding: 12px; min-width: 0; }
+.catalog-fields legend { font-weight: 600; padding: 0 4px; }
+.catalog-check { display: flex; align-items: start; gap: 8px; margin: 8px 0; }
+.catalog-check input { width: auto; margin-top: 3px; }
+.faculty-feedback .rubric-split { display: block; }
+.faculty-feedback .rubric-top { margin-bottom: 16px; }
+.faculty-feedback .domain-more { display: none; }
+.faculty-feedback .domain-row .why { white-space: normal; }
+.faculty-feedback .evidence { margin: 10px 0; }
+.bias-limits { margin-top: 18px; }
+@media (max-width: 650px) {
+  .catalog-fields { grid-template-columns: 1fr; }
+  .catalog-picker { padding: 12px; }
+  .catalog-options label, .catalog-options select { width: 100%; }
 }
