@@ -5,6 +5,7 @@
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
     "start": "node server.js",
+    "photos:import": "node scripts/import-patient-photos.js",
     "cert:local": "node scripts/ensure-dev-cert.js",
     "dev:https": "node scripts/dev-https.js",
     "test:pact": "node --test --test-concurrency=1 --test-timeout=120000 tests/pact/*.test.js",

@@ -19,7 +19,7 @@ test("Assigned and active encounters retain pinned portraits after draft edits a
     await call(faculty,"/api/session","POST",{role:"faculty"});const students=(await call(faculty,"/api/students")).students;
     await call(student,"/api/session","POST",{role:"student",studentId:students[0].id});await call(other,"/api/session","POST",{role:"student",studentId:students[1].id});
     const p=app.store.state.drafts.yvette;
-    const old=await fs.readFile("public/img/yvette.jpg"), replacement=await fs.readFile("public/img/omar.jpg");
+    const old=await fs.readFile("corpus/patient-photos/yvette.png"), replacement=await fs.readFile("public/img/omar.jpg");
     const assignment=(await call(faculty,"/api/assignments","POST",{profileId:p.id,studentId:students[0].id})).assignment;
     // Simulate an uploaded new portrait on a newer publication, without changing old releases.
     const fileId="new-yvette-portrait";await fs.writeFile(path.join(dir,"files",fileId),replacement);app.store.state.files[fileId]={id:fileId,type:"image/jpeg"};p.portraitFileId=fileId;

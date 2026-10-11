@@ -1,5 +1,11 @@
 # Teammate and agent handoff
 
+## Patient Photos BLOB storage (2026-10-11)
+
+The eight user-supplied PNGs are unchanged under `corpus/patient-photos/`; the explicit UUID/roster manifest is `corpus/patient-photos.json`. `lib/patient-photos.js` creates the SQLite table `Patient Photos`, validates PNG/JPEG signatures and a 5 MB limit, and stores original bytes as BLOBs with MIME/hash metadata. `npm run photos:import` populated all eight rows in local `data/virtusp.sqlite`; it is idempotent and preserves stored rows. A mapped photo is lazily seeded in a fresh database when requested. Existing protected profile/encounter image routes read the BLOB, bypassing the static-image cache; explicit uploaded/versioned portraits and comparison presentations retain priority. Original clinical content/publications are unchanged. No PostgreSQL/cloud write, deployment or commit was performed for this change.
+
+Verification outside sandbox: focused photo/portrait tests 5 passed/0 failed; full `npm test` 244 passed/0 failed/0 skipped; local Pact 3 passed/0 failed after its image contract changed to PNG. The first focused sandbox run hit temporary-file rename EPERM and was retried. `node agents/test-report.js` ran after the full suite. `docs/PORTRAITS.md` documents schema, retrieval and import. Restart the app to load the updated endpoint code; back up the SQLite file as well as JSON state because JSON/S3 manifest recovery does not contain these BLOBs. Prerecorded talking-video assets are separate.
+
 ## Judge documentation audit (2026-10-11)
 
 Judge path: README → `docs/HACKATHON_SUBMISSION.md` → `docs/DEMO.md#judge-proof-sequence`, with `REQUIREMENTS_TRACEABILITY.md`, `JUDGING_MATRIX.md`, `TESTING.md` and `DOCUMENTATION_AUDIT.md`. Tested app HEAD was `662c6d154c19de4276548a28ccabd6c498ac0117` with pre-existing uncommitted source changes. Root workspace is a separate static/browser prototype; do not use its local-only architecture as evidence about this app.

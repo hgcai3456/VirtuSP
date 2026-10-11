@@ -536,7 +536,7 @@ const OPERATIONS = [
     state: "faculty",
     cookie,
     status: 200,
-    binary: { contentType: "image/jpeg", file: "public/img/omar.jpg" },
+    binary: { contentType: "image/png", file: "corpus/patient-photos/omar.png" },
   },
   {
     // Starting an import can call Claude. Verify the missing-job polling
