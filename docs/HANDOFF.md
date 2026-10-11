@@ -1,5 +1,9 @@
 # Teammate and agent handoff
 
+## AWS deploy (2026-10-11)
+
+Commit `151fdc8` is running in us-west-2 on the existing ECS service. CodeBuild project `virtusp-image` built the image because Docker Desktop is not running, and pushed `389023343021.dkr.ecr.us-west-2.amazonaws.com/virtusp:latest` digest `sha256:023f28344a0c41ca68b88e056ce59eee541d161ef620eb739721be6827990015`. Task definition `virtusp:8` rolled four healthy tasks, two in `us-west-2a` and two in `us-west-2b`. All four load-balancer targets are healthy. `https://d18g7r2mfy8mll.cloudfront.net/api/health` returned `ok: true` with Bedrock `us.xai.grok-4.7`, and `/api/live` and `/api/ready` returned 200. These are engineering checks, not clinical validation.
+
 ## Pact contracts (2026-10-10)
 
 `.cursor/agents/pact-tester.md` writes Pactflow contract tests for the HTTP API. `node agents/pact-agent.js` runs `npm run test:pact` and repeats while the failure changes. The same failure three times stops the loop. The consumer is `virtusp-web` and the provider is `virtusp-api`, using `@pact-foundation/pact`. Local verification reads `pacts/virtusp-web-virtusp-api.json`. When `PACT_BROKER_BASE_URL` and `PACT_BROKER_TOKEN` are set, the provider also publishes that result to the Pactflow broker. `POST /api/import-files` is not replayed because it starts a Claude import; `GET /api/import-files/:id` covers a missing job. `npm run test:pact` passed 3 tests and failed 0. These checks are not clinical validation.
