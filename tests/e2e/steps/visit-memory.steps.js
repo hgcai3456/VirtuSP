@@ -40,10 +40,6 @@ Given("the faculty opens a visit with {string}", async function (name) {
   );
   await ui.clickElement(button);
   await ui.waitForText(name + ",");
-  const answer = await driver().findElement(
-    By.css('[data-action="answer-call"]'),
-  );
-  await ui.clickElement(answer);
   await driver().wait(async () => {
     const boxes = await driver().findElements(By.css("#question"));
     return boxes.length === 1 && (await boxes[0].isEnabled());
@@ -63,7 +59,6 @@ Then("the visit shows a talking portrait for {string}", async function (name) {
     (await driver().findElements(By.css("#patient-video"))).length,
     1,
   );
-  ui.assert.equal((await driver().findElements(By.css(".av-live"))).length, 1);
 });
 
 When("the student sends {string} in the visit", async function (text) {
@@ -142,6 +137,4 @@ Then("the talking portrait is moving", async function () {
   `);
   ui.assert.equal(samples[2], "block");
   ui.assert.notEqual(samples[0], samples[1]);
-  const live = await driver().findElement(By.css(".av-live"));
-  ui.assert.equal(await live.isDisplayed(), true);
 });

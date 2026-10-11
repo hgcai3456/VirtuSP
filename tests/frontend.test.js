@@ -386,18 +386,12 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
-    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
-    assert.match(doc.querySelector(".incoming-call").textContent, /is calling/);
-    assert.equal(doc.getElementById("question").disabled, true);
-    assert.match(
-      doc.getElementById("voice-status").textContent,
-      /Incoming video call/,
-    );
-    click("answer-call");
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    assert.equal(doc.querySelector(".incoming-call"), null);
+    assert.match(doc.getElementById("visit-timer").textContent, /^\d{2}:\d{2}/);
     await wait(() =>
       doc.getElementById("avf")?.classList.contains("video-call"),
     );
-    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
     assert.equal(doc.getElementById("question").disabled, false);
     fill("question", "What brings you in today?");
     doc
@@ -432,9 +426,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("submit-patient");
     await wait(() => !doc.getElementById("patient-dialog"));
     click("launch", '[data-id="omar"]');
-    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
-    click("answer-call");
-    await wait(() => !!doc.getElementById("question"));
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    await new Promise((resolve) => setTimeout(resolve, 20));
     window.speechSynthesis.cancel();
     await wait(() => {
       const r = recognizers.at(-1);
@@ -548,20 +541,16 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => !!doc.querySelector(".annotated .turn"));
     click("nav", '[data-tab="studio"]');
     click("launch", '[data-id="riley"]');
-    await wait(() => !!doc.querySelector(".incoming-call"));
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    assert.equal(doc.querySelector(".incoming-call"), null);
     assert.equal(doc.body.textContent.includes("Text message"), false);
     assert.equal(doc.body.textContent.includes("Patient is texting"), false);
-    assert.match(
-      doc.querySelector(".incoming-call").textContent,
-      /Riley Chen is calling/,
-    );
-    click("answer-call");
     await wait(() =>
       doc.getElementById("avf")?.classList.contains("video-call"),
     );
-    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
+    assert.ok(doc.getElementById("visit-timer"));
     assert.ok(doc.querySelector('.mic-btn[data-action="toggle-pause"]'));
     assert.deepEqual(errors, []);
   } finally {

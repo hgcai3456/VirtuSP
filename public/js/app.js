@@ -280,16 +280,6 @@ function safeLink(url) {
     return "";
   }
 }
-function storageText() {
-  const s = health.storage || {};
-  return s.status === "synced"
-    ? "AWS copy saved"
-    : s.status === "pending"
-      ? "AWS save pending"
-      : s.status === "failed"
-        ? "AWS save failed · local copy saved"
-        : "Local recovery storage";
-}
 async function refresh() {
   if (!demoSession) {
     health = await api("/api/health");
@@ -1083,17 +1073,58 @@ function rememberCall(id) {
   }
 }
 function callIsLive() {
-  if (!enc || enc.status !== "active") return false;
-  if (connectedCalls.has(enc.id)) return true;
-  try {
-    if (sessionStorage.getItem(callStorageKey(enc.id)) === "live") {
-      connectedCalls.add(enc.id);
-      return true;
-    }
-  } catch {
-    /* Private mode can block storage. */
+  return !!(enc && enc.status === "active");
+}
+function formatVisitClock(from, to = Date.now()) {
+  const start = new Date(from).getTime();
+  if (!Number.isFinite(start)) return "00:00";
+  const total = Math.max(0, Math.floor((to - start) / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  if (hours) return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+
+  return `${pad(minutes)}:${pad(seconds)}`;
+}
+let visitTimer = 0;
+function startVisitTimer() {
+  stopVisitTimer();
+  if (!enc?.createdAt || enc.status !== "active") return;
+  const tick = () => {
+    const el = $("#visit-timer");
+    if (el) el.textContent = formatVisitClock(enc.createdAt);
+  };
+  tick();
+  visitTimer = setInterval(tick, 1000);
+}
+function stopVisitTimer() {
+  clearInterval(visitTimer);
+  visitTimer = 0;
+}
+function leaveVisit() {
+  stopVisitTimer();
+  stopStudentCamera();
+}
+function joinVisit() {
+  if (tab !== "enc" || !enc || enc.status !== "active") return;
+  rememberCall(enc.id);
+  paused = false;
+  $("#avf")?.classList.add("video-call", "camera-on");
+  if (!studentStream) {
+    studentCameraTried = false;
+    startStudentCamera();
   }
-  return false;
+  startPresenceCoach();
+  startVisitTimer();
+  warmTalkVideo();
+}
+function syncVisitMedia() {
+  if (tab === "enc" && enc?.status === "active") {
+    joinVisit();
+    return;
+  }
+  leaveVisit();
 }
 function encounter() {
   if (demoSession?.role === "faculty" && enc?.studentId) return assessment();
@@ -1103,17 +1134,17 @@ function encounter() {
       .map((p) => card(p, false))
       .join("")}</div></div>`;
   const live = callIsLive();
-  const waiting = enc.status === "active" && !live;
-  const locked = busy || enc.status !== "active" || waiting;
+  const locked = busy || enc.status !== "active";
   const first = esc(enc.name.split(" ")[0]);
   const emergency = enc.emergency
     ? `<div class="emergency" role="alert"><b>911 emergency services</b><p>${esc(enc.emergency.text)}</p></div>`
     : "";
-  const incoming = waiting
-    ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
-    : "";
   const clip = packagedVisitVideo(enc);
-  return `${emergency}${patientBanner()}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" muted playsinline hidden></video><span class="self-label" id="self-label">You</span></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div></section>
+  const stage = `${live ? " video-call camera-on" : ""}${paused ? " paused" : ""}`;
+  const selfView = live
+    ? `<div class="self-view" id="self-view"><video id="student-camera" class="self-camera" muted autoplay playsinline></video></div>`
+    : "";
+  return `${emergency}${patientBanner()}<div class="grid enc-grid"><section class="pn enc-talk"><div class="av-frame${stage}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas id="patient-call" class="patient-call" width="640" height="480" aria-hidden="true"></canvas>${selfView}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}${live && !studentStream ? button("Turn your camera on", "student-camera") : ""}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : first}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div></section>
  <section class="pn ehr-panel"><div class="panel-kicker">Clinical record · ${esc((sections.find(([s]) => s === section) || sections[0])[1])}</div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -1173,7 +1204,10 @@ function patientBanner() {
       `${enc.status === "complete" ? "Completed" : "In progress"} · ${new Date(enc.createdAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`,
     ],
   ];
-  return `<section class="pn pt-banner" aria-label="Patient"><div class="pt-banner-main"><img class="pt-photo" src="${esc(enc.imageUrl)}" alt=""><div class="pt-banner-id"><h1>${esc(enc.name)}</h1><dl class="pt-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div><div class="pt-banner-actions">${enc.groupProgress ? `<span class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</span>` : ""}${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></div><nav class="tabs ehr-tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></section>`;
+  const clock = enc.createdAt
+    ? `<p class="visit-timer" id="visit-timer">${esc(enc.status === "complete" && enc.completedAt ? formatVisitClock(enc.createdAt, new Date(enc.completedAt).getTime()) : formatVisitClock(enc.createdAt))}</p>`
+    : "";
+  return `<section class="pn pt-banner" aria-label="Patient"><div class="pt-banner-main"><img class="pt-photo" src="${esc(enc.imageUrl)}" alt=""><div class="pt-banner-id"><h1>${esc(enc.name)}</h1><dl class="pt-facts">${facts.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl></div><div class="pt-banner-actions">${clock}${enc.groupProgress ? `<span class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</span>` : ""}${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></div><nav class="tabs ehr-tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></section>`;
 }
 function chart() {
   // Overview is a summary; each finding is filed under its own chart section,
@@ -1242,13 +1276,19 @@ function attempts() {
     .filter((e) => e.profileId === enc.profileId && e.status === "complete")
     .sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
 }
+function presenceReview() {
+  const flags = enc?.presence?.flags || [];
+  if (!flags.length) {
+    return `<section class="obj-card presence-review"><h2>Body language</h2><p class="muted">Nothing noted on this visit.</p></section>`;
+  }
+
+  return `<section class="obj-card presence-review"><h2>Body language</h2><ul>${flags
+    .map((f) => `<li>${esc(f.label)}</li>`)
+    .join("")}</ul></section>`;
+}
 function duration() {
   if (!enc.completedAt || !enc.createdAt) return "";
-  const minutes = Math.max(
-    1,
-    Math.round((new Date(enc.completedAt) - new Date(enc.createdAt)) / 60000),
-  );
-  return ` · ${minutes} min`;
+  return ` · ${formatVisitClock(enc.createdAt, new Date(enc.completedAt).getTime())}`;
 }
 function sinceLast() {
   // Change from the previous completed attempt on this patient, if any.
@@ -1461,6 +1501,7 @@ function assessment() {
     ...(c ? [["findings", "Objectives & findings"]] : []),
     ...(c ? [["interview", "Interview"]] : []),
     ["rubric", a.caseRubric ? "Rubrics" : "Rubric"],
+    ["presence", "Body language"],
   ];
   if (!views.some(([k]) => k === repView)) repView = "summary";
   const body =
@@ -1470,7 +1511,9 @@ function assessment() {
         ? flowView(a, c)
         : repView === "rubric"
           ? rubricView(a)
-          : summaryView(a, c);
+          : repView === "presence"
+            ? presenceReview()
+            : summaryView(a, c);
   const caseScore =
     a.caseRubric?.total != null
       ? `<div><div class="score-num">${a.caseRubric.total}/${a.caseRubric.max}</div><div class="muted">case rubric</div></div>`
@@ -2137,7 +2180,7 @@ function render() {
     );
   $("#themeBtn").textContent = "Theme";
   $("#app").innerHTML =
-    `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+    `${busy || dirty ? `<div class="app-status"><span>${busy ? "Working…" : "Unsaved draft changes"}</span></div>` : ""}<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
     {
       studio,
       "student-home": studentHome,
@@ -2370,7 +2413,6 @@ function initTalkAvatar() {
   canvas.classList.remove("hidden");
   canvas.width = 640;
   canvas.height = 520;
-  $("#avf .patient-photo")?.classList.add("hidden");
   $("#avf")?.classList.add("has-video");
   stopTalkAvatar();
   const frame =
@@ -2388,10 +2430,10 @@ function attachTalkVideo() {
   const clip = talkVideoUrl || packagedVisitVideo(enc);
   if (!v || !clip) return;
   if (!v.src || !String(v.src).includes(clip.replace(/^\//, ""))) v.src = clip;
-  v.classList.remove("hidden");
   $("#av-talk")?.classList.add("hidden");
   $("#avf")?.classList.add("has-video");
-  $("#avf .patient-photo")?.classList.add("hidden");
+  $("#avf .patient-photo")?.classList.remove("hidden");
+  v.classList.add("hidden");
   v.playbackRate = patientSpeaking ? 1 : 0.55;
   v.muted = true;
   v.loop = true;
@@ -2494,8 +2536,7 @@ function stopAudio() {
 function readyStatus() {
   if (!enc) return "Ready for your question";
   if (enc.status === "complete") return "Call ended";
-  if (!callIsLive()) return "Incoming video call";
-  return "Camera on · ready for your question";
+  return "Ready for your question";
 }
 function voiceState(state, text) {
   voiceDisplay = { state, text };
@@ -2509,16 +2550,16 @@ function stopTalkingCall() {
     cancelAnimationFrame(callAnimation);
   callAnimation = 0;
   const frame = $("#avf");
-  const video = $("#patient-video");
-  if (video?.getAttribute("src")) {
-    try {
-      video.pause();
-    } catch {
-      /* jsdom has no media playback. */
-    }
-    video.removeAttribute("src");
-  }
+  const video = $("#av-video");
   if (callVideoUrl) {
+    if (video) {
+      try {
+        video.pause();
+      } catch {
+        /* jsdom has no media playback. */
+      }
+      if (video.src === callVideoUrl) video.removeAttribute("src");
+    }
     URL.revokeObjectURL(callVideoUrl);
     callVideoUrl = null;
   }
@@ -2648,21 +2689,18 @@ function syncVideoCall() {
 }
 function attachStudentCamera() {
   const video = $("#student-camera");
-  const label = $("#self-label");
   const retry = $('[data-action="student-camera"]');
   if (retry) retry.hidden = !!studentStream;
-  if (!video || !label) return;
+  if (!video) return;
   if (studentStream) {
     if (video.srcObject !== studentStream) video.srcObject = studentStream;
     video.hidden = false;
-    label.textContent = "You · Camera on";
     return;
   }
   video.hidden = true;
-  label.textContent = studentCameraNote || "You";
 }
 function startStudentCamera() {
-  // Never switch the camera on when the page has nowhere to show it.
+  if (tab !== "enc" || enc?.status !== "active") return;
   if (!$("#student-camera")) return;
   if (studentStream || studentCameraTried) {
     attachStudentCamera();
@@ -2681,13 +2719,14 @@ function startStudentCamera() {
     .catch(() => devices.getUserMedia({ video: true, audio: false }))
     .then(
       (stream) => {
-        if (request !== studentCameraRequest || !callIsLive()) {
+        if (request !== studentCameraRequest || !callIsLive() || tab !== "enc") {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
         studentStream = stream;
         studentCameraNote = "";
         attachStudentCamera();
+        startPresenceCoach();
       },
       () => {
         if (request !== studentCameraRequest) return;
@@ -2697,10 +2736,30 @@ function startStudentCamera() {
     );
 }
 function stopStudentCamera() {
+  stopPresenceCoach();
   studentCameraRequest++;
   studentStream?.getTracks().forEach((track) => track.stop());
   studentStream = null;
   studentCameraNote = "";
+}
+let presenceTimer = 0;
+function startPresenceCoach() {
+  if (!window.VirtuPresence || !callIsLive()) return;
+  window.VirtuPresence.start({
+    getVideo: () => $("#student-camera"),
+  });
+  clearInterval(presenceTimer);
+  presenceTimer = setInterval(() => {
+    const report = window.VirtuPresence.snapshot();
+    if (enc?.id && report.samples && report.samples % 20 === 0) {
+      api(`/api/encounters/${enc.id}/presence`, "POST", report).catch(() => {});
+    }
+  }, 2000);
+}
+function stopPresenceCoach() {
+  clearInterval(presenceTimer);
+  presenceTimer = 0;
+  window.VirtuPresence?.stop?.();
 }
 async function pollTalkingVideo(turn, generation) {
   try {
@@ -2725,7 +2784,7 @@ async function pollTalkingVideo(turn, generation) {
         const blob = await response.blob();
         if (generation !== speechGeneration) return;
         callVideoUrl = URL.createObjectURL(blob);
-        const video = $("#patient-video");
+        const video = $("#av-video");
         if (!video) return;
         video.src = callVideoUrl;
         video.muted = false;
@@ -2871,6 +2930,7 @@ async function mutate(action, payload) {
 }
 async function question(text) {
   if (busy || !text.trim() || enc?.status !== "active" || !callIsLive()) return;
+  window.VirtuPresence?.noteSpeech?.(text);
   stopPatientAudio();
   holdMic = true;
   busy = true;
@@ -2996,6 +3056,7 @@ function startLive() {
       .replace(/\s+/g, " ")
       .trim();
     liveText = [prefix, heard].filter(Boolean).join(" ").trim();
+    window.VirtuPresence?.notePartial?.(liveText);
     if ($("#question")) $("#question").value = liveText;
     formMemory.question = liveText;
     const words = liveText.split(/\s+/).filter(Boolean).length;
@@ -3411,6 +3472,11 @@ document.addEventListener("click", async (e) => {
         localStorage.setItem("virtusp-active-v2", enc.id);
         section = "ov";
         tab = "enc";
+        paused = false;
+        holdMic = false;
+        patientSpeaking = false;
+        voiceDisplay = { state: "ready", text: "Ready for your question" };
+        joinVisit();
       }
     }
     if (a === "next-test") {
@@ -3419,6 +3485,7 @@ document.addEventListener("click", async (e) => {
       localStorage.setItem("virtusp-active-v2", enc.id);
       section = "ov";
       tab = "enc";
+      joinVisit();
     }
     if (a === "analyze-bias") {
       const result = await api(
@@ -3631,6 +3698,9 @@ document.addEventListener("click", async (e) => {
       if (dirty) await save();
       stopAudio();
       paused = false;
+      holdMic = false;
+      patientSpeaking = false;
+      voiceDisplay = { state: "ready", text: "Ready for your question" };
       formMemory.question = "";
       const r = await api("/api/encounters", "POST", {
         profileId: t.dataset.id,
@@ -3642,20 +3712,11 @@ document.addEventListener("click", async (e) => {
       tab = "enc";
       resetTalkVideo();
       render();
+      joinVisit();
       return;
     }
     if (a === "answer-call") {
-      if (!enc || enc.status !== "active") return;
-      rememberCall(enc.id);
-      stopStudentCamera();
-      studentCameraTried = false;
-      paused = false;
-      const opening = [...enc.transcript]
-        .reverse()
-        .find((turn) => turn.role === "patient");
-      render();
-      warmTalkVideo();
-      if (opening) speak(opening);
+      joinVisit();
       return;
     }
     if (a === "student-camera") {
@@ -3679,7 +3740,7 @@ document.addEventListener("click", async (e) => {
           : "enc";
       repView = "summary";
       resetTalkVideo();
-      if (tab === "enc") warmTalkVideo();
+      if (tab === "enc") joinVisit();
     }
     if (a === "section") {
       if (enc.status === "active")
@@ -3720,13 +3781,14 @@ document.addEventListener("click", async (e) => {
       formMemory.careplan = "";
     }
     if (a === "complete") {
+      const presence = window.VirtuPresence?.snapshot?.();
       stopAudio();
       stopStudentCamera();
       busy = true;
       message =
         "Completing the encounter and preparing evidence-linked feedback…";
       render();
-      await mutate("complete", {});
+      await mutate("complete", presence ? { presence } : {});
       repView = "summary";
       await refresh();
       busy = false;
@@ -3834,6 +3896,7 @@ document.addEventListener("click", async (e) => {
     }
     busy = false;
     render();
+    syncVisitMedia();
   } catch (err) {
     busy = false;
     if (patientDialog) patientDialog.notice = err.message;
@@ -3943,7 +4006,7 @@ async function boot() {
         localStorage.removeItem("virtusp-active-v2");
       }
     render();
-    if (enc?.status === "active") warmTalkVideo();
+    syncVisitMedia();
   } catch (e) {
     $("#app").innerHTML =
       `<div class="pn"><h1>Server unavailable</h1><p>${esc(e.message)}</p><p>Start this app with npm start; static-only hosting cannot run encounters.</p><button class="btn" onclick="location.reload()">Retry</button></div>`;
