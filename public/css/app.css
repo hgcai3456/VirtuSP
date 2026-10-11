@@ -4418,3 +4418,96 @@ summary:focus-visible {
   .catalog-picker { padding: 12px; }
   .catalog-options label, .catalog-options select { width: 100%; }
 }
+
+/* Use the portrait's vertical shape instead of a wide letterboxed well. */
+.patient-grid,
+.studio .patient-grid,
+.student-assignments .patient-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 260px));
+  align-items: start;
+}
+.patient-card { padding: 10px; gap: 8px; }
+.patient-card > .patient-photo-well,
+.studio .patient-card > .patient-photo-well,
+.student-assignments .patient-card > .patient-photo-well {
+  height: auto;
+  aspect-ratio: 3 / 4;
+  width: 100%;
+  background: transparent;
+}
+.patient-card .patient-photo-well img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.patient-card .patient-name { margin: 5px 0; line-height: 1.3; }
+.patient-age {
+  display: inline-block;
+  font-family: "Segoe UI", sans-serif;
+  font-size: .72em;
+  font-weight: 400;
+  color: var(--mu);
+  white-space: nowrap;
+  margin-left: 4px;
+}
+.patient-actions { gap: 6px; }
+.patient-actions .btn { padding: 8px 10px; font-size: .85rem; }
+.simulation-assignment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+.simulation-assignment > p { grid-column: 1 / -1; font-size: .85rem; }
+.simulation-assignment label { margin: 0; gap: 3px; font-size: .8rem; }
+.simulation-assignment select,
+.simulation-assignment .btn { padding: 8px; font-size: .85rem; }
+.group-patients { line-height: 1.6; }
+.assigned-work {
+  margin: 20px 0;
+  padding: 18px;
+  border: 2px solid var(--ac);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.assigned-work > h2 { margin-top: 0; }
+.assignment-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  background: var(--ac);
+  color: white;
+  border-radius: 20px;
+  font-size: .8rem;
+}
+.open-assessments { border-top: 1px solid var(--bd); margin-top: 28px; padding-top: 20px; }
+.faculty-learning-topics { margin: 22px 0; padding: 18px; border: 1px solid var(--bd); border-radius: 12px; }
+.toast {
+  position: relative;
+  top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.toast.hidden { display: none; }
+.toast-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .patient-grid,
+  .studio .patient-grid,
+  .student-assignments .patient-grid { grid-template-columns: 1fr; }
+  .patient-card { max-width: 300px; width: 100%; }
+  .assigned-work { padding: 12px; }
+}

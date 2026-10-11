@@ -1,6 +1,6 @@
 # Objective-first scenario workflow
 
-Students see assigned assessments first. Below that, select a learning objective, optionally narrow by learner discipline, then start an individual patient or a multi-patient assessment. Faculty uses the same filters and can assign directly from each card: select a student, then click **Assign**. There is no disclosure panel to open before assigning.
+Students see **Assigned to you by faculty** first, with a distinct border and Faculty assigned badges. **Open simulations** appears separately below it. Select a learning objective, optionally narrow by learner discipline, then start an individual patient or a multi-patient assessment. Faculty uses the same filters and can assign directly from each card: select a student, then click **Assign**. Cards retain an **Assigned to** recipient list after assigning. There is no disclosure panel to open before assigning. Group names are supplemented by an always-visible list of patient names; assigned lists use the pinned published versions.
 
 The categories are communication/empathy, patient history, medication review/shared decisions, nutrition counseling, mobility/fall safety, and urgent referral. They are discovery labels, not diagnoses, scoring rules or a claim that a case is suitable for every discipline. An empty result means a matching published case has not been categorized; it does not create clinical facts. The urgent-referral demonstration still needs a qualified reviewer to author/review an appropriate case.
 
@@ -26,4 +26,12 @@ Faculty encounter feedback shows coaching, objectives/findings, seven-domain rat
 
 This work does not redesign the EMR layout, avatars, speech, timer, recording failsafe, model/provider or import pipeline. Coordinate those changes with their owners. The incoming optional Anthropic conversational path has separate disclosure/grounding concerns described in the checkpoint handoff; these workflow tests do not validate that path clinically.
 
-Give the medical reviewer [MEDICAL-STUDENT-HANDOFF.md](MEDICAL-STUDENT-HANDOFF.md). Start an independent research agent with [RESEARCH-AGENT-HANDOFF.md](RESEARCH-AGENT-HANDOFF.md); it owns source-backed market/cost/clinical-review/pitch documents, not these application files.
+Noncoding research is now owned by the human medical reviewer. Existing handoff documents remain available for that work; do not start further research agents for this workflow task.
+
+## Assignment UX checkpoint, 2026-10-11
+
+Patient cards now use compact portrait-shaped frames without letterboxing. Name and age share a heading; Edit and quick AI authoring remain faculty controls. This only changes presentation, not the stored descriptions, profiles or encounter facts.
+
+Bias-board follow-up items are called **learning topics**, because they are reflection prompts rather than runnable courses or patient simulations. Assigning requires a real student and returns the recipient's name. Topics appear on that student's assessments page and My performance page; they are private to that student. The board offers **Assign a patient simulation** to return to Patient Studio with the selected student preselected. Unassigned legacy encounters remain reviewable, but cannot receive topic assignments. Existing legacy topic assignments are preserved rather than reassigned to an arbitrary student.
+
+Notifications identify recipients and include a Dismiss notification button. They flow above content instead of sticking over the bias board. Switching roles clears cached faculty board data. Verification includes persistence, ownership and fixed-version names, complete group trials, notification dismissal, learner topic visibility, portrait dimensions and desktop/mobile browser checks. No paid inference was used for these checks; they are UI/workflow validation, not clinical validation.

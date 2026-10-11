@@ -306,13 +306,14 @@ async function refresh() {
     health = await api("/api/health");
     return;
   }
-  const [patients, past, status, people, catalog, tasks] = await Promise.all([
+  const [patients, past, status, people, catalog, tasks, ownInsights] = await Promise.all([
     api("/api/profiles"),
     api("/api/encounters"),
     api("/api/health"),
     api("/api/students"),
     api("/api/groups"),
     api("/api/assignments"),
+    demoSession.role === "student" ? api("/api/insights").catch(() => null) : Promise.resolve(null),
   ]);
   list = patients.profiles;
   history = past.encounters;
@@ -325,7 +326,10 @@ async function refresh() {
   if (demoSession?.role === "faculty") {
     savedPatients = (await api("/api/profiles?library=saved")).profiles;
     facultyResults = (await api("/api/faculty-results")).students;
-  } else savedPatients = [];
+  } else {
+    savedPatients = [];
+    insightsData = ownInsights;
+  }
 }
 async function pick(id) {
   const r = await api("/api/profiles/" + id);
@@ -344,7 +348,8 @@ async function save() {
 function assignmentControl(kind, id, ready = true) {
   if (!ready)
     return `<p class="muted">${kind === "group" ? "Publish compatible cases" : "Publish this patient"} before assigning.</p>`;
-  return `<section class="simulation-assignment" data-simulation="${esc(id)}" aria-label="Assign ${esc(kind === "group" ? "group" : "patient")} simulation"><p>Assign this simulation to student</p><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</section>`;
+  const recipients = [...new Set(assignments.filter((a) => a.origin !== "open" && (kind === "group" ? a.groupId === id : a.kind === "individual" && a.cases?.[0]?.profileId === id)).map((a) => students.find((s) => s.id === a.studentId)?.alias).filter(Boolean))];
+  return `<section class="simulation-assignment" data-simulation="${esc(id)}" aria-label="Assign ${esc(kind === "group" ? "group" : "patient")} simulation"><p>Assign this simulation to student</p>${recipients.length ? `<p class="assignment-recipients">Assigned to: ${recipients.map(esc).join(", ")}</p>` : ""}<label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</section>`;
 }
 // ---- Importing case files or a whole folder, and deleting a patient.
 const IMPORT_TYPES = [
@@ -535,7 +540,11 @@ function card(p, faculty = true) {
         ? `<div class="card-confirm" role="alertdialog" aria-label="Delete ${esc(p.name)}"><p><b>Delete ${esc(p.name)}?</b></p><p class="muted small">Past visits and their feedback are kept.</p><div class="row">${button("Delete", "delete-confirm", `data-id="${esc(p.id)}"`, "danger")}${button("Cancel", "delete-cancel")}</div></div>`
         : `<button type="button" class="card-delete" data-action="delete-ask" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}" title="Delete this patient" ${busy ? "disabled" : ""}>×</button>`
       : "";
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}">${remove}<span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3>${faculty && !p.version ? '<p class="patient-kind">Draft</p>' : ""}<p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p><div class="row patient-actions">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : faculty ? button("Publish", "publish-draft", `data-id="${esc(p.id)}" title="Confirm your review and publish, so it can be assigned and started"`, "pri") : ""}</div>${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}</article>`;
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}">${remove}<span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3 class="patient-name">${esc(p.name)} <span class="patient-age">${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</span></h3>${faculty && !p.version ? '<p class="patient-kind">Draft</p>' : ""}<div class="row patient-actions">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button(faculty ? "Start assessment" : "Start open assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : faculty ? button("Publish", "publish-draft", `data-id="${esc(p.id)}" title="Confirm your review and publish, so it can be assigned and started"`, "pri") : ""}</div>${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}</article>`;
+}
+
+function caseNames(cases) {
+  return `<p class="group-patients"><strong>Patients:</strong> ${(cases || []).map((c) => esc(c.name || "Patient")).join(" · ")}</p>`;
 }
 
 function studio() {
@@ -568,7 +577,7 @@ function groupCards(faculty = false) {
       .sort((a, b) => (b.kind === "comparison") - (a.kind === "comparison"))
       .map((g) => {
         const assignment = assignments.find((a) => a.groupId === g.id);
-        return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">${g.trialCount} patients</p><p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
+        return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">${g.trialCount} patients</p>${caseNames(g.cases)}<p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
       })
       .join("") || `<p class="catalog-empty">${catalogObjective || catalogDiscipline ? "No groups match. Clear filters to see all assessments." : "No ready group assessments yet."}</p>`
   );
@@ -1749,7 +1758,7 @@ function assignmentCards(items) {
   return items
     .map(
       (a) =>
-        `<article class="group-card assignment-card"><div><h2>${esc(a.title)}</h2><p class="muted">${a.kind === "individual" ? (a.attempt?.status === "complete" ? "Completed individual assessment" : "Individual assessment") : a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} patient trials`}</p></div>${button(a.attempt?.status === "complete" ? "View results" : a.attempt ? "Resume assessment" : "Start assessment", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`,
+        `<article class="group-card assignment-card"><div><span class="assignment-badge">Faculty assigned</span><h2>${esc(a.title)}</h2>${a.kind === "individual" ? "" : caseNames(a.cases)}<p class="muted">${a.kind === "individual" ? (a.attempt?.status === "complete" ? "Completed individual assessment" : "Individual assessment") : a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} patient trials`}</p></div>${button(a.attempt?.status === "complete" ? "View results" : a.attempt ? "Resume assessment" : "Start assessment", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`,
     )
     .join("");
 }
@@ -1757,7 +1766,11 @@ function studentHome() {
   const alias =
     students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
   const assigned = assignments.filter((a) => a.origin !== "open");
-  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div><div class="row">${button("My performance", "nav", 'data-tab="performance"')}${button("My attempts", "nav", 'data-tab="history"')}</div></div>${assignmentCards(assigned) || '<p class="muted">No assessments assigned yet. Choose any available simulation below.</p>'}${catalogPicker()}<h2 class="catalog-heading">Select an AI patient</h2><p class="muted">Individual assessment · feedback after your visit.</p><div class="patient-grid">${list.filter(catalogMatches).map((p) => card(p, false)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all published cases.</p>'}</div><section class="group-catalog"><h2 class="catalog-heading">Multi-patient assessment</h2><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards()}</section></section>`;
+  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assessments</h1></div><div class="row">${button("My performance", "nav", 'data-tab="performance"')}${button("My attempts", "nav", 'data-tab="history"')}</div></div><section class="assigned-work"><h2>Assigned to you by faculty</h2>${assignmentCards(assigned) || '<p class="muted">No assessments assigned yet. Choose any available simulation below.</p>'}</section>${learningTopics(insightsData?.me?.modules)}<section class="open-assessments"><h2>Open simulations</h2><p class="muted">Available to every student. These are separate from your faculty assignments above.</p>${catalogPicker()}<h3 class="catalog-heading">Select an AI patient</h3><p class="muted">Individual assessment · feedback after your visit.</p><div class="patient-grid">${list.filter(catalogMatches).map((p) => card(p, false)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all published cases.</p>'}</div><section class="group-catalog"><h3 class="catalog-heading">Multi-patient assessment</h3><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards()}</section></section></section>`;
+}
+function learningTopics(modules) {
+  if (!modules?.length) return "";
+  return `<section class="faculty-learning-topics"><h2>Faculty learning topics</h2><p class="muted">Reflection topics for your faculty debrief; these are not patient simulations.</p><div class="mod-list">${modules.map((m) => `<div class="mod"><span><b>${esc(m.title)}</b></span><span class="muted small">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</span></div>`).join("")}</div></section>`;
 }
 function studentGroups() {
   return `<div class="pn"><h1>Multi-patient assessments</h1>${catalogPicker()}<p class="muted">All ready simulations are available. Complete every trial to unlock group feedback.</p>${groupCards()}</div>`;
@@ -2030,7 +2043,7 @@ function performanceHub() {
       ["Rubric average", `<span class="tx-teal">${pct(k.rubricPct)}</span>`],
       ["Empathy grade", grade(k.empathy)],
     ],
-  })}${hubCards(data)}<div class="hub-row">${visualizerPanel(data, insightsData.cohort)}${competencyPanel(data)}</div>${data.modules?.length ? `<section class="hp">${panelHead("book", "Assigned learning modules", "Assigned to you by faculty after reviewing your visits")}<div class="mod-list">${data.modules.map((m) => `<div class="mod"><span><b>${esc(m.code)}:</b> ${esc(m.title)}</span><span class="muted small">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</span></div>`).join("")}</div></section>` : ""}${encounterLog(data)}${visitDialog(data)}</div>`;
+  })}${hubCards(data)}<div class="hub-row">${visualizerPanel(data, insightsData.cohort)}${competencyPanel(data)}</div>${data.modules?.length ? `<section class="hp">${panelHead("book", "Faculty learning topics", "Reflection topics for your faculty debrief; these are not patient simulations")}<div class="mod-list">${data.modules.map((m) => `<div class="mod"><span><b>${esc(m.code)}:</b> ${esc(m.title)}</span><span class="muted small">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</span></div>`).join("")}</div></section>` : ""}${encounterLog(data)}${visitDialog(data)}</div>`;
 }
 const VARIANCE_LABEL = {
   insufficient: "Not enough data",
@@ -2111,8 +2124,8 @@ function biasBoard() {
   const key = (s) => s.student.id || "unassigned";
   const current =
     all.find((s) => key(s) === boardStudent) ||
-    // Open on the student with the most visits, where there is most to review.
-    [...all].sort((a, b) => b.kpis.n - a.kpis.n)[0] ||
+    // Legacy encounters can be reviewed, but assignments need a real student.
+    all.filter((s) => s.student.id).sort((a, b) => b.kpis.n - a.kpis.n)[0] ||
     all[0];
   boardStudent = key(current);
   const v = current.variance,
@@ -2134,7 +2147,7 @@ function biasBoard() {
       : current.notes.updatedAt
         ? "Saved " + new Date(current.notes.updatedAt).toLocaleString()
         : "Not saved yet";
-  return `<div class="hub is-faculty"><section class="hp switcher"><div class="sw-title"><span class="sw-ico">${hubIcon("scope")}</span><div><h2>Student bias review board</h2><p>Longitudinal bias review and student competency analysis</p></div></div><div class="sw-pick"><label for="board-student">Target student:</label><select id="board-student">${all.map((s) => `<option value="${esc(key(s))}" ${key(s) === boardStudent ? "selected" : ""}>${esc(s.student.alias)} • ${plural(s.kpis.n, "visit")} • ${OVERALL_LABEL[s.variance.overall]}</option>`).join("")}</select></div></section>
+  return `<div class="hub is-faculty"><section class="hp switcher"><div class="sw-title"><span class="sw-ico">${hubIcon("scope")}</span><div><h2>Student bias review board</h2><p>Longitudinal bias review and student competency analysis</p></div></div><div class="sw-pick"><label for="board-student">Target student:</label><select id="board-student" ${busy ? "disabled" : ""}>${all.map((s) => `<option value="${esc(key(s))}" ${key(s) === boardStudent ? "selected" : ""}>${esc(s.student.alias)} • ${plural(s.kpis.n, "visit")} • ${OVERALL_LABEL[s.variance.overall]}</option>`).join("")}</select></div></section>
   ${hubBanner(current, {
     title: current.student.alias,
     pill: current.notes.flagged ? "Flagged for mentorship" : "Bias review",
@@ -2150,13 +2163,16 @@ function biasBoard() {
     faculty: true,
   })}
   <section class="hp core"><div class="core-head"><div><div class="core-title"><span class="core-tag">Core faculty tool</span><h2>Longitudinal bias variance index</h2></div><p>Cross-analysing performance variance (rubric, empathy, learning objectives, open questions, time spent) across the patient presentations this student has seen.</p></div><div class="core-overall"><span>Overall bias variance rating:</span><span class="lv big level-${v.overall}">${OVERALL_LABEL[v.overall]}</span></div></div><div class="bc-grid">${items.map((i) => biasCard(i, i.id === focus.id)).join("")}</div>${deepDive(focus)}<details class="evidence"><summary>How to read this</summary><p>Levels come from the widest gap in rubric average or in the rapport and empathy domain between patient groups: under ${v.thresholds.moderate} points is minimal, ${v.thresholds.moderate}–${v.thresholds.notable - 1} moderate, ${v.thresholds.notable} or more notable. A patient group is rated only once it has ${v.thresholds.minPerGroup} visits; "small sample" means a group still has fewer than ${v.thresholds.smallSample}.</p><ul>${v.limitations.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></details></section>
-  <div class="hub-row"><section class="hp span-7"><h3 class="hp-rule">${hubIcon("pen")}<span>Faculty observation notes and debrief agenda</span></h3><label for="board-notes" class="fld">Specific reflection prompts for student session</label><textarea id="board-notes" rows="4" maxlength="5000" placeholder="Note specific moments where the student displayed variance in communication or thoroughness…">${esc(notes)}</textarea><div class="notes-foot"><label class="check"><input type="checkbox" id="board-flag" ${current.notes.flagged ? "checked" : ""}> Flag for 1-on-1 faculty mentorship review</label><div class="notes-save"><span class="muted small">${esc(saved)}</span>${button("Save faculty evaluation notes", "save-board-notes", "", "pri")}</div></div></section><section class="hp span-5 modules"><div><h3 class="hp-rule">${hubIcon("book")}<span>Assign bias mitigation modules</span></h3><p class="muted small">Targeted training modules assigned directly to the student's My performance page:</p><div class="mod-list">${current.modules.map((m) => `<div class="mod ${m.assignedAt ? "is-on" : ""}"><span><b>${esc(m.code)}:</b> ${esc(m.title)}${m.suggested ? ' <span class="lv level-moderate">Suggested</span>' : ""}${m.assignedAt ? `<br><small class="muted">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</small>` : ""}</span><button type="button" class="mod-add" data-action="module-toggle" data-module="${esc(m.id)}" data-assigned="${m.assignedAt ? "true" : "false"}">${m.assignedAt ? "Assigned ✓" : "Assign"}</button></div>`).join("")}</div></div><p class="mod-note">${hubIcon("shield")} Bias review is shown to faculty only. Students see the modules assigned to them, not why they were suggested.</p></section></div>${visitDialog(current)}</div>`;
+  <div class="hub-row"><section class="hp span-7"><h3 class="hp-rule">${hubIcon("pen")}<span>Faculty observation notes and debrief agenda</span></h3><label for="board-notes" class="fld">Specific reflection prompts for student session</label><textarea id="board-notes" rows="4" maxlength="5000" placeholder="Note specific moments where the student displayed variance in communication or thoroughness…">${esc(notes)}</textarea><div class="notes-foot"><label class="check"><input type="checkbox" id="board-flag" ${current.notes.flagged ? "checked" : ""}> Flag for 1-on-1 faculty mentorship review</label><div class="notes-save"><span class="muted small">${esc(saved)}</span>${button("Save faculty evaluation notes", "save-board-notes", "", "pri")}</div></div></section><section class="hp span-5 modules"><div><h3 class="hp-rule">${hubIcon("book")}<span>Assign follow-up learning topics</span></h3><p class="muted small">${current.student.id ? "For " + esc(current.student.alias) + ": reflection topics for a faculty debrief, not patient simulations." : "Select a named student above to assign learning topics or simulations. Unassigned encounters are retained for review only."}</p>${current.student.id ? button("Assign a patient simulation", "assign-case-from-board", `data-student="${esc(current.student.id)}"`, "pri") : ""}<div class="mod-list">${current.modules.map((m) => `<div class="mod ${m.assignedAt ? "is-on" : ""}"><span><b>${esc(m.code)}:</b> ${esc(m.title)}${m.suggested ? ' <span class="lv level-moderate">Suggested</span>' : ""}${m.assignedAt ? `<br><small class="muted">Assigned to ${esc(current.student.alias)} � ${esc(new Date(m.assignedAt).toLocaleDateString())}</small>` : ""}</span><button type="button" class="mod-add" data-action="module-toggle" data-module="${esc(m.id)}" data-assigned="${m.assignedAt ? "true" : "false"}" ${busy || !current.student.id ? "disabled" : ""}>${m.assignedAt ? "Remove assignment" : "Assign topic"}</button></div>`).join("")} </div></div><p class="mod-note">${hubIcon("shield")} Bias review is shown to faculty only. Students see their learning topics, without the faculty analysis.</p></section></div>${visitDialog(current)}</div>`;
+}
+function notice() {
+  return `<div class="toast ${message ? "" : "hidden"}" role="status"><span>${esc(message)}</span>${message ? '<button type="button" class="toast-close" data-action="dismiss-message" aria-label="Dismiss notification"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>' : ""}</div>`;
 }
 function render() {
   if (!demoSession) {
     $("#nav").innerHTML = "";
     $("#app").innerHTML =
-      `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+      notice() +
       rolePicker();
     return;
   }
@@ -2205,7 +2221,7 @@ function render() {
     );
   $("#themeBtn").textContent = "Theme";
   $("#app").innerHTML =
-    `${busy || dirty ? `<div class="app-status"><span>${busy ? "Working…" : "Unsaved draft changes"}</span></div>` : ""}<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+    `${busy || dirty ? `<div class="app-status"><span>${busy ? "Working…" : "Unsaved draft changes"}</span></div>` : ""}${notice()}` +
     {
       studio,
       "student-home": studentHome,
@@ -3380,6 +3396,11 @@ document.addEventListener("click", async (e) => {
   const t = e.target.closest("[data-action]");
   if (!t) return;
   const a = t.dataset.action;
+  if (a === "dismiss-message") {
+    message = "";
+    $(".toast").outerHTML = notice();
+    return;
+  }
   if (busy && a !== "toggle-pause") return;
   try {
     if (a === "filter-objective") {
@@ -3399,6 +3420,7 @@ document.addEventListener("click", async (e) => {
         .querySelector("[data-assignment-student]").value;
       if (!studentId)
         throw new Error("Select a student to assign this simulation.");
+      selectedStudent = studentId;
       const payload = {
         studentId,
         [t.dataset.kind === "group" ? "groupId" : "profileId"]: t.dataset.id,
@@ -3469,6 +3491,11 @@ document.addEventListener("click", async (e) => {
       list = [];
       savedPatients = [];
       facultyResults = [];
+      insightsData = null;
+      boardStudent = "";
+      boardFocus = "";
+      boardDraft = null;
+      visitModal = "";
       groups = [];
       assignments = [];
       issues = [];
@@ -3507,8 +3534,7 @@ document.addEventListener("click", async (e) => {
       } catch (error) {
         busy = false;
         message = error.message;
-        $(".toast").textContent = message;
-        $(".toast").classList.remove("hidden");
+        $(".toast").outerHTML = notice();
         return;
       }
     }
@@ -3597,16 +3623,28 @@ document.addEventListener("click", async (e) => {
       boardDraft = null;
     }
     if (a === "module-toggle") {
-      await api(
+      const assigned = t.dataset.assigned !== "true";
+      const topic = insightsData.students.find((s) => s.student.id === boardStudent)?.modules.find((m) => m.id === t.dataset.module)?.title || "Learning topic";
+      busy = true;
+      render();
+      const response = await api(
         `/api/insights/modules/${boardStudent}/${t.dataset.module}`,
         "PUT",
-        { assigned: t.dataset.assigned !== "true" },
+        { assigned },
       );
       await loadInsights();
-      message =
-        t.dataset.assigned === "true"
-          ? "Module unassigned."
-          : "Module assigned. It now shows on the student's My performance page.";
+      message = assigned
+        ? `${topic} assigned to ${response.student.alias}. It appears under Faculty learning topics on their assessments page.`
+        : `${topic} removed from ${response.student.alias}'s learning topics.`;
+    }
+    if (a === "assign-case-from-board") {
+      selectedStudent = t.dataset.student;
+      catalogObjective = "";
+      catalogDiscipline = "";
+      tab = "studio";
+      await refresh();
+      message = `Choose a simulation to assign to ${students.find((s) => s.id === selectedStudent).alias}.`;
+      pageTop();
     }
     if (a === "board-add-prompt") {
       const current = $("#board-notes").value.trim();
@@ -3975,6 +4013,7 @@ document.addEventListener("change", (e) => {
   if (e.target.id === "visit-patient") return filterVisits();
   if (e.target.id !== "board-student") return;
   boardStudent = e.target.value;
+  message = "";
   boardFocus = "";
   boardDraft = null;
   render();
