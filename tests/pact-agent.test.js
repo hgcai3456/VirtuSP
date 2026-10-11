@@ -105,6 +105,30 @@ test("runOnce reports coverage after the spawned suite", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test("runOnce loads the catalog and spawns when no runner is injected", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "virtusp-pact-real-"));
+  const outcome = agent.runOnce(root, {
+    spawnSync: () => ({ status: 0, stdout: "ok", stderr: "" }),
+  });
+  assert.equal(outcome.code, 0);
+  assert.equal(outcome.ok, false);
+  assert.ok(outcome.missing.includes("GET /api/live"));
+  let printed = "";
+  assert.equal(
+    agent.runCli({
+      root,
+      maxAttempts: 1,
+      spawnSync: () => ({ status: 1, stdout: "", stderr: "not ok 1" }),
+      write: (text) => {
+        printed += text;
+      },
+    }),
+    1,
+  );
+  assert.match(printed, /still failing/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("spawnTests records the child status and a timeout", () => {
   const ok = agent.spawnTests(process.cwd(), {
     spawnSync: () => ({ status: 0, stdout: "ok", stderr: "" }),

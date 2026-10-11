@@ -4,6 +4,10 @@
 
 `.cursor/agents/pact-tester.md` writes Pactflow contract tests for the HTTP API. `node agents/pact-agent.js` runs `npm run test:pact` and repeats while the failure changes. The same failure three times stops the loop. The consumer is `virtusp-web` and the provider is `virtusp-api`, using `@pact-foundation/pact`. Local verification reads `pacts/virtusp-web-virtusp-api.json`. When `PACT_BROKER_BASE_URL` and `PACT_BROKER_TOKEN` are set, the provider also publishes that result to the Pactflow broker. `POST /api/import-files` is not replayed because it starts a Claude import; `GET /api/import-files/:id` covers a missing job. `npm run test:pact` passed 3 tests and failed 0. These checks are not clinical validation.
 
+## Presentation pass (2026-10-10)
+
+The landing page and simulator chrome now follow a familiar product page and a clinical workspace: one primary action, text tabs for the workspace, a labeled theme control (Light, Dark, then match this device), and a history table instead of a stack of cards. Visit text is left-aligned. Scores, chart rows, and the interview clock use the words and numbers without pills, shadows, or tracked labels. Fact ids are no longer printed under patient lines; the reply source stays. A faculty-authored rapport phrase still opens a guarded fact once. Model prose is not spoken and does not raise trust. `tests/frontend.test.js`, `tests/engine.test.js`, and `tests/release-boundary.test.js` passed. These checks are engineering checks, not clinical validation.
+
 ## Secure encounter demo (2026-10-10)
 
 The Chrome “not secure” warning on `http://127.0.0.1` was plain HTTP. Loopback IP addresses are not a secure context, so the browser will not treat camera and microphone permission as trustworthy there. `npm run dev:https` serves `https://localhost:3002/app.html` with a locally trusted certificate from `npm run cert:local` (mkcert, or a current-user certificate on Windows). Certificate files stay in gitignored `certs/`. Do not bypass the warning or start Chrome with security flags.
