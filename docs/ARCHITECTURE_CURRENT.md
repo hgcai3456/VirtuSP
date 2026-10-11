@@ -1,36 +1,54 @@
-# Actual root runtime
+# Root application architecture
 
-This documents the application started by `npm start` in the repository root. `VirtuSP-upstream/` is a separate nested checkout; its deployment, integrations, and historical test reports are not evidence for this root application.
+Reviewed October 11, 2026. Scope: the root application started by `npm start`. The separate `VirtuSP-upstream/` checkout has its own implementation and documentation; its features and reports are not evidence for this runtime.
 
-Browser public/js/app.js sendQuestion/ask
-→ POST /api/encounters/:id/turns with question and requestId
-→ server.js origin/host/body checks
-→ lib/api.js existing server attempt lookup (client facts ignored)
-→ lib/encounter.js request ledger and keyword selection
-→ provider/model: none; deterministic published wording
-→ disclosure/trust checks, exact wording or approved deflection/unknown/conversation
-→ saved patient turn in server state, event recording, deterministic artifact release
-→ JSON snapshot back to browser
-→ optional browser speech synthesis and static synthetic illustration
-→ transcript/chart projection
-→ public/js/app.js grade/vRep over recorded state, event links, faculty-review caveat.
+## Boundaries and responsibilities
 
-Publication: browser draft → POST /api/cases → schema/reference validation → new immutable version → atomic recovery-file write. Start: POST /api/encounters with caseId/version → snapshot of the server-owned version. State-changing chart, review, role, plan, handoff and reconciliation actions use POST /api/encounters/:id/actions.
+The browser owns Studio drafts, display, optional speech, and formative assessment calculations. The Node service owns published versions, encounter truth, disclosure, turns, and recorded actions. It serves UI assets and JSON APIs from the same origin. No live generative dialogue or external TTS adapter is enabled. Browser recognition may use a vendor service.
 
-## Competing and historical paths
+- [server.js](../server.js): static files, build identity, basic probes, Host/origin checks, bounded JSON, and optional publication backup.
+- [lib/api.js](../lib/api.js): validation, publication/version assignment, recovery-file writes, and process-local encounter registry.
+- [lib/encounter.js](../lib/encounter.js): matching, trust/disclosure gates, chart release, transcript, events, review, and reconciliation.
+- [lib/cases.js](../lib/cases.js): packaged synthetic definitions, served as `/js/cases.js` for authoring.
+- [lib/virtusp-core.js](../lib/virtusp-core.js): matching helpers; browser-copy parity is tested.
+- [lib/region-fence.js](../lib/region-fence.js): optional DynamoDB active-writer authority check; no shared attempt persistence.
+- [lib/region-fence.js](../lib/region-fence.js): optional DynamoDB authority check, not shared attempt persistence.
+- [lib/cloud-store.js](../lib/cloud-store.js): optional AWS SDK S3 publication-copy adapter.
+- [public/js/app.js](../public/js/app.js): state projection, retries, Studio, and heuristic assessment.
 
-- Browser clinical ask/disclosure implementations were removed. The normal UI cannot call an alternate browser dialogue engine.
-- lib/cases.js is the single packaged schema/data definition, served as /js/cases.js for faculty authoring. Drafts are editable copies. A publication never trusts an encounter-turn payload as patient truth.
-- lib/virtusp-core.js contains matching helpers used by the server. public/js/virtusp-core.js is an identical browser bundle; the parity test prevents drift. It does not execute encounters.
-- The localStorage cache holds drafts and display snapshots; it is not restored as clinical authority. Refresh starts at Studio.
-- Server validate is authoritative; the Studio has an earlier advisory validation pass. Publication can still reject a draft which passed the advisory pass.
-- VirtuSP-upstream is a separate checkout; root scripts import nothing from it. Its engines/providers/tests are outside this runtime and were not deleted.
-- No external dialogue, TTS, animated avatar, AWS adapter, duplicate health endpoint or LMS integration is active in root code.
+## Publication and encounter flow
 
-## States and limitations
+1. Browser draft → `POST /api/cases` → server structure/reference validation.
+2. Assign the next case version, deep-freeze the object, write the publication collection to a temporary file, then rename into recovery storage.
+3. Add the version to memory; optionally write a per-version local copy and S3 backup. Backup failure returns 503 **after** local publication, including the published profile.
+4. `POST /api/encounters` selects published ID/version and creates a fresh snapshot, transcript, events, and replay ledger.
+5. Turns supply question/request ID; client facts are not patient truth. The engine returns approved wording, authored deflection, or fixed unknown/conversational replies.
+6. Chart/review/role/plan/handoff/reconciliation actions operate on the registered encounter. The browser renders state and calculates formative feedback with event links.
 
-Artifact release does not establish that a section was opened. Opening question-only Imaging does not release records. Explicit section review requires that section to have been opened and contain released chart evidence. Locked artifacts cannot be reviewed. Review remains self-reported acknowledgment, not comprehension.
+Identical canonical questions under the same per-attempt request ID replay the original turn result without a second turn. Changed questions return 409. The accompanying snapshot reflects current encounter state; replay does not guarantee identical response bytes. Publication and general actions lack this idempotency contract. [README API contract](../README.md#api-contract) documents routes and limits.
 
-Lab and imaging display text comes from the published chart fact labels, not from newly generated content. Intentional discrepancies remain two distinct sources. Reconciliation and empathy/SBAR feedback are simple rule/keyword heuristics for faculty review, not validated clinical assessment.
+## State semantics
 
-Published versions persist on disk. Attempt snapshots and replay ledgers live in one server process; multiple replicas require shared durable state and atomic idempotency. The local teaching UI receives full faculty case definitions, so disclosure is not an access-control barrier.
+Release, opening, and explicit review are distinct. Opening Imaging does not release question-only artifacts. Labs can release through an authored question or opening the section. Section review requires an opened section with disclosed evidence; locked artifacts cannot be reviewed. Ineligible review attempts return unchanged state, not a distinct error. Review is acknowledgment, not understanding.
+
+Intentional discrepancies retain patient and chart sources. Reconciliation credit uses authored keywords after a discrepancy surfaces; it is not semantic validation. SBAR coverage matches disclosed fact labels or eligible authored keywords. Browser objective/communication assessment is editable and not a grading authority. Interview-sequence heuristics include seed identifiers; broad educational generalization is unverified.
+
+## Storage and failure model
+
+Browser localStorage holds drafts/display cache; refresh returns to Studio. Published versions use `published-cases.json` in the configured directory. Startup validates recovery content and fails on invalid data. Temporary-file rename does not establish crash durability or concurrent-writer safety.
+
+Encounters/replay live in one process and disappear on restart. Multiple processes can disagree on publications and lose attempts; shared EFS alone does not fix this. S3 writes publication copies with AES256 encryption; startup never reads S3. See [operations](OPERATIONS.md) for recovery and partial-publication handling.
+
+## HTTP, identity, and deployment
+
+API JSON uses `no-store`; static assets use `no-cache` for revalidation. `/api/live` and `/api/ready` precede Host/origin checks and expose build metadata; neither tests writable storage or S3. Readiness checks regional authority when fencing is configured; liveness bypasses it. Other API routes enforce localhost or configured Host values and reject a supplied mismatching Origin. Requests without Origin are accepted; this is not authentication.
+
+Build identity combines a source SHA with selected-file hashes, not signed provenance or a complete content checksum. The [deployment pipeline](DEPLOYMENT.md) uses image digests and checks hosted SHA. Local/hosted revisions can differ; see [status](STATUS.md).
+
+Full faculty definitions reach the browser. Disclosure is a teaching workflow, not confidentiality. Institutional use requires the controls and governance in [security](SECURITY.md).
+
+## Optional regional authority fence
+
+With `VIRTUSP_DR_TABLE` set, readiness and other non-liveness APIs read DynamoDB `control` consistently in `VIRTUSP_DR_CONTROL_REGION` (default us-west-2). The record must identify `AWS_REGION` as active and have `leaseExpires` more than five seconds ahead; missing/wrong/expired records or read errors produce 503. Reads have a three-second abort timeout and one SDK attempt. This checks access before dispatch but does not coordinate filesystem versions, recover encounters, renew authority, or establish regional failover. Without the table, checks are disabled. Mock fence tests do not establish live disaster recovery.
+
+Unmapped `manual` objectives remain unassessed. Handoff state now retains submitted text alongside heuristic coverage counts; it is still process-local.

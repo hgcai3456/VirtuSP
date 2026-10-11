@@ -1,4 +1,10 @@
-# VirtuSP final pre-submission cleanup
+# Historical preflight archive — earlier cleanup snapshot
+
+**Historical record, not current release status.** The report below preserves the earlier 26-test run, build identity, manual-browser rehearsal, intermediate failures, and artifact-cleanup history. Its original headings and statements about uncommitted work, pending hosting, dependency-free operation, and staged artifacts describe that checkpoint; they do not govern the current implementation. The artifact-exclusion follow-up supersedes the earlier remaining-artifact warnings within this record.
+
+For the October 11, 2026 documentation review, use [TESTING.md](TESTING.md) (37/37 passing tests in the final working-tree snapshot), [STATUS.md](STATUS.md) (local/observed hosted revisions), [ARCHITECTURE_CURRENT.md](ARCHITECTURE_CURRENT.md), [DEPLOYMENT.md](DEPLOYMENT.md), and [SECURITY.md](SECURITY.md). Optional S3 and basic health endpoints now exist. This review did not repeat the archived browser rehearsal, secret scan, artifact hash checks, or live microphone checks.
+
+## Archived report
 
 ## Submission follow-up: artifacts excluded
 

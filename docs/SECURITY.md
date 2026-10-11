@@ -1,13 +1,43 @@
-# Security and deployment boundary
+# Security boundaries and reporting
 
-This documents the application started by `npm start` in the repository root. `VirtuSP-upstream/` is a separate nested checkout; its deployment, integrations, and historical test reports are not evidence for this root application.
+Reviewed October 11, 2026. Scope: the root application started by `npm start`; the separate `VirtuSP-upstream/` checkout is outside this runtime.
 
-The root server uses built-in Node modules, reads no .env file and exposes no provider credentials. Static serving is limited to public plus the explicitly shared synthetic-case script. API input is bounded, malformed URLs/JSON fail visibly, changed-payload replay returns 409, cross-origin writes are rejected, and localhost Host headers are required. No wildcard CORS was added.
+## Data and trust model
 
-Local supervised demo: synthetic data only, loopback binding, no identity or role enforcement, full faculty case definitions available to the browser, file-persisted published cases and process-local attempts. Anyone with local server access can publish cases. This is not production authentication.
+Use synthetic cases and learner inputs only. Real patient information is outside the approved demo boundary. Browser recognition may send audio to the browser vendor; typed input avoids that dependency.
 
-Public prototype: requires application authentication, faculty/student permissions, deployment-specific origin/host allowlists, TLS, durable attempts and shared idempotency, rate/resource limits, backup/recovery, and monitoring. The root API must be deployed with the static UI; a static-only site is insufficient.
+There is no authenticated identity, faculty/student authorization, case secrecy, rate limiting, tamper-resistant audit, or validated grading. Role labels are teaching metadata. Anyone with API access can read complete cases, publish, and operate known encounter IDs. The browser calculates editable assessment. Disclosure gates/event links do not prevent cheating or demonstrate competence.
 
-Production healthcare deployment additionally requires privacy and consent review, approved data boundaries, audit trails resistant to modification, retention/deletion policy, access reviews, secret management, operational incident handling, accessibility, validated clinical/educational governance, and faculty assessment review. Neither objective completion nor heuristic empathy/SBAR coverage establishes competence. No PHI, HIPAA-compliance or clinical-validation claim is supported.
+## Implemented controls and limits
 
-Ignore rules cover .env, recovery, provider caches, session artifacts, output, historical reports, the local certificate directory, Terraform state/variables/plans/provider caches, and the generated AWS deployment ZIP. At the user's request, all 14 previously staged certificate and generated infrastructure artifacts were removed from the Git index; their local contents were preserved and hash-checked. CER and PEM contain public certificates, with no private-key blocks. The PFX and binary plan/bundles were excluded conservatively without decryption. Terraform state metadata and variable counts were inspected without printing values. A bounded text-pattern scan found no credential matches but did not inspect encrypted PFX contents, ignored .env values, every data record, or Git history. This is not a comprehensive secret audit; rotate any credentials independently found exposed.
+[server.js](../server.js) defaults to loopback, bounds API bodies to 256,000 bytes, handles malformed URLs/JSON, restricts static traversal, and serves API JSON with `no-store`. Static assets use `no-cache`. Host checks accept localhost/127.0.0.1 or configured exact Host values, including ports. Supplied Origin must match HTTP/HTTPS plus request Host; missing Origin is accepted. These controls do not authenticate a caller or replace TLS/proxy controls.
+
+`/api/live` and `/api/ready` bypass those Host/origin checks and expose source/build identity. Neither checks writable storage, S3 availability, or institutional readiness. Readiness checks configured DynamoDB regional authority; liveness does not. [HTTP tests](../tests/integration.test.js) cover supplied-origin rejection, configured-host acceptance, traversal, malformed URL, and basic probes; this is not a penetration test.
+
+Publication checks structure/references, not medical correctness. Turn replay deduplicates canonical questions in one process; general actions/publication lack that guarantee. In-memory attempts lack a durable retention or explicit garbage-collection policy; resource controls are necessary before broader exposure.
+
+## Storage and credentials
+
+The application does not encrypt recovery files or browser localStorage. Restrict access and establish retention/deletion and backup ownership before institutional data. Startup never restores from S3. Backup failure can occur after local publication; follow [operations](OPERATIONS.md).
+
+Optional S3 uses the SDK credential/region chain and requests AES256 encryption on scoped publication objects. Narrow the runtime role's write permissions; verify actual bucket/role policies independently. Never embed credentials in source, cases, browser assets, logs, screenshots, or documentation. `.env` is not loaded automatically.
+
+The [deployment workflow](../.github/workflows/deploy.yml) uses OIDC. The configuration script specifies a repository-ID-qualified subject, not the simple subject described in the earlier runbook. Inspect the exact checked-in and live trust policies before changes. Policy intent does not establish deployed IAM. The configurator changes AWS resources and requires an authorized operational action; do not run it for a documentation check.
+
+## Before broader exposure
+
+Implement and verify identity/permissions, protected learner/case APIs, TLS/proxy allowlists, rate/time/resource limits, shared durable state, reliable backup/restore, secrets management, alerts, incident handling, and audit integrity. Define ownership, consent, access review, retention/deletion, accessibility, and clinical/educational governance. No HIPAA, clinical-validation, or high-stakes assessment claim is supported.
+
+## Repository hygiene and historical audit
+
+Ignore rules do not remove previously tracked/staged files. Inspect intended release contents. [Preflight history](PREFLIGHT_REPORT.md) records exclusion of 14 certificate/generated artifacts with local files preserved. Its bounded text scan excluded encrypted/binary bundles, ignored environment contents, some data, and history. It was not comprehensive and was not repeated in this review.
+
+For exposed credentials, revoke/rotate through the owner and investigate privately. Removing the latest file alone does not resolve historical exposure. Do not print values in diagnostic output.
+
+## Reporting and incident response
+
+No designated private reporting channel or security owner is documented. Coordinate privately with the project owner until one is established. Supply affected revision, synthetic reproduction, impact, and redacted evidence; never place secrets or patient information in public issues. Restrict access during an incident, preserve necessary evidence, involve the owner, and restore a verified release/data backup where appropriate. Rehearse a formal incident process before institutional deployment.
+
+## Regional access fence
+
+The optional DynamoDB control record can deny non-liveness APIs/readiness when this region lacks current authority. It is disabled without `VIRTUSP_DR_TABLE` and does not authenticate users, isolate multiple same-region tasks, or persist encounters. A three-second authority read can fail closed with 503; role permissions and the control-record renewal/ownership require independent operational verification. See [architecture](ARCHITECTURE_CURRENT.md) for exact lease checks.
