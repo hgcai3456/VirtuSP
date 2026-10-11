@@ -1,5 +1,11 @@
 # Teammate and agent handoff
 
+## Patient card cleanup and faculty authoring visibility (2026-10-11)
+
+Patient cards no longer show origin labels (including AI-synthetic) or description/greeting captions. Saved-library cards are compact too; descriptions, original sources and provenance remain stored and editable. Individual Edit/Start actions sit above assignment controls. Edit and quick AI generation remain faculty-only; the workspace switch label now names Student or Faculty explicitly. Navigation and role changes return to the top, keeping the Patient Studio toolbar visible.
+
+All **119 tests pass**, including faculty editing/quick generation, absence of student authoring, and page-navigation scroll reset. The six catalog categories are implementation-selected discovery shortcuts based on mentor goals, not prescribed rubric domains or clinically approved objectives. All objectives remains the default; category expansion is paused pending human review. Noncoding market, finance, clinical and pitch work is now human-owned; the earlier research handoff is reference material, not a request to start more Codex research. EMR/avatar ownership remains unchanged.
+
 ## Objective-first discovery and parallel handoff (2026-10-10)
 
 Built on teammate main `546fc20`, preserving the EMR side menu, camera/presence and visit timer. Faculty/student catalogs now start with learning objective categories, with an optional learner discipline filter. Assigned work is always visible. Faculty select a student and Assign directly on each individual/group card, without expanding a panel. Faculty feedback is a vertical view with objectives, rubric reasoning, interview review and cited evidence directly readable; students keep their tabs and delayed group feedback.

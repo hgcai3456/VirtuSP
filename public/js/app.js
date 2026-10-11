@@ -1,5 +1,9 @@
 "use strict";
 const $ = (s) => document.querySelector(s);
+function pageTop() {
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
 const teaching = window.VirtuCatalog;
 let catalogObjective = "", catalogDiscipline = "";
 function catalogMatches(item) {
@@ -525,15 +529,13 @@ function importPanel() {
   return `<section class="import-panel" id="import-drop">${drafts ? `<div class="row draft-bar"><span><b>${drafts} draft${drafts > 1 ? "s" : ""}</b> not published yet. Students can only start published patients.</span>${button(drafts > 1 ? `Publish all ${drafts} drafts` : "Publish the draft", "publish-drafts", "", "pri")}</div>` : ""}<div id="import-progress" class="import-progress" role="status" aria-live="polite" ${importing ? "" : "hidden"}>${importing ? '<div class="import-status"><b>Sending the files…</b></div><div class="meter indeterminate"><i style="width:100%"></i></div>' : ""}</div>${report}<details class="evidence import-options" ${importNote || importRedraft ? "open" : ""}><summary>Import options</summary><div class="import-row"><div class="field"><label for="import-note">Note for the importer (optional)</label><input id="import-note" maxlength="4000" value="${esc(importNote)}" placeholder="e.g. Build the patient named Maria; focus on medication adherence"></div><label class="check"><input type="checkbox" id="import-redraft" ${importRedraft ? "checked" : ""}> Redraft patients already in the library</label></div><p class="muted small">Import files, import a folder, or drop either on this page. PDF, Word, text, CSV and images are read. A roster CSV makes one patient per row and matches portraits by name. Imports arrive as drafts for you to review and publish.</p></details></section>`;
 }
 function card(p, faculty = true) {
-  const imported = ["imported", "organizer"].includes(p.origin);
-  const kind = `${imported ? "Imported case" : "AI-synthetic"}${faculty && !p.version ? " · draft" : ""}`;
   const remove =
     faculty && p.deletable
       ? deleteAsk === p.id
         ? `<div class="card-confirm" role="alertdialog" aria-label="Delete ${esc(p.name)}"><p><b>Delete ${esc(p.name)}?</b></p><p class="muted small">Past visits and their feedback are kept.</p><div class="row">${button("Delete", "delete-confirm", `data-id="${esc(p.id)}"`, "danger")}${button("Cancel", "delete-cancel")}</div></div>`
         : `<button type="button" class="card-delete" data-action="delete-ask" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}" title="Delete this patient" ${busy ? "disabled" : ""}>×</button>`
       : "";
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}">${remove}<span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">${kind}</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${p.description ? `<p class="case-caption">${esc(p.description)}</p>` : ""}${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : faculty ? button("Publish", "publish-draft", `data-id="${esc(p.id)}" title="Confirm your review and publish, so it can be assigned and started"`, "pri") : ""}</div></article>`;
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}">${remove}<span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3>${faculty && !p.version ? '<p class="patient-kind">Draft</p>' : ""}<p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p><div class="row patient-actions">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : faculty ? button("Publish", "publish-draft", `data-id="${esc(p.id)}" title="Confirm your review and publish, so it can be assigned and started"`, "pri") : ""}</div>${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}</article>`;
 }
 
 function studio() {
@@ -555,7 +557,7 @@ function studio() {
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}${button(importing ? "Importing…" : "Import files", "import-files")}${button("Import folder", "import-folder")}<input id="files-import" type="file" multiple hidden><input id="folder-import" type="file" webkitdirectory hidden></div></div>${importPanel()}
  ${catalogPicker()}<h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all cases.</p>'}</div>
- ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3><p>${esc(p.description || "Open the case to review its saved findings and documents.")}</p>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
+ ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
  </div>`;
 }
@@ -566,7 +568,7 @@ function groupCards(faculty = false) {
       .sort((a, b) => (b.kind === "comparison") - (a.kind === "comparison"))
       .map((g) => {
         const assignment = assignments.find((a) => a.groupId === g.id);
-        return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">AI-synthetic · ${g.trialCount} patients</p><p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
+        return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">${g.trialCount} patients</p><p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
       })
       .join("") || `<p class="catalog-empty">${catalogObjective || catalogDiscipline ? "No groups match. Clear filters to see all assessments." : "No ready group assessments yet."}</p>`
   );
@@ -2197,8 +2199,8 @@ function render() {
       .join("") +
     button(
       demoSession.role === "faculty"
-        ? "Faculty · switch"
-        : `${students.find((s) => s.id === demoSession.studentId)?.alias || "Student"} · switch`,
+        ? "Faculty workspace · Switch"
+        : `Student workspace · ${students.find((s) => s.id === demoSession.studentId)?.alias || "Student"} · Switch`,
       "switch-role",
     );
   $("#themeBtn").textContent = "Theme";
@@ -3450,6 +3452,7 @@ document.addEventListener("click", async (e) => {
       await refresh();
       busy = false;
       render();
+      pageTop();
       return;
     }
     if (a === "switch-role") {
@@ -3482,6 +3485,7 @@ document.addEventListener("click", async (e) => {
       localStorage.removeItem("virtusp-active-v2");
       busy = false;
       render();
+      pageTop();
       return;
     }
     if (a === "create-group") {
@@ -3952,6 +3956,7 @@ document.addEventListener("click", async (e) => {
     }
     busy = false;
     render();
+    if (a === "nav") pageTop();
     syncVisitMedia();
   } catch (err) {
     busy = false;

@@ -1,5 +1,7 @@
 # Separate agent window: research and pitch handoff
 
+Status update (2026-10-11): the user has assigned this noncoding work to a human reviewer. Keep this as reference material; do not start additional Codex research unless the user requests it again.
+
 Prepared 2026-10-10 against `546fc20`. This document can be pasted into another agent window. Research outputs stay separate from application edits so the workflow, EMR and avatar owners can work in parallel.
 
 ## Paste this task into the new window

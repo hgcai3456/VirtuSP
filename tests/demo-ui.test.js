@@ -83,6 +83,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.equal(d.querySelectorAll('.patient-card [data-action="pick"]').length, 8);
+    assert.equal(d.querySelector(".case-caption"), null);
+    assert.ok(!d.querySelector(".patient-grid").textContent.includes("AI-synthetic"));
+    assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Faculty workspace/);
     assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
     assert.ok(
       !d.querySelector(".patient-grid").textContent.includes("Marcus Ramirez"),
@@ -118,8 +122,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
         .querySelector(".patient-grid")
         .textContent.match(/organizer|scaffold/i),
     );
+    d.documentElement.scrollTop = 900;
     click("nav", '[data-tab="tests"]');
     await wait(() => !!d.getElementById("new-student-alias"));
+    assert.equal(d.documentElement.scrollTop, 0);
     fill("new-student-alias", "Student C");
     click("add-student");
     await wait(
@@ -171,6 +177,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     click("choose-role", '[data-role="student"]');
     await wait(() => !!d.querySelector(".student-assignments"));
+    assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Student workspace/);
     assert.match(
       d.querySelector("#app").textContent,
       /My assigned assessments/,

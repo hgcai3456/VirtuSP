@@ -1,5 +1,7 @@
 # Medical student: clinical review, market evidence and demo handoff
 
+Status update (2026-10-11): the user has assigned this noncoding work to a human reviewer. Keep this as reference material; do not start additional Codex research unless the user requests it again.
+
 Prepared 2026-10-10 against checkpoint `546fc20`. Development is continuing in parallel; verify the current app before recording. This is a task brief, not completed market research or clinical validation.
 
 ## Ready-to-send message
