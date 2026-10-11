@@ -1,5 +1,9 @@
 # Teammate and agent handoff
 
+## Draft and Bedrock replies (2026-10-11)
+
+`lib/cloud.js` `json()` was returning an observability wrapper, so draft review, synthetic generation, and patient replies read fields that were not on that wrapper. It now returns the parsed object and keeps the observation detail on a non-enumerable `__obs` property. `node --test tests/cloud.test.js tests/generation.test.js tests/patient-bedrock.test.js` passed 12 tests, and `npm test` then passed 217 tests with 0 failures. These checks are not clinical validation.
+
 ## Unit-test loop (2026-10-11)
 
 `.cursor/agents/unit-tester.md` recursively writes unit tests, runs `npm test`, and updates the code until 100% of the unit tests pass and every new or changed line and branch is covered. The stop hook in `.cursor/hooks.json` sends the agent back through that loop. A failing test is fixed in the code under test, and the assertion stays. An uncovered line gets another test. The same result three times stops the loop. `VIRTUSP_SKIP_UNIT_TEST_AGENT=1` turns the hook off. `node --test tests/unit-test-agent.test.js` passed 17 tests. These checks are not clinical validation.
