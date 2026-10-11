@@ -46,7 +46,9 @@ Extraction intentionally selects a limited set of findings (currently prompted f
 
 ## Verification and recovery
 
-All 81 automated regressions pass, including every roster's clinical Notes, full source preservation, summary save/reload, faculty-library/student denial, once-only migration, edited-draft protection, and immutable releases/encounters. Isolated Chrome checks verify the saved library and Yvette editor at desktop/mobile widths. Tests use fixtures/local inference; no new live Bedrock quality or clinical-validation claim is made.
+The original repair passed 81 regressions; after merging teammate `a09d7f3`, **all 104 automated regressions pass**, including every roster's clinical Notes, full source preservation, summary save/reload, faculty-library/student denial, once-only migration, edited-draft protection, and immutable releases/encounters. Isolated Chrome checks verify the saved library, Yvette editor and Notes visibility below pinned controls at desktop/mobile widths. The merge also repairs the missing chat-tracker import and restores test-database isolation. Tests use fixtures/local inference; no new live Bedrock quality or clinical-validation claim is made.
+
+The applied local migration preserved all 27 drafts, 16 encounters, 20 earlier releases and uploaded originals, appended eight contextual bundled versions, and reported S3 synced. Each existing clinical fact, artifact, source and objective array was compared before/after. Newer optional profile archival from the teammate merge is a separate replica; the active encounter authority remains JSON.
 
 Before applying context restoration, take a full ignored backup and stop the local app. The migration preserves clinical fact/source/artifact/objective arrays and appends contextual versions for existing bundled releases; older versions are never edited. Backups and live state stay ignored.
 

@@ -110,7 +110,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
   };
   try {
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
-    await wait(() => doc.querySelectorAll(".patient-card").length === 7);
+    await wait(() => doc.querySelectorAll(".patient-card").length === 8);
     assert.equal(doc.querySelector(".editor"), null);
     click("new");
     assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
@@ -120,7 +120,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      7,
+      8,
     );
     click("close-patient");
     assert.equal(doc.getElementById("patient-dialog"), null);
@@ -138,7 +138,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("dismiss-publication-error");
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      7,
+      8,
     );
     const pdf = require("./pdf-fixture")([
       "Synthetic faculty case",
@@ -342,7 +342,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(
       (await (await client(base + "/api/profiles")).json()).profiles.length,
-      7,
+      8,
       "Extraction is only a preview",
     );
     assert.equal(
@@ -379,7 +379,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(
       () =>
         !doc.getElementById("patient-dialog") &&
-        doc.querySelectorAll(".patient-card").length === 8,
+        doc.querySelectorAll(".patient-card").length === 9,
     );
     const created = (
       await (await client(base + "/api/profiles")).json()
@@ -432,6 +432,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("submit-patient");
     await wait(() => !doc.getElementById("patient-dialog"));
     click("launch", '[data-id="omar"]');
+    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
+    click("answer-call");
     await wait(() => !!doc.getElementById("question"));
     window.speechSynthesis.cancel();
     await wait(() => {
@@ -560,7 +562,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
-    assert.ok(doc.querySelector('[data-action="mic"]'));
+    assert.ok(doc.querySelector('.mic-btn[data-action="toggle-pause"]'));
     assert.deepEqual(errors, []);
   } finally {
     window.close();

@@ -81,7 +81,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     await wait(() => !!d.getElementById("demo-student"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
-    await wait(() => d.querySelectorAll(".patient-card").length === 7);
+    await wait(() => d.querySelectorAll(".patient-card").length === 8);
     assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
     assert.ok(
       !d.querySelector(".patient-grid").textContent.includes("Marcus Ramirez"),
@@ -179,11 +179,11 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelector('[data-action="new"]'), null);
     assert.equal(d.querySelector('[data-tab="results"]'), null);
     click("nav", '[data-tab="studio"]');
-    assert.equal(d.querySelectorAll(".patient-card").length, 7);
+    assert.equal(d.querySelectorAll(".patient-card").length, 8);
     assert.equal(d.querySelector('[data-action="pick"]'), null);
     click("nav", '[data-tab="student-home"]');
     await wait(() => !!d.querySelector(".student-assignments"));
-    assert.equal(d.querySelectorAll(".patient-card").length, 7);
+    assert.equal(d.querySelectorAll(".patient-card").length, 8);
     assert.equal(d.querySelector('[data-action="add-student"]'), null);
     assert.equal(d.querySelector('[data-action="create-group"]'), null);
     click("start-test");
