@@ -1,6 +1,60 @@
 (function (root) {
+  // Neutral authored question topics; clinical values stay behind server gates.
+  const TOPICS = {
+    np1: "Reason for visit and current symptoms",
+    ya1: "Reason for visit and current symptoms",
+    mr1: "Reason for visit and current symptoms",
+    wn1: "Reason for visit and current symptoms",
+    dr1: "Reason for visit and current symptoms",
+    wg1: "Reason for visit and current symptoms",
+    vb1: "Reason for visit and current symptoms",
+    os1: "Reason for visit and current symptoms",
+    np2: "Patient-reported medication routine",
+    ya2: "Patient-reported medication routine",
+    mr2: "Patient-reported medication routine",
+    os4: "Patient-reported medication routine",
+    vb2: "Patient-reported medication routine",
+    np3: "Medication adherence and barriers, missed doses or refills",
+    ya3: "Medication adherence and barriers, missed doses or refills",
+    mr3: "Medication adherence and barriers, missed doses or refills",
+    np4: "Allergy history and reactions",
+    dr4: "Allergy history and reactions",
+    np5: "Breathing test results",
+    np6: "Oxygen saturation results",
+    np7: "Pharmacy refill records",
+    ya7: "Pharmacy refill records",
+    mr5: "Pharmacy refill records",
+    vb5: "Pharmacy refill records",
+    np8: "Documented medication list and doses",
+    ya8: "Documented medication list and doses",
+    mr6: "Documented medication list and doses",
+    ya4: "Diet, meals and access to groceries",
+    ya5: "Cardiac blood test results",
+    ya6: "Weight measurements and changes",
+    mr4: "Blood pressure measurements",
+    os5: "Blood pressure measurements",
+    wn2: "Patient-reported sleep and snoring",
+    wn3: "Sleep concerns, witnessed breathing and treatment concerns",
+    wn4: "Sleep study results",
+    wn5: "Collateral sleep history",
+    dr2: "Patient-reported pain severity and frequency",
+    dr3: "Medication barriers and pain concerns",
+    dr5: "Triage pain score",
+    dr6: "Blood count results",
+    dr7: "Documented admissions and medication refill history",
+    wg2: "Mobility and use of walking aids",
+    wg3: "Falls and concerns about mobility",
+    wg4: "Postural blood pressure measurements",
+    wg5: "Physical therapy and fall records",
+    vb3: "Pain medicine use frequency",
+    vb4: "Headache diary counts",
+    os2: "Patient-reported chest symptoms and exertion",
+    os3: "Exertional symptoms and concerns about work",
+    os6: "Documented cardiac symptom history",
+    os7: "Electrocardiogram results",
+  };
   const F = (id, label, k, o) => Object.assign({
-    id, label, k, type: 'reported', src: 'Approved case', role: 'Patient', vis: 'ask', kw: [], ehr: 'hx', gate: 0
+    id, label, k, topic: TOPICS[id], type: 'reported', src: 'Approved case', role: 'Patient', vis: 'ask', kw: [], ehr: 'hx', gate: 0
   }, o);
 
   const roster = [{
@@ -17,6 +71,8 @@
     style: 'Arms crossed, short answers until someone is kind',
     complaint: 'Could not catch her breath overnight',
     history: 'Asthma since college, works rotating clinic shifts',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I've had asthma since college.","topic":"Past medical history and established breathing conditions","kw":["medical history","health history","past medical","medical conditions","health conditions","asthma history","since when"]},
     diagnosis: 'Asthma exacerbation',
     medications: 'Fluticasone inhaler daily, albuterol as needed',
     allergies: 'Penicillin, rash',
@@ -75,6 +131,8 @@
     style: 'Soft voice, agrees first, then tells the truth',
     complaint: 'Swollen ankles and getting winded on the way to the mailbox',
     history: 'Heart failure, lives alone, limited trips to the store',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I have heart failure.","topic":"Past medical history and established heart conditions","kw":["medical history","health history","past medical","medical conditions","health conditions","heart failure","heart condition"]},
     diagnosis: 'Heart failure, volume overload',
     medications: 'Furosemide 40 mg every morning',
     allergies: 'No known drug allergies',
@@ -132,6 +190,8 @@
     style: 'Plain speech, then more direct once he is not judged',
     complaint: 'Headaches and a high blood pressure reading',
     history: 'Hypertension, warehouse night shifts',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I have high blood pressure.","topic":"Past medical history and established blood pressure conditions","kw":["medical history","health history","past medical","medical conditions","health conditions","hypertension"]},
     diagnosis: 'Hypertension, poorly controlled',
     medications: 'Lisinopril 20 mg daily',
     allergies: 'No known drug allergies',
@@ -242,6 +302,8 @@
     style: 'Few words, minimizes until pain is taken seriously',
     complaint: 'Chest and leg pain from a sickle cell crisis',
     history: 'Sickle cell disease, several admissions this year',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I have sickle cell disease.","topic":"Past medical history and established blood conditions","kw":["medical history","health history","past medical","medical conditions","health conditions","sickle cell"]},
     diagnosis: 'Sickle cell pain crisis',
     medications: 'Hydroxyurea, not filled for 3 months',
     allergies: 'Morphine, itching',
@@ -299,6 +361,8 @@
     style: 'Smiles, jokes, then admits the stumbles if asked directly',
     complaint: 'Recovering after a hip fracture',
     history: 'Hip fracture repair, rehab, two near-falls this week',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I had surgery to repair my broken hip, and I'm in rehab.","topic":"Past medical history, surgery and rehabilitation","kw":["medical history","health history","past medical","medical conditions","health conditions","surgery","operation","rehab"]},
     diagnosis: 'Hip fracture, fall risk',
     medications: 'Acetaminophen for pain, home blood pressure pill',
     allergies: 'No known drug allergies',
@@ -353,6 +417,8 @@
     style: 'Light tone, understates medicine use until asked for a count',
     complaint: 'Headaches he attributes to stress',
     history: 'Daily headaches for six weeks, one emergency visit',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I've had headaches for six weeks, and I had one emergency visit.","topic":"History and duration of headaches and prior emergency visits","kw":["medical history","health history","past medical","medical conditions","health conditions","how long","emergency visit"]},
     diagnosis: 'Medication-overuse headache',
     medications: 'Ibuprofen most days. Sumatriptan prescribed, never filled.',
     allergies: 'No known drug allergies',
@@ -408,6 +474,8 @@
     style: 'Direct, then quieter once the job fear is named',
     complaint: 'Fatigue he calls stress from the night shift',
     history: 'Hypertension, exertional chest pressure at the plant',
+    // Explicit patient-known history from the authored history above; guarded details remain separate.
+    patientHistory: {"say":"I have high blood pressure.","topic":"Past medical history and established blood pressure conditions","kw":["medical history","health history","past medical","medical conditions","health conditions","hypertension"]},
     diagnosis: 'Exertional chest pressure, hypertension',
     medications: 'Lisinopril 10 mg daily, fills delayed',
     allergies: 'No known drug allergies',

@@ -46,8 +46,14 @@ let loginStudent = "",
   facultyResults = [],
   selectedStudent = "",
   selectedGroup = "",
-  selectedEvidenceId = "";
+  selectedEvidenceId = "",
+  insightsData = null,
+  boardStudent = "",
+  boardFocus = "",
+  boardDraft = null,
+  visitModal = "";
 let list = [],
+  savedPatients = [],
   history = [],
   profile = null,
   patientDialog = null,
@@ -173,8 +179,18 @@ function control(
   else input = `<input ${attr} type="${type}" value="${esc(v)}">`;
   return `<div class="field ${type === "checkbox" ? "checkfield" : ""}"><label for="${id}">${esc(label)}</label>${input}</div>`;
 }
+const aiSparkle =
+  '<svg class="ai-sparkle" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="m12 3 2.6 6.4L21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3ZM20 1l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"/></svg>';
+const aiActions = new Set([
+  "new-ai",
+  "generate-ai",
+  "random-ai",
+  "regenerate-ai",
+  "parse-patient",
+  "analyze-bias",
+]);
 const button = (text, action, extra = "", cls = "") =>
-  `<button type="button" class="btn ${cls}" data-action="${action}" ${extra} ${busy ? "disabled" : ""}>${text}</button>`;
+  `<button type="button" class="btn ${cls}" data-action="${action}" ${extra} ${busy ? "disabled" : ""}>${aiActions.has(action) ? aiSparkle : ""}${text}</button>`;
 const micIcon =
   '<svg class="mic-glyph" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>';
 function micCopy() {
@@ -277,8 +293,10 @@ async function refresh() {
   assignments = tasks.assignments;
   selectedStudent ||= students[0]?.id || "";
   selectedGroup ||= groups[0]?.id || "";
-  if (demoSession?.role === "faculty")
+  if (demoSession?.role === "faculty") {
+    savedPatients = (await api("/api/profiles?library=saved")).profiles;
     facultyResults = (await api("/api/faculty-results")).students;
+  } else savedPatients = [];
 }
 async function pick(id) {
   const r = await api("/api/profiles/" + id);
@@ -294,9 +312,15 @@ async function save() {
   dirty = false;
   await refresh();
 }
-function card(p, faculty = true) {
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p><div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start visit", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+function assignmentControl(kind, id, ready = true) {
+  if (!ready)
+    return `<p class="muted">${kind === "group" ? "Publish compatible cases" : "Publish this patient"} before assigning.</p>`;
+  return `<details class="simulation-assignment" data-simulation="${esc(id)}"><summary>Assign this simulation to student</summary><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</details>`;
 }
+function card(p, faculty = true) {
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">AI-synthetic</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${p.description ? `<p class="case-caption">${esc(p.description)}</p>` : ""}${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+}
+
 function studio() {
   if (demoSession?.role === "student")
     return `<div class="pn"><div class="panel-kicker">Individual simulation</div><h1>Choose a patient</h1><p class="muted">Start a visit and receive your assessment when you finish.</p><div class="patient-grid">${list.map((p) => card(p, false)).join("") || "<p>No published practice patients are available yet.</p>"}</div></div>`;
@@ -315,14 +339,27 @@ function studio() {
             : 0),
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
- <div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ <h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3><p>${esc(p.description || "Open the case to review its saved findings and documents.")}</p>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
  </div>`;
 }
-function studioGroups() {
-  const group = groups.find((g) => g.id === selectedGroup) || groups[0];
-  return `<section class="studio-group-panel" aria-labelledby="studio-groups-title"><div><h2 id="studio-groups-title">Assign a patient group</h2><p class="muted">Give a student a prepared test with multiple patient trials.</p></div>${group ? `<div class="row"><label for="studio-group">Patient group</label><select id="studio-group">${groups.map((g) => `<option value="${esc(g.id)}" ${g.id === group.id ? "selected" : ""}>${esc(g.title)} · ${g.trialCount} patients</option>`).join("")}</select>${button("Assign a group", "nav", 'data-tab="tests"', "pri")}${button("Student results", "nav", 'data-tab="results"')}</div><p class="group-preparation">${group.preparationStatus === "ready" ? "Choose a student and assign the prepared group." : group.preparationStatus === "clinical-mismatch" ? "The cases have different clinical settings. Review and republish both before assigning." : "This custom group needs published cases before assignment."}</p>` : `<p>No prepared groups are available.</p>`}</section>`;
+function groupCards(faculty = false) {
+  return (
+    groups
+      .filter((g) => faculty || g.preparationStatus === "ready")
+      .sort((a, b) => (b.kind === "comparison") - (a.kind === "comparison"))
+      .map((g) => {
+        const assignment = assignments.find((a) => a.groupId === g.id);
+        return `<article class="group-card faculty-group"><h3>${esc(g.title)}</h3><p class="patient-kind">AI-synthetic · ${g.trialCount} patients</p><p>${esc(g.purpose)}</p>${faculty ? assignmentControl("group", g.id, g.preparationStatus === "ready") : button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group assessment", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}<details class="group-details"><summary>About this assessment</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.limitations)}</p></details></article>`;
+      })
+      .join("") || "<p>No ready group assessments yet.</p>"
+  );
 }
+function studioGroups() {
+  return `<section class="group-catalog"><h2 class="catalog-heading">Multi-patient assessment</h2><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards(true)}</section>`;
+}
+
 function recordSelect(label, path, options) {
   const selected = value(path) || [];
   const id = "field-" + path.replace(/\./g, "-");
@@ -411,10 +448,10 @@ function editor() {
     )
     .join("");
   return `<div class="editor"><p class="muted">Only a name, at least one patient-known finding and your review acknowledgment are needed. Leave unsupplied details blank; optional objectives and documents can be added later.</p><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
-  ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
-  <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
-  ${group("facts", "History and clinical information", `<p class="muted">The patient speaks this approved wording. The model may help choose a fact; it does not write a new clinical reply.</p>${facts}${button("Add finding", "add-fact")}${(profile.suggestions || []).map((s) => `<div class="clinical-row"><p><b>Unapproved document draft</b></p><p>${esc(s.say)}</p><p class="muted">Attaching the file did not establish that the patient remembers it. This draft is not reviewed and is not used in an encounter until you add and approve it.</p>${button("Add as editable finding", "adopt-suggestion", `data-id="${esc(s.id)}"`)}</div>`).join("")}`)}
-  ${group("sources", "Documents and references", `${sources}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
+  ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare case", "prepare") : ""}
+  <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Case description (faculty only)", "summary", { type: "textarea" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
+  ${group("facts", "History and clinical information", `<p class="muted">Patient wording is approved phrasing for a finding; dialogue may paraphrase it.</p>${facts}${button("Add finding", "add-fact")}`)}
+  ${group("sources", "Documents and references", `${sources}${profile.originalRoster ? `<details><summary>Complete saved case source</summary><pre class="case-source">${esc(JSON.stringify(profile.originalRoster, null, 2))}</pre><p class="muted">Source context remains separate from the approved encounter findings and disclosure rules.</p></details>` : ""}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
   ${group("objectives", "Learning objectives", objectives + button("Add objective", "add-objective"))}
   ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${control("Rapport phrases that may open guarded findings", "rapport", { list: true })}<p class="muted">Use a full phrase of at least 12 characters. Thank you, sorry, or I understand do not open guarded findings unless that exact longer phrase is listed here. Each phrase counts once.</p>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "General rubric only"], ["none", "General rubric only"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${(() => { const age = profile.age === "" || profile.age == null ? NaN : Number(profile.age); const match = (health.caseRubrics || []).find((r) => r.appliesTo && Number.isFinite(age) && (r.appliesTo.maxAge == null || age <= r.appliesTo.maxAge) && (r.appliesTo.minAge == null || age >= r.appliesTo.minAge)); return match && profile.caseRubric !== match.id ? `<p class="muted">Age ${esc(age)} matches “${esc(match.title)}” as a suggestion only. It is not applied until you select it.</p>` : ""; })()}${profile.pathologySample ? `<h3>Pathology sample comparison</h3><p class="muted">${esc(profile.pathologySample.summary)}</p>` : ""}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
   <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
@@ -981,7 +1018,7 @@ function encounter() {
     ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${interviewTimerMarkup()}${emergency}${incoming}<div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><div class="av-live">Camera on</div><div class="self-view"><video id="student-camera" playsinline autoplay muted hidden></video><span class="self-label" id="self-label">You</span><button type="button" class="btn" data-action="student-camera" hidden>Turn camera on</button></div><canvas class="av-still patient-call" id="patient-call" aria-hidden="true"></canvas><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div>${window.VirtuSPAvatar ? '<div id="avatar-dock"></div>' : ""}<div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  return `${emergency}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" muted playsinline hidden></video><span class="self-label" id="self-label">You</span></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -994,22 +1031,25 @@ function artifactBody(a, expanded = false) {
 function artifactCard(a) {
   if (!a.released) return "";
 
-  return `<article class="art released open ${a.justReleased ? "just-in" : ""}"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Expand", "expand-doc", `data-id="${esc(a.id)}"`)}</div><p class="chip">${esc(a.src || "Chart")} · ${esc(a.date || "Date unspecified")}</p>${artifactBody(a)}${a.reviewed ? '<span class="ok">Review recorded</span>' : button("Mark reviewed", "review", `data-id="${esc(a.id)}"`)}</article>`;
+  return `<article class="art released open ${a.justReleased ? "just-in" : ""}"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Expand", "expand-doc", `data-id="${esc(a.id)}"`)}</div><p class="chip">Clinical record · ${esc(a.date || "Date unspecified")}</p>${artifactBody(a)}</article>`;
 }
 function conversationFiles() {
-  const released = enc.artifacts.filter((a) => a.released);
+  const released = enc.artifacts.filter(
+    (a) => a.released && (section === "ov" || a.sec === section),
+  );
   if (!released.length) return "";
 
   return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
 function chart() {
   const facts = enc.disclosed.filter(
-    (f) => section === "ov" || f.ehr === section,
+    (f) =>
+      section === "ov" || f.ehr === section || f.releaseSection === section,
   );
 
-  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b></article>`).join("")}
- ${!facts.length ? '<div class="empty">Nothing in this section yet.</div>' : ""}
- ${section !== "ov" && facts.length && !enc.reviewedSections.includes(section) ? button("Record review of these findings", "review-section", `data-section="${section}"`) : ""}`;
+  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b>${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}</article>`).join("")}
+ ${!facts.length && !enc.artifacts.some((a) => a.released && (section === "ov" || a.sec === section)) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
+ `;
 }
 function docLightbox() {
   const a = enc.artifacts.find((d) => d.id === expandedDocId && d.released);
@@ -1090,7 +1130,7 @@ function findingsView(a, c) {
   const objectives = a.objectives
     .map((o) => {
       const pct = Math.round(o.credit * 100);
-      return `<tr><td><b>${esc(o.title)}</b></td><td><div class="progress"><div class="meter" role="img" aria-label="${pct}% complete"><i style="width:${pct}%"></i></div><span>${o.earned}/${o.weight}</span></div></td><td>${turnLinks(o.evidence)}</td><td>${o.credit < 1 && o.next ? esc(o.next) : o.credit >= 1 ? '<span class="ok">Complete</span>' : dash}</td></tr>`;
+      return `<tr><td><b>${esc(o.title)}</b></td><td><div class="progress"><div class="meter" role="img" aria-label="${pct}% complete"><i style="width:${pct}%"></i></div><span>${o.earned}/${o.weight}</span></div></td><td>${turnLinks(o.evidence)}${o.observation ? `<small class="muted">${esc(o.observation)}</small>` : ""}</td><td>${o.credit < 1 && o.next ? esc(o.next) : o.credit >= 1 ? '<span class="ok">Complete</span>' : dash}</td></tr>`;
     })
     .join("");
   const elicited = f.elicited
@@ -1166,19 +1206,38 @@ function caseRubricView(r) {
   const scored = r.total != null;
   return `<h2>Case rubric · ${esc(r.title)}${scored ? ` · ${r.total} / ${r.max}` : ""}</h2><p class="muted">${esc([r.course, r.session].filter(Boolean).join(" · "))}</p><p>${esc(r.notice)}${scored && r.max !== r.fullPoints ? ` Scored out of ${r.max} because part of the ${r.fullPoints}-point rubric could not be observed.` : ""}</p>${r.failure ? `<p class="warn">Model scoring was unavailable for this checklist (${esc(r.failure)}). The criteria are listed for faculty scoring.</p>` : ""}${r.sections.map((sec) => `<section class="obj-card"><h3>${esc(sec.title)} · ${scored ? `${sec.earned} / ${sec.available}` : `${sec.points} points`}</h3><ul class="plain">${sec.criteria.map((cr) => `<li><span class="chip status-${cr.status}">${marks[cr.status]}</span> ${esc(cr.text)} <span class="muted">· ${cr.earned == null ? cr.points : cr.earned + " / " + cr.points} pts</span>${cr.reason ? `<div class="muted">${esc(cr.reason)}</div>` : ""}${cr.evidence.length ? evidence(cr.evidence) : ""}</li>`).join("")}</ul></section>`).join("")}<p class="muted">${esc(r.pointsNote)}${r.model ? " Scored by " + esc(r.model) + "." : ""}</p>`;
 }
+const scoreTone = (score) =>
+  score === null
+    ? "bg-muted"
+    : ["bg-risk", "bg-amber", "bg-teal", "bg-good"][score - 1] || "bg-muted";
+// Total, radar and a key to the four score levels, above the domain list.
+function rubricOverview(a) {
+  const levels = [4, 3, 2, 1]
+    .map((score) => ({
+      score,
+      label:
+        a.rubric?.scale?.find((r) => r.score === score)?.label ||
+        a.domains.find((d) => d.score === score)?.label,
+    }))
+    .filter((l) => l.label);
+  // The chart with the total and the scoring guide under it; this card sits
+  // beside the domain list.
+  const chart = `<div class="rubric-radar">${radar(a.domains.map((d) => ({ domain: d.domain, name: d.name, mean: d.score })))}<div class="rubric-total"><span class="rating">${a.total}/${a.denominator}</span><span class="muted">${a.rubric && a.denominator !== a.rubric.maxTotal ? `of a possible ${a.rubric.maxTotal} · ` : ""}N/A domains: ${a.na}</span></div><div class="meter" role="img" aria-label="${a.total} of ${a.denominator}"><i style="width:${a.denominator ? (a.total / a.denominator) * 100 : 0}%"></i></div>${a.rubric ? "" : `<div class="level-counts">${levels.map((l) => `<span class="level-count ${scoreTone(l.score)}"><b>${l.score}</b> ${esc(l.label)}</span>`).join("")}</div>`}</div>`;
+  const guide = a.rubric
+    ? `<details class="evidence rubric-guide"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><table class="fb-table"><thead><tr><th>Score</th><th>Label</th><th>Meaning</th></tr></thead><tbody>${a.rubric.scale.map((r) => `<tr class="${scoreTone(r.score)}"><td><b class="score-key">${r.score}</b></td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr class="bg-muted"><td><b class="score-key">N/A</b></td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></tbody></table><p class="muted small">${esc(a.rubric.interpretation)}</p></details>`
+    : "";
+  return `<aside class="obj-card rubric-top">${chart}${guide}</aside>`;
+}
 function rubricView(a) {
   // One line per domain; the detail opens on demand.
   const domain = (d) =>
-    `<details class="domain-row"><summary><span class="rating">${d.status === "not_assessed" ? "Pending" : d.score === null ? "N/A" : d.score + " / 4"}</span><span><b>${d.domain}. ${esc(d.name)}</b>${d.label ? ` · ${esc(d.label)}` : ""}<span class="muted why">${esc(d.reason)}</span></span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+    `<details class="domain-row ${scoreTone(d.score)}"><summary><span class="rating">${d.score === null ? "N/A" : d.score + "/4"}</span><span class="domain-main"><span class="domain-title"><b>${d.domain}. ${esc(d.name)}</b>${d.label ? `<span class="level-chip">${esc(d.label)}</span>` : ""}</span><span class="muted why">${esc(d.reason)}</span></span><span class="domain-more" aria-hidden="true">Details</span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
   const fields = a.rubric?.evidenceFields || {
     strengths: "Strengths demonstrated",
     gaps: "Missed opportunities",
     concerns: "Safety or accuracy concerns",
   };
-  const intro = a.rubric
-    ? `${a.pending || a.total == null ? `<p><b>No overall total.</b> ${a.coverage?.assessed ?? 0} of ${a.coverage?.applicable ?? 0} applicable domains are assessed. ${a.na ?? 0} not applicable.</p>` : `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p>`}<p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
-    : "";
-  return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2>${intro}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section>
+  return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2><div class="rubric-split">${rubricOverview(a)}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section></div>
   <h2>Evidence from the encounter</h2><div class="sc"><table class="fb-table evidence-notes"><thead><tr><th>Type</th><th>Note</th><th>Where</th></tr></thead><tbody>${["strengths", "gaps", "concerns"].map((k) => (a[k].length ? a[k].map((n, i) => `<tr>${i === 0 ? `<td rowspan="${a[k].length}"><span class="chip status-${k === "strengths" ? "strength" : "improve"}">${esc(fields[k])}</span></td>` : ""}<td>${esc(n.text)}</td><td>${turnLinks(n.evidence)}</td></tr>`).join("") : `<tr><td><span class="chip">${esc(fields[k])}</span></td><td class="muted">None identified by this assessment.</td><td><span class="muted">–</span></td></tr>`)).join("")}</tbody></table></div>
   ${caseRubricView(a.caseRubric)}${demoSession?.role === "faculty" ? `<details class="evidence"><summary>Record a demo review</summary><p class="muted">Saves a demo-alias note on one domain. This is not an institutional identity or a validated grade. The original model draft is kept.</p><div class="fields"><label>Domain<input id="review-domain" type="number" min="1" max="7" value="1"></label><label>Status<select id="review-status"><option value="not_assessed">not assessed</option><option value="not_applicable">not applicable</option><option value="assessed">assessed</option></select></label><label>Score<input id="review-score" type="number" min="1" max="4" value="1"></label></div><label>Reason<textarea id="review-reason" rows="2">Not observed in the recorded encounter.</textarea></label>${button("Save review", "save-review")}</details>` : ""}`;
 }
@@ -1437,7 +1496,7 @@ function assignmentCards(items) {
   return items
     .map(
       (a) =>
-        `<article class="group-card assignment-card"><div><h2>${esc(a.title)}</h2><p class="muted">${a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} patient trials`}</p></div>${button(a.attempt?.status === "complete" ? "View results" : a.attempt ? "Resume assessment" : "Start assessment", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`,
+        `<article class="group-card assignment-card"><div><h2>${esc(a.title)}</h2><p class="muted">${a.kind === "individual" ? (a.attempt?.status === "complete" ? "Completed individual assessment" : "Individual assessment") : a.attempt ? `${a.attempt.completed}/${a.attempt.trials.length} trials complete` : `${a.cases.length} patient trials`}</p></div>${button(a.attempt?.status === "complete" ? "View results" : a.attempt ? "Resume assessment" : "Start assessment", "start-test", `data-id="${esc(a.id)}"`, "pri")}</article>`,
     )
     .join("");
 }
@@ -1445,26 +1504,12 @@ function studentHome() {
   const alias =
     students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
   const assigned = assignments.filter((a) => a.origin !== "open");
-  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div>${button("Select open assessments", "nav", 'data-tab="open-assessments"')}</div>${assignmentCards(assigned) || '<div class="empty-assignments"><h2>No assessments assigned yet</h2><p class="muted">You can choose an open assessment to begin practicing.</p></div>'}${history.length ? button("View my attempts", "nav", 'data-tab="history"') : ""}</section>`;
-}
-function openAssessments() {
-  const alias =
-    students.find((s) => s.id === demoSession.studentId)?.alias || "Student";
-  return `<section class="student-home" aria-labelledby="simulation-choice"><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1 id="simulation-choice">Select open assessments</h1><p class="muted">Practice with one patient or complete a group of patient trials.</p><div class="simulation-choices"><button type="button" class="simulation-choice" data-action="nav" data-tab="studio"><span class="choice-symbol" aria-hidden="true">01</span><span class="choice-title">Individual patient</span><span class="choice-description">Choose a published patient from Patient Studio. Receive feedback after the visit.</span><span class="choice-cta">Choose a patient →</span></button><button type="button" class="simulation-choice" data-action="nav" data-tab="tests"><span class="choice-symbol" aria-hidden="true">02</span><span class="choice-title">Patient group</span><span class="choice-description">Choose an open group of patient trials. Complete every trial to unlock feedback.</span><span class="choice-cta">Choose a group →</span></button></div>${history.length ? button("View my attempts", "nav", 'data-tab="history"') : ""}</section>`;
+  return `<section class="pn student-assignments"><div class="workspace-heading"><div><div class="panel-kicker">Student workspace · ${esc(alias)}</div><h1>My assigned assessments</h1></div><div class="row">${button("My performance", "nav", 'data-tab="performance"')}${button("My attempts", "nav", 'data-tab="history"')}</div></div>${assignmentCards(assigned) || '<p class="muted">No assessments assigned yet. Choose any available simulation below.</p>'}<h2 class="catalog-heading">Select an AI patient</h2><p class="muted">Individual assessment · feedback after your visit.</p><div class="patient-grid">${list.map((p) => card(p, false)).join("") || "<p>No published patients yet.</p>"}</div><section class="group-catalog"><h2 class="catalog-heading">Multi-patient assessment</h2><p class="muted">Similar conditions, different demographics and backgrounds. Complete every trial for group feedback.</p>${groupCards()}</section></section>`;
 }
 function studentGroups() {
-  const available = groups.filter(
-    (g) => g.availableToAll && g.preparationStatus === "ready",
-  );
-  return `<div class="pn"><div class="panel-kicker">Open assessments</div><h1>Choose a patient group</h1><p class="muted">Complete all patient trials to unlock your assessment.</p>${
-    available
-      .map((g) => {
-        const assignment = assignments.find((a) => a.groupId === g.id);
-        return `<article class="group-card"><h2>${esc(g.title)}</h2><p>${esc(g.purpose)}</p><p class="muted">${assignment?.attempt ? `${assignment.attempt.completed}/${assignment.attempt.trials.length} trials complete` : `${g.trialCount} patient trials`}</p>${button(assignment?.attempt?.status === "complete" ? "View results" : assignment?.attempt ? "Resume assessment" : "Start group", assignment ? "start-test" : "start-available", `data-id="${esc(assignment?.id || g.id)}"`, "pri")}</article>`;
-      })
-      .join("") || "<p>No open group assessments are available yet.</p>"
-  }</div>`;
+  return `<div class="pn"><h1>Multi-patient assessments</h1><p class="muted">All ready simulations are available. Complete every trial to unlock group feedback.</p>${groupCards()}</div>`;
 }
+
 function publishedForGroups() {
   const retired = /^(denise carter|marcus lee|marcus ramirez|alex morgan)$/i;
 
@@ -1475,19 +1520,19 @@ function publishedForGroups() {
 function groupBuilder() {
   const patients = publishedForGroups();
 
-  return `<details class="group-builder" open><summary>Create a patient group</summary><p class="muted">Choose at least two published patients. Practice groups can mix conditions; demographic comparisons need matching clinical settings.</p><div class="group-fields"><label for="group-title">Group name</label><input id="group-title" maxlength="120" placeholder="e.g. Morning clinic set"><label for="group-purpose">Purpose (optional)</label><input id="group-purpose" maxlength="1000" placeholder="What should students practice?"><label for="group-kind">Group type</label><select id="group-kind"><option value="practice">Practice</option><option value="comparison">Demographic comparison</option></select></div><fieldset class="group-patient-picker"><legend>Patients · select at least two</legend><div class="group-patient-grid">${
+  return `<details class="group-builder"><summary>Create a patient group</summary><p class="muted">Choose at least two published patients. Practice groups can mix conditions; demographic comparisons need matching clinical settings.</p><div class="group-fields"><label for="group-title">Group name</label><input id="group-title" maxlength="120" placeholder="e.g. Morning clinic set"><label for="group-purpose">Purpose (optional)</label><input id="group-purpose" maxlength="1000" placeholder="What should students practice?"><label for="group-kind">Group type</label><select id="group-kind"><option value="practice">Practice</option><option value="comparison">Demographic comparison</option></select></div><fieldset class="group-patient-picker"><legend>Patients · select at least two</legend><div class="group-patient-grid">${
     patients
       .map(
         (p) =>
           `<label class="group-patient-choice"><input type="checkbox" name="group-patient" value="${esc(p.id)}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt=""></span><span><b>${esc(p.name)}</b><small>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</small></span></label>`,
       )
       .join("") ||
-    "<p class=\"muted\">Publish patients in Patient Studio before creating a group.</p>"
-  }</div></fieldset><label class="group-open-toggle"><input id="group-available" type="checkbox"> Include in open assessments</label>${button("Create group", "create-group", "", "pri")}</details>`;
+    '<p class="muted">Publish patients in Patient Studio before creating a group.</p>'
+  }</div></fieldset>${button("Create group", "create-group", "", "pri")}</details>`;
 }
 function testCatalog() {
   if (demoSession.role === "student") return studentGroups();
-  return `<div class="pn groups-page"><div class="panel-kicker">Faculty workspace</div><h1>Assign a patient group</h1><p class="lede">Choose a student, then assign a prepared set of visits.</p><div class="row assignment-target"><label for="assign-student">Student</label><select id="assign-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></div>${groups.map((g) => `<article class="group-card faculty-group"><div class="workspace-heading"><div><h2>${esc(g.title)}</h2><p class="muted">${g.trialCount} patient trials · ${g.preparationStatus === "ready" ? "Ready to assign" : g.preparationStatus === "clinical-mismatch" ? "Cases need matching clinical settings" : "Publish the selected cases first"}</p></div>${button("Assign group", "assign-group", `data-id="${esc(g.id)}" ${g.preparationStatus !== "ready" ? 'disabled title="Publish matching cases before assigning"' : ""}`, "pri")}</div><p>${esc(g.purpose)}</p><details class="group-details"><summary>Group details and settings</summary><p>${esc(g.differences)}</p><p class="muted">${esc(g.provenance)}</p><label class="open-assessment-setting"><input type="checkbox" data-group-open="${esc(g.id)}" ${g.availableToAll ? "checked" : ""}> Include in open assessments</label><p class="muted">Students can choose this group without a faculty assignment.</p><div class="row">${g.cases.map((c) => button(`Edit ${c.name}`, "pick", `data-id="${esc(c.profileId)}"`)).join("")}</div><p class="muted">${esc(g.limitations)}</p><p class="muted">${esc(g.sourceNote)}</p></details></article>`).join("")}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
+  return `<div class="pn groups-page"><h1>Multi-patient assessments</h1><p class="muted">Assign a ready simulation from its card. Every published simulation is also available to all students.</p>${groupCards(true)}${groupBuilder()}<details class="student-management"><summary>Manage demo students</summary><div class="row"><label for="new-student-alias">New alias</label><input id="new-student-alias" maxlength="80" value="${esc(newStudentAlias)}">${button("Add student", "add-student")}</div></details><h2>Assigned assessments</h2>${
     assignments
       .filter((a) => a.origin !== "open")
       .map(
@@ -1497,6 +1542,7 @@ function testCatalog() {
       .join("") || "<p>No assessments assigned yet.</p>"
   }</div>`;
 }
+
 function biasPanel(result, type, id, ready) {
   const r = result || { status: "pending", findings: [], limitations: [] };
   const scored = r.rubricAssessment;
@@ -1534,6 +1580,325 @@ function biasEvidenceView() {
 function resultsPage() {
   return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis, "attempt", a.id, a.status === "complete")}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions${e.duration ? ` · appointment ${esc(e.duration)}` : ""}</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis, "encounter", e.id, e.status === "complete")}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
 }
+// ---- Longitudinal views: a student's own performance, and faculty review of
+// how a student's performance varies across patient demographics. The layout
+// follows the team's reference design (student hub, faculty bias board).
+async function loadInsights() {
+  try {
+    insightsData = await api("/api/insights");
+  } catch (e) {
+    insightsData = null;
+    message = e.message;
+  }
+}
+const pct = (v) => (v == null ? "–" : v + "%");
+const outOf4 = (v) => (v == null ? "–" : v + "/4");
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const initials = (name) =>
+  String(name || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+const HUB_ICONS = {
+  score: "M4 19h16M6 15l4-5 3 3 5-7",
+  rubric: "M9 4h6v3H9zM7 5H5v15h14V5h-2M9 13l2 2 4-4",
+  heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
+  target: "M12 3a9 9 0 1 0 .01 0M12 8a4 4 0 1 0 .01 0M12 12h.01",
+  chat: "M4 5h16v11H9l-5 4z",
+  list: "M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2",
+  shapes: "M4 13h7v7H4zM14 4l5 8H9zM17.5 14a3.5 3.5 0 1 0 .01 0",
+  age: "M12 3a9 9 0 1 0 .01 0M12 7v5l3 2",
+  ethnicity:
+    "M12 3a9 9 0 1 0 .01 0M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18",
+  occupation: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",
+  gender: "M12 4a3.5 3.5 0 1 0 .01 0M5 20c0-4 3-6 7-6s7 2 7 6",
+  substance:
+    "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7.5 15h9",
+  weight: "M5 5h14v14H5zM8.5 11a3.5 3.5 0 0 1 7 0zM12 11l1.5-2.5",
+  matched: "M4 8h13l-3-3M20 16H7l3 3",
+  scope: "M10 4a6 6 0 1 0 .01 0M14.5 14.5L20 20M10 7v6M7 10h6",
+  pen: "M4 20h4L19 9l-4-4L4 16zM13 7l4 4",
+  book: "M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10",
+  shield: "M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z",
+  file: "M7 3h7l4 4v14H7zM14 3v4h4M9.5 14h1.5l1-3 1.5 6 1-3h1.5",
+  close: "M6 6l12 12M18 6L6 18",
+  right: "M9 6l6 6-6 6",
+};
+const hubIcon = (name) =>
+  `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="${HUB_ICONS[name] || HUB_ICONS.rubric}"/></svg>`;
+// The rubric's four levels, for a 1–4 average.
+const levelOf = (v) =>
+  v == null
+    ? null
+    : v >= 3.5
+      ? ["Strong", "good"]
+      : v >= 2.5
+        ? ["Competent", "teal"]
+        : v >= 1.5
+          ? ["Developing", "amber"]
+          : ["Needs review", "risk"];
+const grade = (v) => {
+  const level = levelOf(v);
+  return level ? `<span class="tx-${level[1]}">${level[0]}</span>` : "–";
+};
+const patientAvatar = (name, profileId) =>
+  `<span class="pt-avatar" aria-hidden="true">${esc(initials(name))}${profileId ? `<img src="/api/profiles/${esc(profileId)}/image" alt="" loading="lazy">` : ""}</span>`;
+function hubBanner(summary, { title, pill, tag, line, boxes, faculty }) {
+  const k = summary.kpis,
+    last = summary.encounters[0];
+  return `<section class="hb-banner ${faculty ? "is-faculty" : ""}"><div class="hb-who"><div class="hb-avatar" aria-hidden="true">${esc(initials(summary.student.alias))}<span class="hb-tag">${esc(tag)}</span></div><div><div class="hb-name"><h1>${esc(title)}</h1><span class="hb-pill">${esc(pill)}</span></div><p class="hb-line">${line}</p><div class="hb-facts"><span>${hubIcon("rubric")} Completed: <b>${plural(k.n, "visit")}</b></span><span>${hubIcon("gender")} Patients seen: <b>${summary.patients.length}</b></span>${last ? `<span>${hubIcon("age")} Last visit: <b>${esc(new Date(last.completedAt).toLocaleDateString())}</b></span>` : ""}</div></div></div><div class="hb-boxes">${boxes.map(([label, value]) => `<div class="hb-box"><p>${label}</p><b>${value}</b></div>`).join("")}</div></section>`;
+}
+function hubCard(tone, icon, label, value, extra, note, bar) {
+  return `<section class="hc tone-${tone}"><div class="hc-top"><span class="hc-label">${label}</span><span class="hc-ico">${hubIcon(icon)}</span></div><div><div class="hc-val"><b>${value}</b>${extra}</div><p class="hc-note">${note}</p></div><div class="hc-bar"><i style="width:${Math.max(0, Math.min(100, bar || 0))}%"></i></div></section>`;
+}
+function hubCards(summary) {
+  const k = summary.kpis;
+  const scored = summary.encounters.filter((m) => m.rubricPct != null).length;
+  const trend =
+    k.trend == null || k.trend === 0
+      ? ""
+      : `<span class="hc-delta ${k.trend > 0 ? "up" : "down"}">${k.trend > 0 ? "▲ +" : "▼ −"}${Math.abs(k.trend)} pts</span>`;
+  return `<div class="hc-grid">${hubCard("teal", "score", "Overall encounter score", pct(k.rubricPct), trend, k.trend == null ? "Rubric average across scored visits" : "Latest visit against the earlier average", k.rubricPct)}${hubCard("good", "chat", "Empathy and communication", k.empathy == null ? "–" : `${k.empathy}<small>/4</small>`, `<span class="hc-delta">${grade(k.empathy)}</span>`, "Rubric domain 2: rapport, respect and empathy", k.empathy == null ? 0 : (k.empathy / 4) * 100)}${hubCard("indigo", "target", "Learning objectives met", pct(k.objectivePct), "", `Findings reached: ${pct(k.findingsPct)}`, k.objectivePct)}${hubCard("amber", "rubric", "Encounters completed", String(k.n), `<span class="hc-delta muted">${plural(summary.patients.length, "patient")}</span>`, `${scored} of ${k.n} scored against the rubric`, k.n ? (scored / k.n) * 100 : 0)}</div>`;
+}
+// Seven rubric domains on a 0–4 scale, with the cohort outline when available.
+function radar(domains, cohortDomains) {
+  const size = 280,
+    c = size / 2,
+    r = 96,
+    n = domains.length;
+  const point = (i, value) => {
+    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+    const d = (r * Math.max(0, value || 0)) / 4;
+    return [c + d * Math.cos(angle), c + d * Math.sin(angle)];
+  };
+  const ring = (level) =>
+    domains.map((_, i) => point(i, level).join(",")).join(" ");
+  const shape = (list) =>
+    list.map((d, i) => point(i, d.mean).join(",")).join(" ");
+  const labels = domains
+    .map((d, i) => {
+      const [x, y] = point(i, 4.75);
+      return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${d.domain}</text>`;
+    })
+    .join("");
+  const dots = domains
+    .map((d, i) => {
+      const [x, y] = point(i, d.mean);
+      return d.mean == null
+        ? ""
+        : `<circle class="pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5"><title>${esc(d.name)}: ${d.mean} / 4</title></circle>`;
+    })
+    .join("");
+  return `<svg class="radar" viewBox="0 0 ${size} ${size}" role="img" aria-label="Average score in each rubric domain">${[1, 2, 3, 4].map((l) => `<polygon class="ring" points="${ring(l)}"/>`).join("")}${domains
+    .map((_, i) => {
+      const [x, y] = point(i, 4);
+      return `<line class="ring" x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+    })
+    .join(
+      "",
+    )}${cohortDomains ? `<polygon class="cohort" points="${shape(cohortDomains)}"/>` : ""}<polygon class="self" points="${shape(domains)}"/>${dots}${labels}</svg>`;
+}
+const panelHead = (icon, title, sub, side = "") =>
+  `<div class="hp-head"><div><h3>${hubIcon(icon)}<span>${title}</span></h3><p>${sub}</p></div>${side}</div>`;
+// Radar of the rubric domains beside the three communication domains.
+function visualizerPanel(summary, cohort) {
+  const scored = summary.domains.some((d) => d.mean != null);
+  const tones = ["teal", "indigo", "good"];
+  const boxes = [2, 4, 5]
+    .map((n) => summary.domains.find((d) => d.domain === n))
+    .filter(Boolean)
+    .map(
+      (d, i) =>
+        `<div class="hp-box"><div class="hp-box-top"><span class="tx-${tones[i]}">${esc(d.name)}</span><span>${outOf4(d.mean)}</span></div><p>${esc(d.descriptor || "No scored visits yet.")}</p></div>`,
+    )
+    .join("");
+  return `<section class="hp span-7">${panelHead("heart", "Empathy and communication scale visualizer", "Average across the seven rubric domains, on the rubric's 1 to 4 scale", cohort ? `<span class="hp-badge">${hubIcon("shield")} Class avg: ${outOf4(cohort.empathy)}</span>` : "")}${
+    scored
+      ? `<div class="viz"><div class="viz-chart">${radar(summary.domains, cohort?.domains)}<div class="legend"><span><i class="key-self"></i>${esc(summary.student.alias)}</span>${cohort ? '<span><i class="key-cohort"></i>Class average</span>' : ""}</div></div><div class="viz-boxes">${boxes}</div></div>`
+      : '<p class="muted">No scored visits yet. Rubric ratings need the model assessment.</p>'
+  }</section>`;
+}
+// One bar per rubric domain, with the rubric level it sits at.
+function competencyPanel(summary) {
+  return `<section class="hp span-5">${panelHead("shapes", "Rubric domain competency", "Performance across the seven rubric domains")}<div class="comp">${summary.domains
+    .map((d) => {
+      const level = levelOf(d.mean);
+      return `<div><div class="comp-top"><span>${d.domain}. ${esc(d.name)}</span><span class="tx-${level ? level[1] : "muted"}">${d.mean == null ? "Not scored" : `${Math.round((d.mean / 4) * 100)}% (${level[0]})`}</span></div><div class="comp-bar bg-${level ? level[1] : "muted"}"><i style="width:${d.mean == null ? 0 : (d.mean / 4) * 100}%"></i></div></div>`;
+    })
+    .join("")}</div></section>`;
+}
+function encounterLog(summary) {
+  const rows = summary.encounters
+    .map((m) => {
+      const level = levelOf(m.empathy);
+      return `<tr data-action="visit-open" data-id="${esc(m.id)}" data-patient="${esc(m.patient)}"><td class="mono">${esc(new Date(m.completedAt).toLocaleDateString())}</td><td><div class="pt-cell">${patientAvatar(m.patient, m.profileId)}<b>${esc(m.patient)}</b></div></td><td><span class="tag">${esc([m.age == null ? "" : m.age + " yrs", m.gender].filter(Boolean).join(" · ") || "Not recorded")}</span></td><td class="tx-teal"><b>${pct(m.findingsPct)}</b></td><td class="tx-indigo"><b>${pct(m.objectivePct)}</b></td><td>${level ? `<b class="tx-${level[1]}">${level[0]} (${m.empathy})</b>` : '<span class="muted">Not scored</span>'}</td><td class="overall">${pct(m.rubricPct)}</td><td class="act">${button("View debrief", "visit-open", `data-id="${esc(m.id)}"`, "mini")}</td></tr>`;
+    })
+    .join("");
+  return `<section class="hp flush"><div class="log-head"><div><h3>${hubIcon("list")}<span>Standardized patient clinical encounters log</span></h3><p>Click any encounter to open its score breakdown and debrief</p></div><div class="log-tools"><input id="visit-search" type="search" placeholder="Search patient, date…" aria-label="Search encounters"><select id="visit-patient" aria-label="Filter by patient"><option value="">All patients</option>${summary.patients.map((p) => `<option>${esc(p.name)}</option>`).join("")}</select></div></div>${
+    rows
+      ? `<div class="sc"><table class="hub-table" id="visit-log"><thead><tr><th>Date</th><th>Patient SP case</th><th>Profile</th><th>Findings reached</th><th>Learning objectives</th><th>Empathy scale</th><th>Overall score</th><th class="act">Action</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<p class="muted log-empty">No completed visits yet.</p>'
+  }</section>`;
+}
+function filterVisits() {
+  const query = ($("#visit-search")?.value || "").trim().toLowerCase();
+  const patient = $("#visit-patient")?.value || "";
+  for (const row of document.querySelectorAll("#visit-log tbody tr"))
+    row.hidden =
+      (!!query && !row.textContent.toLowerCase().includes(query)) ||
+      (!!patient && row.dataset.patient !== patient);
+}
+// One visit at a glance, opened from the encounter log or a bias excerpt.
+function visitDialog(summary) {
+  const m = summary.encounters.find((e) => e.id === visitModal);
+  if (!m) return "";
+  const level = levelOf(m.empathy);
+  const profile = [m.age == null ? "" : m.age + " years", m.gender, m.ethnicity]
+    .filter(Boolean)
+    .join(", ");
+  const groups = [m.occupation, m.weight, m.substance].filter(Boolean);
+  const box = (label, value, tone) =>
+    `<div class="md-stat"><p>${label}</p><b class="tx-${tone}">${value}</b></div>`;
+  return `<div class="hub-modal"><div class="hub-backdrop" data-action="visit-close"></div><section class="hub-dialog" role="dialog" aria-modal="true" aria-label="Encounter with ${esc(m.patient)}"><div class="md-head"><div class="md-title"><span class="md-ico">${hubIcon("file")}</span><div><h3>${esc(m.patient)} — ${plural(m.questions, "question")}${m.minutes == null ? "" : `, ${m.minutes} min`}</h3><p>Date: ${esc(new Date(m.completedAt).toLocaleString())} | ${m.rubricPct == null ? "Rubric not scored" : `Rubric ${m.rubricTotal}/${m.rubricMax}`}</p></div></div><button type="button" class="md-x" data-action="visit-close" aria-label="Close">${hubIcon("close")}</button></div><div class="md-body"><div class="md-stats">${box("Findings reached", pct(m.findingsPct), "teal")}${box("Learning objectives", pct(m.objectivePct), "indigo")}${box("Empathy score", level ? `${level[0]} (${m.empathy})` : "–", level ? level[1] : "muted")}${box("Overall grade", pct(m.rubricPct), "strong")}</div><div class="md-box"><h4>Patient presentation demographics:</h4><p><strong>Profile:</strong> ${esc(profile || "Not recorded")}</p>${groups.length ? `<p><strong>Comparison groups:</strong> ${esc(groups.join(", "))}</p>` : ""}<p><strong>Automated bias flag:</strong> ${m.biasFlags?.length ? m.biasFlags.map((f) => `<span class="tx-${f.level === "notable" ? "risk" : "amber"} flag">${esc(f.label)}</span>`).join(", ") : `<span class="tx-${summary.biasRated ? "good" : "muted"} flag">${summary.biasRated ? "None" : "Not enough visits to compare yet"}</span>`}</p>${(m.biasFlags || []).map((f) => `<p class="flag-detail">${esc(f.detail)}${f.basis === "text" ? " This grouping was read from the case text and may be wrong." : ""}</p>`).join("")}${m.biasFlags?.length ? '<p class="muted">A gap between patient groups is a prompt to reflect and discuss with faculty, not a finding of bias.</p>' : ""}${m.reviewRequired ? '<p><strong>Review:</strong> <span class="tx-amber">Marked for faculty review</span></p>' : ""}</div><div class="md-box"><h4>Debrief highlight:</h4>${m.strength ? `<p class="quote-line">“${esc(m.strength)}”</p>` : ""}${m.gap ? `<p><strong>To work on:</strong> ${esc(m.gap)}</p>` : ""}${m.strength || m.gap ? "" : '<p class="muted">Rubric feedback was not available for this visit.</p>'}</div></div><div class="md-foot">${button("Open full feedback", "resume", `data-id="${esc(m.id)}"`, "pri")}${button("Close evaluation", "visit-close")}</div></section></div>`;
+}
+function performanceHub() {
+  const data = insightsData?.me;
+  if (!data)
+    return `<div class="pn"><h1>My performance</h1><p class="muted">Performance summary is unavailable.</p></div>`;
+  const k = data.kpis;
+  return `<div class="hub">${hubBanner(data, {
+    title: "My performance",
+    pill: data.student.alias,
+    tag: "Student",
+    line: "Built from your completed visits. A discussion aid, not a grade.",
+    boxes: [
+      ["Rubric average", `<span class="tx-teal">${pct(k.rubricPct)}</span>`],
+      ["Empathy grade", grade(k.empathy)],
+    ],
+  })}${hubCards(data)}<div class="hub-row">${visualizerPanel(data, insightsData.cohort)}${competencyPanel(data)}</div>${data.modules?.length ? `<section class="hp">${panelHead("book", "Assigned learning modules", "Assigned to you by faculty after reviewing your visits")}<div class="mod-list">${data.modules.map((m) => `<div class="mod"><span><b>${esc(m.code)}:</b> ${esc(m.title)}</span><span class="muted small">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</span></div>`).join("")}</div></section>` : ""}${encounterLog(data)}${visitDialog(data)}</div>`;
+}
+const VARIANCE_LABEL = {
+  insufficient: "Not enough data",
+  minimal: "Minimal variance",
+  moderate: "Moderate variance",
+  notable: "Notable variance",
+};
+const OVERALL_LABEL = {
+  insufficient: "Not enough data yet",
+  minimal: "Low variance / balanced",
+  moderate: "Moderate variance detected",
+  notable: "Notable variance flag",
+};
+const varianceBadge = (level, small) =>
+  `<span class="lv level-${level}">${VARIANCE_LABEL[level]}${small && level !== "insufficient" ? " · small sample" : ""}</span>`;
+// The widest gap in one line, for the card footer and the deep dive.
+function deltaLine(item) {
+  const w = item.widest;
+  if (!w) {
+    const visits = item.groups.reduce((sum, g) => sum + g.n, 0);
+    return `${plural(item.groups.length, "group")} · ${plural(visits, "visit")}`;
+  }
+  if (w.gap === 0) return `No gap in ${w.label.toLowerCase()}`;
+  return `−${w.gap}${w.unit === "%" ? " pts" : " of 4"} ${w.label.toLowerCase()} with ${w.low.label}`;
+}
+const groupWidth = (gap, value) =>
+  gap.key === "empathy" ? (value / 4) * 100 : value;
+// Two bars: the best- and worst-served group on the widest measure.
+function gapBars(gap) {
+  const row = (side, cls) =>
+    `<span class="gap-row"><span class="gap-label">${esc(side.label)}</span><span class="gap-bar ${cls}"><i style="width:${Math.max(3, groupWidth(gap, side.value))}%"></i></span><b>${side.value}${gap.unit}</b></span>`;
+  return `<span class="gap-bars" role="img" aria-label="${esc(gap.label)}: ${gap.high.value}${esc(gap.unit)} with ${esc(gap.high.label)}, ${gap.low.value}${esc(gap.unit)} with ${esc(gap.low.label)}">${row(gap.high, "hi")}${row(gap.low, "lo")}</span>`;
+}
+// Every group on each measure, so the whole comparison is visible at once.
+function groupCharts(groups) {
+  return [
+    ["Rubric", (g) => g.rubricPct, (v) => v, "%"],
+    ["Rapport and empathy", (g) => g.empathy, (v) => (v / 4) * 100, "/4"],
+    ["Learning objectives", (g) => g.objectivePct, (v) => v, "%"],
+    ["Open questions", (g) => g.openShare, (v) => v, "%"],
+  ]
+    .filter(([, read]) => groups.some((g) => read(g) != null))
+    .map(
+      ([label, read, width, unit]) =>
+        `<div class="measure"><h5>${label}</h5>${groups.map((g, i) => `<div class="gap-row"><span class="gap-label">${esc(g.label)} <small class="muted">n=${g.n}</small></span><span class="gap-bar series-${i % 4}"><i style="width:${read(g) == null ? 0 : Math.max(3, width(read(g)))}%"></i></span><b>${read(g) == null ? "–" : read(g) + unit}</b></div>`).join("")}</div>`,
+    )
+    .join("");
+}
+function biasCard(item, on) {
+  return `<button type="button" class="bc level-${item.level} ${on ? "on" : ""}" data-action="board-focus" data-focus="${esc(item.id)}"><span class="bc-top"><span class="bc-title"><span class="bc-ico">${hubIcon(item.trials ? "matched" : item.id)}</span><b>${esc(item.title)}</b></span>${varianceBadge(item.level, item.trials ? true : item.smallSample)}</span><span class="bc-sum">${esc(item.summary)}</span>${item.widest && item.level !== "insufficient" ? gapBars(item.widest) : ""}<span class="bc-foot"><span class="bc-delta">${esc(deltaLine(item))}</span><span class="bc-link">Deep-dive ${hubIcon("right")}</span></span></button>`;
+}
+function varianceTable(groups) {
+  return `<div class="sc"><table class="hub-table"><thead><tr><th>Patient group</th><th>Visits</th><th>Rubric</th><th>Empathy</th><th>Objectives</th><th>Open questions</th><th>Questions per visit</th><th>Minutes per visit</th><th>Judgmental wording</th></tr></thead><tbody>${groups.map((g) => `<tr><td><b>${esc(g.label)}</b></td><td>${g.n}</td><td>${pct(g.rubricPct)}</td><td>${outOf4(g.empathy)}</td><td>${pct(g.objectivePct)}</td><td>${pct(g.openShare)}</td><td>${g.questions ?? "–"}</td><td>${g.minutes ?? "–"}</td><td>${g.judgmental}</td></tr>`).join("")}</tbody></table></div>`;
+}
+// A question faculty can put to the student, built from the widest gap.
+function debriefPrompt(item) {
+  const w = item.widest;
+  if (!w || w.gap === 0) return "";
+  return `${item.title}: ${w.label.toLowerCase()} averaged ${w.high.value}${w.unit} with ${w.high.label} and ${w.low.value}${w.unit} with ${w.low.label}. What felt different in those visits?`;
+}
+function deepDive(item) {
+  const w = item.widest;
+  const lead = item.trials
+    ? `Same clinical case presented with a different ${item.differs.length ? item.differs.join(" and ") : "patient"}. `
+    : "";
+  const excerpts = (item.examples || [])
+    .map(
+      (x) =>
+        `<div class="excerpt"><p class="excerpt-label">Transcript excerpt (${esc(x.patient)}, ${esc(new Date(x.at).toLocaleDateString())}):</p><p class="excerpt-quote">${x.quote ? `“${esc(x.quote)}”` : "No question recorded."} <span>(${esc(x.quoteKind)})</span></p>${x.note ? `<p class="excerpt-note"><strong>Rubric note:</strong> ${esc(x.note)}</p>` : ""}${button("Open encounter", "visit-open", `data-id="${esc(x.id)}"`, "mini")}</div>`,
+    )
+    .join("");
+  return `<div class="dive level-${item.level}"><div class="dive-head"><div class="dive-title">${hubIcon(item.trials ? "matched" : item.id)}<div><h4>${esc(item.title)} — Faculty analysis</h4><p>Longitudinal variance delta: <span class="bc-delta">${esc(deltaLine(item))}</span></p></div></div>${varianceBadge(item.level, item.trials ? true : item.smallSample)}</div><div class="dive-body"><h4>${w ? `${esc(w.high.label)} vs. ${esc(w.low.label)} presentation analysis` : "Presentation analysis"}</h4><p>${esc(lead + item.summary)}</p>${item.groups.length > 1 ? `<div class="dive-grid"><div><p class="dive-cap">How the groups compare</p>${groupCharts(item.groups)}</div><div><p class="dive-cap">From the lower-scoring group${w ? ": " + esc(w.low.label) : ""}</p>${excerpts || '<p class="muted">No visits to quote yet.</p>'}</div></div>${debriefPrompt(item) ? `<div class="prompt">${hubIcon("chat")}<div><b>Suggested debrief question</b><p>${esc(debriefPrompt(item))}</p></div><button type="button" class="mod-add" data-action="board-add-prompt" data-prompt="${esc(debriefPrompt(item))}">Add to notes</button></div>` : ""}<details class="evidence"><summary>All numbers</summary>${varianceTable(item.groups)}</details>` : excerpts}${!item.trials && item.basis === "text" ? '<p class="muted small">These groups were read automatically from the case text and can be wrong. Check them against the case before drawing on this comparison.</p>' : ""}</div></div>`;
+}
+function biasBoard() {
+  const all = insightsData?.students;
+  if (!all)
+    return `<div class="pn"><h1>Bias review</h1><p class="muted">Review data is unavailable.</p></div>`;
+  const key = (s) => s.student.id || "unassigned";
+  const current =
+    all.find((s) => key(s) === boardStudent) ||
+    // Open on the student with the most visits, where there is most to review.
+    [...all].sort((a, b) => b.kpis.n - a.kpis.n)[0] ||
+    all[0];
+  boardStudent = key(current);
+  const v = current.variance,
+    k = current.kpis;
+  const items = [...v.comparisons, ...v.dimensions];
+  const rank = Object.keys(VARIANCE_LABEL);
+  const focus =
+    items.find((i) => i.id === boardFocus) ||
+    // Open on the widest gap.
+    [...items].sort((a, b) => rank.indexOf(b.level) - rank.indexOf(a.level))[0];
+  const flags = [...items]
+    .filter((i) => ["moderate", "notable"].includes(i.level))
+    .map((i) => i.title.toLowerCase());
+  const prompts = items.map(debriefPrompt).filter(Boolean);
+  const notes = boardDraft ?? current.notes.text;
+  const saved =
+    boardDraft != null && boardDraft !== current.notes.text
+      ? "Unsaved changes"
+      : current.notes.updatedAt
+        ? "Saved " + new Date(current.notes.updatedAt).toLocaleString()
+        : "Not saved yet";
+  return `<div class="hub is-faculty"><section class="hp switcher"><div class="sw-title"><span class="sw-ico">${hubIcon("scope")}</span><div><h2>Student bias review board</h2><p>Longitudinal bias review and student competency analysis</p></div></div><div class="sw-pick"><label for="board-student">Target student:</label><select id="board-student">${all.map((s) => `<option value="${esc(key(s))}" ${key(s) === boardStudent ? "selected" : ""}>${esc(s.student.alias)} • ${plural(s.kpis.n, "visit")} • ${OVERALL_LABEL[s.variance.overall]}</option>`).join("")}</select></div></section>
+  ${hubBanner(current, {
+    title: current.student.alias,
+    pill: current.notes.flagged ? "Flagged for mentorship" : "Bias review",
+    tag: "Student",
+    line: `Overall encounter score: <strong>${pct(k.rubricPct)}</strong> • Empathy: <strong>${outOf4(k.empathy)}</strong> (${grade(k.empathy)})${flags.length ? ` • Variance in ${esc(flags.join(", "))}` : ""}`,
+    boxes: [
+      [
+        "Learning objectives",
+        `<span class="tx-teal">${pct(k.objectivePct)}</span>`,
+      ],
+      ["SP cases analysed", `<span class="tx-amber">${k.n}</span>`],
+    ],
+    faculty: true,
+  })}
+  <section class="hp core"><div class="core-head"><div><div class="core-title"><span class="core-tag">Core faculty tool</span><h2>Longitudinal bias variance index</h2></div><p>Cross-analysing performance variance (rubric, empathy, learning objectives, open questions, time spent) across the patient presentations this student has seen.</p></div><div class="core-overall"><span>Overall bias variance rating:</span><span class="lv big level-${v.overall}">${OVERALL_LABEL[v.overall]}</span></div></div><div class="bc-grid">${items.map((i) => biasCard(i, i.id === focus.id)).join("")}</div>${deepDive(focus)}<details class="evidence"><summary>How to read this</summary><p>Levels come from the widest gap in rubric average or in the rapport and empathy domain between patient groups: under ${v.thresholds.moderate} points is minimal, ${v.thresholds.moderate}–${v.thresholds.notable - 1} moderate, ${v.thresholds.notable} or more notable. A patient group is rated only once it has ${v.thresholds.minPerGroup} visits; "small sample" means a group still has fewer than ${v.thresholds.smallSample}.</p><ul>${v.limitations.map((l) => `<li>${esc(l)}</li>`).join("")}</ul></details></section>
+  <div class="hub-row"><section class="hp span-7"><h3 class="hp-rule">${hubIcon("pen")}<span>Faculty observation notes and debrief agenda</span></h3><label for="board-notes" class="fld">Specific reflection prompts for student session</label><textarea id="board-notes" rows="4" maxlength="5000" placeholder="Note specific moments where the student displayed variance in communication or thoroughness…">${esc(notes)}</textarea><div class="notes-foot"><label class="check"><input type="checkbox" id="board-flag" ${current.notes.flagged ? "checked" : ""}> Flag for 1-on-1 faculty mentorship review</label><div class="notes-save"><span class="muted small">${esc(saved)}</span>${button("Save faculty evaluation notes", "save-board-notes", "", "pri")}</div></div></section><section class="hp span-5 modules"><div><h3 class="hp-rule">${hubIcon("book")}<span>Assign bias mitigation modules</span></h3><p class="muted small">Targeted training modules assigned directly to the student's My performance page:</p><div class="mod-list">${current.modules.map((m) => `<div class="mod ${m.assignedAt ? "is-on" : ""}"><span><b>${esc(m.code)}:</b> ${esc(m.title)}${m.suggested ? ' <span class="lv level-moderate">Suggested</span>' : ""}${m.assignedAt ? `<br><small class="muted">Assigned ${esc(new Date(m.assignedAt).toLocaleDateString())}</small>` : ""}</span><button type="button" class="mod-add" data-action="module-toggle" data-module="${esc(m.id)}" data-assigned="${m.assignedAt ? "true" : "false"}">${m.assignedAt ? "Assigned ✓" : "Assign"}</button></div>`).join("")}</div></div><p class="mod-note">${hubIcon("shield")} Bias review is shown to faculty only. Students see the modules assigned to them, not why they were suggested.</p></section></div>${visitDialog(current)}</div>`;
+}
 function render() {
   stopInterviewTimer();
   window.VirtuSPAvatar?.park();
@@ -1544,19 +1909,7 @@ function render() {
       rolePicker();
     return;
   }
-  if (
-    demoSession.role === "student" &&
-    ["student-home", "open-assessments"].includes(tab)
-  ) {
-    $("#nav").innerHTML =
-      (tab === "open-assessments"
-        ? button("My assignments", "nav", 'data-tab="student-home"')
-        : "") + button("Switch workspace", "switch-role");
-    $("#app").innerHTML =
-      `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
-      (tab === "student-home" ? studentHome() : openAssessments());
-    return;
-  }
+  if (tab === "open-assessments") tab = "student-home";
   const focusId = document.activeElement?.id;
   const dialogScroll = $(".patient-form-body")?.scrollTop || 0;
   if (patientDialog && $("#patient-dialog")?.dataset.profileId === profile.id)
@@ -1566,10 +1919,7 @@ function render() {
       patientDialog.openSections[detail.dataset.detail] = detail.open;
   const navs = [
     ...(demoSession.role === "student"
-      ? [
-          ["student-home", "My assignments"],
-          ["open-assessments", "Open assessments"],
-        ]
+      ? [["student-home", "Assessments"]]
       : []),
     [
       "studio",
@@ -1583,7 +1933,12 @@ function render() {
       "tests",
       demoSession.role === "faculty" ? "Prepared groups" : "Patient groups",
     ],
-    ...(demoSession.role === "faculty" ? [["results", "Student results"]] : []),
+    ...(demoSession.role === "faculty"
+      ? [
+          ["results", "Student results"],
+          ["bias", "Bias review"],
+        ]
+      : [["performance", "My performance"]]),
   ];
   $("#nav").innerHTML =
     navs
@@ -1603,13 +1958,15 @@ function render() {
     {
       studio,
       "student-home": studentHome,
-      "open-assessments": openAssessments,
+
       enc: encounter,
       team,
       rep: assessment,
       history: past,
       tests: testCatalog,
       results: resultsPage,
+      bias: biasBoard,
+      performance: performanceHub,
     }[tab]() +
     patientForm();
   if (patientDialog) {
@@ -2166,14 +2523,11 @@ function stopStudentCamera() {
 }
 async function pollTalkingVideo(turn, generation) {
   try {
-    const started = await fetch(
-      `/api/encounters/${enc.id}/talking-video`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ turnId: turn.id }),
-      },
-    );
+    const started = await fetch(`/api/encounters/${enc.id}/talking-video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ turnId: turn.id }),
+    });
     if (!started.ok && started.status !== 202) return;
     for (let attempt = 0; attempt < 8; attempt++) {
       if (generation !== speechGeneration) return;
@@ -2474,11 +2828,7 @@ function startLive() {
   rec.continuous = true;
   rec.interimResults = true;
   rec.onstart = () => {
-    if (live())
-      voiceState(
-        "listening",
-        "Listening…",
-      );
+    if (live()) voiceState("listening", "Listening…");
   };
   rec.onresult = (e) => {
     if (!live()) return;
@@ -2548,7 +2898,14 @@ function commitUtterance() {
   utteranceStarted = 0;
   const text = liveText.trim();
   liveText = "";
-  if (!text || busy || enc?.status !== "active" || !callIsLive() || patientSpeaking) return;
+  if (
+    !text ||
+    busy ||
+    enc?.status !== "active" ||
+    !callIsLive() ||
+    patientSpeaking
+  )
+    return;
   if ($("#question")) $("#question").value = "";
   question(text);
 }
@@ -2653,25 +3010,6 @@ document.addEventListener("input", async (e) => {
   const t = e.target;
   if (t.id === "demo-student") loginStudent = t.value;
   if (t.id === "assign-student") selectedStudent = t.value;
-  if (t.id === "studio-group") {
-    selectedGroup = t.value;
-    render();
-  }
-  if (t.dataset.groupOpen) {
-    try {
-      await api(`/api/groups/${t.dataset.groupOpen}`, "PUT", {
-        availableToAll: t.checked,
-      });
-      const group = groups.find((g) => g.id === t.dataset.groupOpen);
-      if (group) group.availableToAll = t.checked;
-    } catch (error) {
-      t.checked = !t.checked;
-      message = error.message;
-      $(".toast").textContent = message;
-      $(".toast").classList.remove("hidden");
-    }
-    return;
-  }
   if (t.id === "new-student-alias") newStudentAlias = t.value;
   if (t.id === "patient-description") {
     stopDraftDictation();
@@ -2801,6 +3139,28 @@ document.addEventListener("click", async (e) => {
   }
   if (busy && a !== "toggle-pause") return;
   try {
+    if (a === "assign-simulation") {
+      const studentId = t
+        .closest(".simulation-assignment")
+        .querySelector("[data-assignment-student]").value;
+      if (!studentId)
+        throw new Error("Select a student to assign this simulation.");
+      const payload = {
+        studentId,
+        [t.dataset.kind === "group" ? "groupId" : "profileId"]: t.dataset.id,
+      };
+      busy = true;
+      render();
+      await api("/api/assignments", "POST", payload);
+      await refresh();
+      message =
+        "Simulation assigned to " +
+        students.find((s) => s.id === studentId).alias +
+        ".";
+      busy = false;
+      render();
+      return;
+    }
     if (a === "browse-patient") {
       $("#patient-upload")?.click();
       return; // Keep the input mounted while the system file picker is open.
@@ -2844,6 +3204,7 @@ document.addEventListener("click", async (e) => {
       patientDialog = null;
       history = [];
       list = [];
+      savedPatients = [];
       facultyResults = [];
       groups = [];
       assignments = [];
@@ -2868,7 +3229,7 @@ document.addEventListener("click", async (e) => {
         title: $("#group-title").value,
         purpose: $("#group-purpose").value,
         kind: $("#group-kind").value,
-        availableToAll: $("#group-available").checked,
+        availableToAll: true,
         profileIds: Array.from(
           document.querySelectorAll('[name="group-patient"]:checked'),
         ).map((el) => el.value),
@@ -2893,20 +3254,13 @@ document.addEventListener("click", async (e) => {
       newStudentAlias = "";
       await refresh();
     }
-    if (a === "assign-group") {
-      selectedGroup = t.dataset.id;
-      await api("/api/assignments", "POST", {
-        groupId: selectedGroup,
-        studentId: selectedStudent,
-      });
-      await refresh();
-      message = "Group assigned.";
-    }
     if (a === "start-test" || a === "start-available") {
       const route = a === "start-available" ? "groups" : "assignments";
       const r = await api(`/api/${route}/${t.dataset.id}/start`, "POST", {});
       if (r.attempt.status === "complete") {
-        tab = "history";
+        enc = (await api(`/api/encounters/${r.attempt.trials[0].encounterId}`))
+          .encounter;
+        tab = r.attempt.kind === "individual" ? "rep" : "history";
         await refresh();
       } else {
         const n = await api(`/api/attempts/${r.attempt.id}/next`, "POST", {});
@@ -2964,6 +3318,41 @@ document.addEventListener("click", async (e) => {
         ].includes(tab)
       )
         await refresh();
+      if (["bias", "performance"].includes(tab)) await loadInsights();
+    }
+    if (a === "board-focus") boardFocus = t.dataset.focus;
+    if (a === "board-pick") {
+      boardStudent = t.dataset.student;
+      boardFocus = "";
+      boardDraft = null;
+    }
+    if (a === "module-toggle") {
+      await api(
+        `/api/insights/modules/${boardStudent}/${t.dataset.module}`,
+        "PUT",
+        { assigned: t.dataset.assigned !== "true" },
+      );
+      await loadInsights();
+      message =
+        t.dataset.assigned === "true"
+          ? "Module unassigned."
+          : "Module assigned. It now shows on the student's My performance page.";
+    }
+    if (a === "board-add-prompt") {
+      const current = $("#board-notes").value.trim();
+      boardDraft = (current ? current + "\n\n" : "") + t.dataset.prompt;
+      message = "Added to the notes below. Save to keep it.";
+    }
+    if (a === "visit-open") visitModal = t.dataset.id;
+    if (a === "visit-close" || a === "resume" || a === "nav") visitModal = "";
+    if (a === "save-board-notes") {
+      await api(`/api/insights/notes/${boardStudent}`, "PUT", {
+        text: $("#board-notes").value,
+        flagged: $("#board-flag").checked,
+      });
+      boardDraft = null;
+      await loadInsights();
+      message = "Faculty notes saved.";
     }
     if (a === "pick") {
       if (dirty) await save();
@@ -3122,8 +3511,20 @@ document.addEventListener("click", async (e) => {
       if (enc.status === "active")
         await mutate("open", { section: t.dataset.section });
       section = t.dataset.section;
+      render();
+      // A shorter tab can otherwise leave its first note behind the sticky
+      // chart header at the previous tab's scroll position.
+      $(".ehr-panel")?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      return;
     }
-    if (a === "expand-doc") expandedDocId = t.dataset.id;
+    if (a === "expand-doc") {
+      if (
+        enc.status === "active" &&
+        (!enc.studentId || demoSession.role === "student")
+      )
+        await mutate("view", { artifactId: t.dataset.id });
+      expandedDocId = t.dataset.id;
+    }
     if (a === "close-doc") expandedDocId = "";
     if (a === "review") await mutate("review", { artifactId: t.dataset.id });
     if (a === "review-section")
@@ -3290,6 +3691,32 @@ function toggleTheme() {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem("virtusp-theme", theme);
 }
+document.addEventListener("change", (e) => {
+  if (e.target.id === "visit-patient") return filterVisits();
+  if (e.target.id !== "board-student") return;
+  boardStudent = e.target.value;
+  boardFocus = "";
+  boardDraft = null;
+  render();
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "visit-search") filterVisits();
+  // Keep typed notes across re-renders until they are saved.
+  if (e.target.id === "board-notes") boardDraft = e.target.value;
+});
+// A patient without a portrait falls back to initials.
+document.addEventListener(
+  "error",
+  (e) => {
+    if (e.target.matches?.(".pt-avatar img")) e.target.remove();
+  },
+  true,
+);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || !visitModal) return;
+  visitModal = "";
+  render();
+});
 document.addEventListener("click", (e) => {
   const link = e.target.closest(".turn-link");
   if (!link || !enc?.assessment) return;

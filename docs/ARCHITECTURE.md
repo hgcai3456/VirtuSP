@@ -48,7 +48,7 @@ The entry picker selects a local Faculty/Student demo session. Server guards pro
 
 Profile `facts[]` is the authoritative authoring structure. Editable fields update that structure directly. Source content remains evidence, never an instruction source. Publications clone the profile; encounters clone their selected publication. Draft edits cannot alter an ongoing attempt.
 
-Disclosure includes patient-known `ask` facts and chart-only `chart` facts. Trust gates apply to both. Reports can release by section, question keywords or either; a question-only report stays locked when its tab is opened. Every mapped fact must be permitted before its report releases. Releasing a report is distinct from explicitly recording that the student reviewed it.
+Disclosure includes patient-known `ask` facts and chart-only `chart` facts. Trust gates apply to both. Reports can release by section, question keywords or either; a question-only report stays locked when its tab is opened. Every mapped fact must be permitted before its report releases. Releasing a report is distinct from opening/displaying it. Chart-section openings with released findings and report expansion record `view` events; no simulation review checkbox is required. Access can complete a record-access objective, but it does not establish reading or understanding. Legacy explicit review events remain valid.
 
 ## Dialogue workflow
 

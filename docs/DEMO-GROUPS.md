@@ -1,48 +1,46 @@
-# Faculty / Student comparison demo
+# Faculty and student simulation catalog
 
-Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. If an older server is running, restart it and refresh the page. Sessions reset on a server restart; student aliases, assignments and encounter progress persist.
+Run `npm start`, open http://localhost:3000/app.html, and choose a workspace. Restart an older server and refresh with Ctrl+F5 after pulling. Aliases, assignments, trial order and encounters persist in local JSON with the existing S3 backup; sessions reset on restart.
 
-## Assign and run
+## Assign and rehearse
 
-1. Enter **Faculty**. Patient Studio has an **Assign a patient group** panel; click **Assign a group**, or use **Prepared groups** in navigation.
-2. The preconfigured **Dyslipidemia: medication concerns** group is **Ready to assign** immediately. Choose Student A/B and click **Assign group**. No parsing, patient editing or publication is needed for assignment.
-3. Switch to that student. **My assigned assessments** is their first page. Click **Start assessment** or **Resume assessment** directly. Cases run in a shuffled, persisted order.
-4. Try a greeting, medication concern, a lipid-record question and an unspecified allergy. No allergy should be invented; the lipid report stays locked until a related question.
-5. Finish the first trial, then use **Continue to next patient**. Standard feedback is released only after both trials finish.
-6. Refresh/restart midway and select the same alias to test recovery. Starting twice resumes the same attempt and encounter.
-7. Switch to Faculty → **Student results** for the trial assessments and evidence. Select **Run bias assessment** on the completed group or an individual encounter to use the supplied five-category OSCE criteria. Bias assessment stays separate from student feedback. Faculty inspection cannot change a student encounter.
-8. Switch to another student to check ownership. Use **Select open assessments** for the large **Individual patient** / **Patient group** choices. Ordinary individual practice provides immediate feedback. **My assignments** returns to faculty-assigned work.
-9. Separately demonstrate Faculty **Patient Studio → New patient → upload/extract → acknowledge/publish → Start visit**. Independent patient authoring remains available.
+1. Faculty opens **Patient Studio**. **Select an AI patient** lists individual simulations. **Multi-patient assessment** follows below with ready group cards. There is no assignment banner or availability switch.
+2. Under either a patient or group, expand **Assign this simulation to student**, select an alias, then **Assign**. Individual assignments pin one published version; groups pin all published versions and their comparison design. Students cannot create aliases, patients or groups.
+3. Switch to that student. Their first page shows **My assigned assessments**, followed immediately by all available individual and group simulations. Assignments recommend work; they do not restrict the catalog. Every ready group is open, including older `availableToAll: false` groups. Drafts and incompatible/unpublished groups remain unrunnable.
+4. An individual visit releases standard feedback immediately on completion. In the four-case group, try a greeting, medication concerns, work/context, a lipid-record question and an unspecified allergy. Reports follow authored disclosure rules; unspecified allergy/medication history must not become negative findings.
+5. Finish each trial and choose **Continue to next patient**. Group feedback stays held until all four trials finish. Refresh/restart midway to verify resume. Duplicate starts reuse the existing encounter.
+6. Faculty **Student results** shows trial feedback and separate **Run bias assessment**. The supplied five-category OSCE rubric is applied per encounter. **Bias review** retains the teammate's longitudinal performance view. Students cannot retrieve faculty analysis or another student's records.
+7. Independently demonstrate **AI Generate a new Patient** or the existing upload/manual **New patient** flow. Publication remains faculty-only.
 
-## Optional group settings
+## Four prepared comparison cases
 
-**Group details and settings** starts collapsed. It contains provenance, demographic differences, optional patient editing and one checkbox: **Include in open assessments**. When checked, students can self-select that ready group without a faculty assignment. When unchecked, only assigned students can start it. Existing assignments/attempts are retained when this setting changes.
+**Cholesterol care: four different lives** uses separate `lipids-*-demo` IDs and retains the original Omar Sinclair row as provenance, not as the new identities' biographies.
 
-**Create a patient group** selects at least two published patients, a title and group type; purpose is optional. Practice groups may combine conditions. Demographic comparisons require matching clinical/scenario settings. Editing patients is a separate preparation task, not a step during assignment. Student management is collapsed below the catalog.
+| Patient | Age | Gender | Self-described ethnicity | Education and everyday context |
+| --- | --- | --- | --- | --- |
+| Jordan Ellis | 34 | Female | Black American | Vocational certificate; aircraft maintenance with changing shifts |
+| Daniel Brooks | 45 | Male | White American | University degree; office-based project coordination |
+| Meera Shah | 58 | Female | South Asian American | Secondary school; shop owner and family caregiver |
+| Roberto Vega | 67 | Male | Latino American | Associate degree; retired transit worker on a fixed income |
 
-## Prepared releases and existing work
+These are **team-authored synthetic adaptations of supplied clinical material**, prepared before the demo. Demographics and everyday context are explicitly authored; no faculty clinical approval is fabricated. Education does not establish health literacy. Backgrounds do not imply adherence, intelligence or personality. Clinical findings, medication concerns, personality, communication style, objectives and gates are shared. Identity, work, education and everyday context vary.
 
-Startup installs the bundled synthetic demo releases with explicit team-prepared provenance. This records no faculty clinical approval; it makes the supplied prototype immediately runnable. Custom authoring retains faculty review and acknowledgment.
+Sources: [prepared-groups.json](../corpus/prepared-groups.json) and retained [faculty CSV](../corpus/faculty-patients.csv). Cholesterol values retain missing units/date; medication names and allergies remain unspecified. No imaging was invented. Earlier cases/releases remain intact. The teammate's **Practice patients** group remains available separately; it mixes conditions and is not the matched cholesterol comparison.
 
-Seed revision 2 uses separate `comparison-omar-demo` / `comparison-alex-demo` profile IDs. Earlier `comparison-omar` / `comparison-alex` drafts, publications and pinned encounters remain intact. The catalog moves to the bundled releases; previous assignments continue using their originally pinned cases. An explicitly saved availability setting is preserved during migration. New installations include the demo in open assessments.
+Startup installs immutable team-prepared demo releases. New IDs preserve older releases and pinned attempts. Changing the seed does not rewrite installed published cases. Custom creation still needs the faculty publication acknowledgment. Clinical mismatches block new comparison starts/assignments; pinned attempts continue unchanged.
 
-## Prepared case provenance
+## What the guide supports
 
-The tracked seed is [prepared-groups.json](../corpus/prepared-groups.json). It uses the supplied **faculty CSV** and existing organizer-derived teaching suggestions for Omar, rather than importing the richer Hugging Face profile's inferred medications or other extra details. Raw CSV content is retained. The richer downloaded corpus remains available unchanged; do not silently combine differing versions.
+The supplied [bias rubric](../corpus/bias_evaluation_rubric.json) names race, gender, **age and socioeconomic status**. It prescribes neither sample size nor matched-case experimental design. Four trials are a demo choice, not a statistically validated minimum. Education/background add authored scenario context.
 
-Omar remains 45, male, African-American. Alex Morgan is an explicitly **team-authored adaptation**, 45, male, White American. The clinical facts, personality, language/style, objectives and disclosure rules match. Alex's source notes identify the retained original row as Omar's provenance, not Alex's biography. The bundled releases are team-prepared for the prototype; they do not assert clinical correctness or faculty clinical approval.
+This is an **exploratory varied-background comparison**, not a controlled single-variable experiment. Age, affordability and schedules can legitimately change care. Possible indicators must cite recorded student actions from at least two trials and acknowledge alternative explanations. Trial order, repeated-case learning and model variation remain confounds. See [BIAS-INTEGRATION.md](BIAS-INTEGRATION.md). Bias points are never added to standard rubric scores.
 
-Supplied lipid values are retained with unspecified units/date. Medication names, doses and allergies remain unknown. General NHLBI/AHA reference excerpts support review and coaching; they do not add patient-specific facts. The supplied CSV subset has no meal-count contradiction to resolve; differing meal descriptions in the richer organizer-linked corpus have not been imported into this pair.
+All four cases share a generic portrait and common voice-selection key. The speech teammate should review presentation before rehearsal: common presentation reduces one source of variation but can be incongruent with authored identity. No separate demographic videos or accents were introduced here.
 
-Both use a generic portrait and a common `presentationKey` for voice selection. Speech teammates must preserve that common selection within an attempt and avoid adding different videos/accents to this comparison. A changing voice catalog, model response variation and learning from the repeated clinical case remain possible confounds. Two trials are a prototype comparison, not a validated bias measurement.
+## Cleanup and remaining work
 
-## Remaining ownership
+`node scripts/cleanup-empty-drafts.js` previews untouched placeholders. Stop the app, then use `--apply` to back up the complete local state under ignored `tmp/` and remove only eligible drafts. Authored content, files, publications, encounters, group references and assignments survive. Applying uses normal JSON/S3 persistence; runtime backups are never pushed.
 
-| Owner                 | Remaining work                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Faculty/case reviewer | Rehearse the ready cases and verify recorded assessments against the organizer rubric; review any custom clinical edits.                                     |
-| Bias teammate         | Calibrate the supplied OSCE assessment, expand contrasting examples and repeatability tests, and coordinate the [faculty-only adapter](BIAS-INTEGRATION.md). |
-| Speech/UI teammate    | Rehearse physical microphone, audio, common voice and generic portrait in Chrome/Edge.                                                                       |
-| Demo teammate         | Record the assigned group, faculty results and independent new-patient creation; avoid claiming differences prove bias.                                      |
+`npm test` verifies HTTP/DOM workflows, ownership, pinning, four-trial feedback release and recovery. Isolated Chrome checks cover 1280px and 600px layouts. These tests do not establish clinical or bias-detection validity. Faculty should calibrate cases and repeated Bedrock ratings; speech should rehearse microphones/audio; demo owners should record assignment, completion, faculty evidence and independent creation. This remains a local demo alias system, not production authentication.
 
-`npm test` covers the HTTP and DOM workflows with local inference. `node scripts/demo-smoke.js` uses real Bedrock and configured S3 in an isolated ignored data directory/cloud prefix, using the bundled prepared demo releases. It prints provider/storage results and writes ignored `output/group-smoke.json`. This does not publish cases in your active application store or replace faculty review.
+Simulation review checkboxes/buttons are removed. Opening a chart is recorded as an opening; it is not fabricated evidence that the student read or understood it. Legacy explicit review events/API remain available for old records. Faculty should judge demonstrated interpretation from the conversation. Legacy review-type objectives now count an explicit opening of released findings or an expanded report, with evidence labeled as access, not comprehension. Clinical interpretation is assessed separately in the rubric.
