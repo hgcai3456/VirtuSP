@@ -24,6 +24,8 @@ test('newly authored chief complaint answers the suggested opening question', as
   await b.run('launch(sel,1)');
   await b.run("ask('What brings you in today?')");
   assert.equal(b.run('enc.tr.at(-1).t'),'I have had a mild headache for two days.');
+  await b.run("encounterAction('handoff','Mild headache for two days');");
+  assert.equal(b.run('enc.ho.inc'),1);
 });
 test('feedback requires review and links to recorded evidence events', async()=>{
   const b=await browser(); await b.run("launch('denise',1)"); await b.run("openSec('labs')"); assert.equal(b.run('grade(enc.p.obj[2]).c'),0);
