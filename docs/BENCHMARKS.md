@@ -1,5 +1,7 @@
 # Prototype results, 2026-10-10
 
+> Historical model measurements, not a benchmark of this audit's checkout or its strict/natural-mode changes. Do not quote these as current-release performance or learner outcomes. See [current verification](TESTING.md).
+
 Region: `us-west-2`. Each dialogue run scored 85 turns: 32 persona questions, 40 turns across eight encounters, eight adversarial prompts and five new-patient turns. Six development examples remain separate. Imported evaluation profiles use explicit organizer backgrounds rather than unapproved complete histories.
 
 | Iteration/model     | Correct disclosure/unknown | Median / p95 turn latency | Provider fallbacks | Structural violations |

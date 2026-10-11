@@ -1,5 +1,18 @@
 # Demo and four-minute pitch
 
+## Judge proof sequence
+
+Use Node 22.17+, synthetic data and `DIALOGUE_MODE=strict`. Start offline with `AI_ENABLED=false`; enable providers only for a separately authorized/configured rehearsal. The live URL is [the CloudFront application](https://d18g7r2mfy8mll.cloudfront.net/app.html); availability/revision was not confirmed in this documentation audit.
+
+1. **0:00–0:40:** Explain the practice problem and “AI powers the experience. Faculty defines the patient.” Select Faculty and New patient.
+2. **0:40–1:30:** Create a new synthetic patient, Jordan Vale, age 34. Add a patient-known work finding with label `Work schedule` and patient wording “My schedule changed to nights last month.” In Advanced scenario settings set Question topic to `work schedule`; local matching supports topic/label words when the form leaves keywords blank. Add a chart-only intake note, sources and an objective; review/correct the draft and acknowledge review. For a guarded fact also author a rapport phrase. Publish.
+3. **1:30–2:15:** Launch the newly published patient through the standard encounter. Answer the incoming call. Show conversation beside chart; ask “What changed about your work schedule?” Show the approved sentence. This requires zero patient-specific code changes or redeployment.
+4. **2:15–2:45:** Show a locked chart item and release it using its authored condition. Ask “Did you have a stroke last year?”; an absent fact must remain unknown. Do not prefill this answer as a fabricated negative.
+5. **2:45–3:30:** Finish. Inspect elicited/missed objectives, coaching and transcript evidence. Offline/provider-failed domains remain `not_assessed` and have no overall total. If a supported assessment exists, inspect an actual cited event; do not promise a denominator before checking all applicable domains.
+6. **3:30–4:00:** Show another published case using the same engine. Explain UI/application/data layers, optional speech and future Canvas path. State validation, identity and distributed-state limitations.
+
+If AI is unavailable, keep strict local mode: keyword selection, approved lines, factual debrief and pending rubric domains. Text is the fallback if speech/avatar fails. A mock avatar is not a live session. The detailed scenario below is optional preparation; the sequence above is the primary four-minute judge path.
+
 ## Rehearsal setup
 
 Run preflight and the reviewed evaluation before recording. Pin the selected model ID in `.env`, set `AI_ENABLED=true` and restart. Check that real replies show their provider and S3 copies succeed. Keep keys and the event's token-bearing URLs outside the recording. ElevenLabs is optional; text is the required fallback.
@@ -33,7 +46,7 @@ Use valid stable IDs, provide coaching tips, review all authored records and ack
 1. **0–30 seconds:** Create Jordan in Studio. Show the explicit facts, guarded topic, chart-only note and objectives. Review and publish v1. State that this profile is data, not patient-specific code.
 2. **30–60 seconds:** Launch. Ask “What brings you in?” and “What kind of work do you do?” Ask about the supervisor before acknowledging the concern to show a deflection. Then ask “That sounds difficult. What concerns you about speaking with your supervisor?”
 3. **60–80 seconds:** Open Notes; the question-only report stays locked. Ask “Can I see your schedule record?” to release it. Explicitly record review. Ask about allergies to demonstrate authored uncertainty.
-4. **80–110 seconds:** Finish. Show seven domains, two N/A domains, denominator 20, and an expanded evidence link. Show objective completion separately. Export the encounter. Briefly show Omar/Yvette available through the same engine.
+4. **80–110 seconds:** Finish. Show domain applicability and an evidence link where assessed. A denominator of 20 is meaningful only when the five applicable domains have supported assessments; local/provider-failed assessment omits the total. Show objective coverage separately and export the encounter. Briefly show Omar/Yvette using the same engine.
 
 Recording a live AI response may take several seconds; allow that time and show the loading state. Do not edit out fallback status while implying every reply came from Bedrock. If only provisional assessment is available, label it and do not present placeholder ratings as measured performance.
 

@@ -1,5 +1,7 @@
 # Judge demonstration checklist
 
+> Historical observed checklist. Its failures and not-run statements are dated 2026-10-10, not current status. The authoritative rehearsal is [DEMO.md](DEMO.md#judge-proof-sequence); current automated evidence is [TESTING.md](TESTING.md) and [requirements traceability](REQUIREMENTS_TRACEABILITY.md). Use strict mode explicitly.
+
 Use this sequence for the Challenge 1 fresh-patient demonstration: a faculty member creates a new patient in Patient Studio, publishes it, and a student interviews that same patient without a code change or a restart.
 
 Statuses were observed on 2026-10-10 against the working tree, with `AI_ENABLED` not set to `true`. The official challenge PDF was not in the workspace. Details and evidence are in `docs/requirements-audit.md`.

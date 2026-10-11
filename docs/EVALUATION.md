@@ -1,5 +1,7 @@
 # Evaluation protocol
 
+> Historical counts below are dated evidence, not a fresh measurement of this checkout. Use [TESTING.md](TESTING.md) for this audit's run. Pin `DIALOGUE_MODE=strict` when evaluating the approved-line boundary; optional natural dialogue requires a separate disclosure/grounding evaluation.
+
 ## This checkout’s engineering checks
 
 The checks added for the judged response boundary live in `tests/release-boundary.test.js`, `tests/engine.test.js`, `tests/profiles.test.js`, `tests/rubric.test.js`, and the appointment regression. They are regression and development data. They were written while the behavior was being fixed, so they are not an untouched held-out validation and they are not an educator judgment.

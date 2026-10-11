@@ -1,5 +1,13 @@
 # Teammate and agent handoff
 
+## Judge documentation audit (2026-10-11)
+
+Judge path: README → `docs/HACKATHON_SUBMISSION.md` → `docs/DEMO.md#judge-proof-sequence`, with `REQUIREMENTS_TRACEABILITY.md`, `JUDGING_MATRIX.md`, `TESTING.md` and `DOCUMENTATION_AUDIT.md`. Tested app HEAD was `662c6d154c19de4276548a28ccabd6c498ac0117` with pre-existing uncommitted source changes. Root workspace is a separate static/browser prototype; do not use its local-only architecture as evidence about this app.
+
+Current audit runs outside sandbox: `npm test` 241 passed/0 failed/0 skipped; local integration 5/0; Pact 3/0 with broker settings cleared. Initial sandbox runs failed temporary-file rename/loopback permissions and were retried. Coverage: 75.46% lines, 79.11% branches, 79.47% functions. Local test reporter ran. No new live cloud/provider test, deployment, commit or push. Relative link scan: 37 documents, no missing file targets.
+
+For judging pin `DIALOGUE_MODE=strict`: optional natural dialogue generates prose and receives guarded truth, so earlier universal approved-line/no-hidden-values statements are unsafe. State is JSON/in-memory for Studio/encounters, SQLite for ground-truth and PostgreSQL/S3 for optional archival. Shared files and process-local sessions need multi-task correctness validation. Faculty review, accessibility, institutional identity, retention/governance, security review, live media quality and Canvas integration remain outstanding. Bias variance board gaps are heuristics, not validated bias diagnoses. See the audit report for changed documents and refused claims.
+
 ## Draft and Bedrock replies (2026-10-11)
 
 `lib/cloud.js` `json()` was returning an observability wrapper, so draft review, synthetic generation, and patient replies read fields that were not on that wrapper. It now returns the parsed object and keeps the observation detail on a non-enumerable `__obs` property. `node --test tests/cloud.test.js tests/generation.test.js tests/patient-bedrock.test.js` passed 12 tests, and `npm test` then passed 217 tests with 0 failures. These checks are not clinical validation.

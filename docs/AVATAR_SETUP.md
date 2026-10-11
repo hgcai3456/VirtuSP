@@ -22,7 +22,7 @@ Optional limits already read by the server: `AVATAR_MAX_SESSION_SECONDS` (defaul
 ## PowerShell
 
 ```powershell
-cd C:\Users\Jasna\VirtuSP
+cd C:\Users\Jasna\VirtuSP\VirtuSP-upstream
 npm ci
 npm start
 ```

@@ -1,5 +1,46 @@
 # Architecture
 
+## Current stack and persistence
+
+Audit scope: application checkout `VirtuSP-upstream`, HEAD `662c6d154c19de4276548a28ccabd6c498ac0117`, with pre-existing uncommitted changes. Current means code/configuration here; deployment observations in the handoff are historical, not independently verified in this audit.
+
+**UI layer:** HTML, CSS and JavaScript implement authoring, conversation beside a progressive record, feedback and optional media. **Application services:** Node.js owns publication, encounter state, disclosure, assessment and integration APIs. **Data layer:** profiles, encounter history and artifacts remain on server storage. The top is what users interact with. The middle runs the simulation and enforces the rules. The bottom stores approved clinical data and encounter records.
+
+```mermaid
+flowchart TD
+  Browser[Browser UI] --> Edge[CloudFront HTTPS public front door]
+  Edge --> ALB[ALB traffic manager]
+  ALB --> App[Node API on ECS Fargate]
+  App --> EFS[EFS persistent data directory]
+  EFS --> State[JSON Studio and encounter manifest]
+  EFS --> SQLite[SQLite ground-truth library]
+  App --> S3[Private S3 objects and recovery copies]
+  App --> PG[Private PostgreSQL profile archive]
+  App --> AI[Optional Bedrock selection and assessment]
+  App --> Speech[Optional ElevenLabs saved-turn speech]
+  App --> CW[CloudWatch operational monitoring]
+```
+
+Evidence: `server.js`, `lib/http.js`, `lib/store.js`, `lib/db.js`, `lib/profile-archive.js`, `infra/aws/{cloudfront,alb,ecs,efs,rds,reports,security,autoscaling,monitoring}.tf`.
+
+`Store` holds drafts/releases/encounters in memory and serializes atomic `state.json` writes; attachments are files. Its queue is process-local. SQLite is a separate ground-truth database, not the sole encounter store. `PROFILE_ARCHIVE=true` queues profile/document copies to S3 and archive-table upserts to PostgreSQL (or SQLite without PostgreSQL). It does not migrate authoritative encounter state to RDS. Optional S3 manifest recovery is another copy path, not automatic failover.
+
+Terraform mounts EFS at `/app/data`, defines private RDS, and restricts app ingress to ALB, NFS to tasks and database ingress to tasks. Tasks have public IPs for outbound access; these controls do not constitute an institutional security audit. CloudFront terminates public TLS and uses an edge header to ALB; a supplied ACM certificate selects the alternative ALB HTTPS path. Node serves static UI; S3 is not the UI origin in this stack.
+
+Autoscaling defaults to 4–8 tasks with CPU 70% and memory 75% targets (`variables.tf`, `autoscaling.tf`). ALB distributes traffic, but process-local sessions, stale in-memory manifests, shared JSON writes and SQLite/EFS contention require distributed-correctness tests. More compute does not prove reliable concurrent writes or millions of learners. PostgreSQL archive capacity is not evidence of encounter scale.
+
+### Strict versus natural dialogue
+
+The diagram and staged workflow below describe **strict mode**. Set `DIALOGUE_MODE=strict` explicitly for judging. `lib/engine.js` also implements `naturalDialogue()`/`naturalTurn()`: `DIALOGUE_MODE=natural` enables generated prose for any provider; Anthropic defaults to natural unless strict is specified. That path sends guarded patient wording (`truth`) to `cloud.dialogue`, accepts generated reply text and has numeric checks, but does not enforce the same approved-line boundary. Bedrock defaults to staged selection when the mode is unset. Universal no-hidden-values and exact-approved-wording claims cannot cover both paths.
+
+### Integrations and future institutional path
+
+Bedrock provides topic selection and draft assessment in strict mode; the model is configurable rather than permanently fixed to the older candidate list below. ElevenLabs speaks saved encounter turns through `lib/speech.js`; browser speech/text remain fallbacks. Optional LiveAvatar LITE renders committed turn output, is disabled/local-only by default and has mock coverage rather than a verified live session. [Avatar implementation](AVATAR_IMPLEMENTATION.md).
+
+CloudWatch stdout logs, EMF metrics and manual spans support operations. Basic monitoring has historical deployment evidence; optional Application Signals/Synthetics have separate enablement/verification requirements. [Observability](OBSERVABILITY.md).
+
+**FUTURE / INSTITUTIONAL PATH:** Canvas/LTI identity, assignment launch and grade return; verified faculty roles; privacy/retention governance; accessibility review; durable multi-process state coordination; educator validation; security review. No working Canvas integration was found.
+
 ```mermaid
 flowchart LR
     F[Faculty Studio] -->|edit and review| P[Draft profile]

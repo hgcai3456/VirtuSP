@@ -1,5 +1,7 @@
 # Challenge 1 requirements audit
 
+> Historical audit of 2026-10-10: the missing Answer control and keyword findings below describe that earlier tree. Current tests exercise the incoming call, fresh-patient HTTP/DOM workflow and keywordless matching. Use [current traceability](REQUIREMENTS_TRACEABILITY.md) and [testing](TESTING.md) for this checkout; retain this report as the failure history rather than treating its verdict as current. Natural dialogue is a separate safety boundary.
+
 Audit date: 2026-10-10. This is an inspection of the working tree. No application behavior was changed.
 
 ## Source limit

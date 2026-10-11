@@ -1,5 +1,7 @@
 # Release readiness
 
+> The verification table below is historical. This audit's current results are in [TESTING.md](TESTING.md). Strict-mode boundary tests do not verify optional natural dialogue, which generates prose and receives guarded wording. No live cloud/provider or qualified educator validation was performed for this documentation change.
+
 Status words mean: **implemented** (in the running path), **verified** (an automated check exercised that path on this checkout), **blocked** (a required check could not be completed), **deferred** (intentionally left for later). Engineering evidence is not educator validation, clinical validation, or institutional approval.
 
 Checkout: branch `feature/talking-patient-avatar`. Record the commit and dirty-diff hash from `reports/release-results.json` after each verification run. Do not treat an older benchmark file as a measurement of this tree.

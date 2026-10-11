@@ -1,5 +1,7 @@
 # VirtuSP on AWS
 
+Documentation audit, 2026-10-11: this file describes Terraform configuration and historical deployment observations, not a newly verified live stack. Studio/encounters also persist through `lib/store.js`'s in-memory state and atomic JSON manifest; SQLite is the separate ground-truth library. PostgreSQL is a profile/document archive, not the primary encounter store. Shared JSON writes and process-local sessions need distributed-correctness testing before stronger scaling claims. See [current architecture](../../docs/ARCHITECTURE.md#current-stack-and-persistence).
+
 This stack runs the Node server on ECS Fargate behind an Application Load Balancer. SQLite stays the live database and is stored on EFS. The service can run more than one task; those tasks share that file. PostgreSQL runs in private subnets. RDS generates the password and stores it in Secrets Manager. `PGHOST`, `PGUSER`, and `PGPASSWORD` are on the task. With `PROFILE_ARCHIVE=true`, each save copies every profile document and artifact file to the private reports bucket and upserts the same rows into PostgreSQL. Dialogue still reads the local profile store.
 
 What Terraform creates:
@@ -76,7 +78,7 @@ Set `alarm_email` and apply to send both alarms to that address. The recipient m
 
 ## Bedrock
 
-The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID=us.xai.grok-4.7`. Patient replies and encounter turns call Grok 4.7 with reasoning effort high, using the task role. Processing stays in the US geography. There is no model API key to store. The role may invoke the default Bedrock project, that inference profile, and the foundation models the profile routes to. A reply is sent only when it keeps the server-approved patient line.
+The task enables AI and uses the configurable Bedrock model/inference profile from Terraform (the current default is `us.xai.grok-4.7`). Calls use the task role rather than a browser model key. In strict mode the model selects topics and drafts assessments; the engine constructs approved patient wording. Optional natural mode has a different boundary; set `DIALOGUE_MODE=strict` explicitly for judging. Geography, model access and actual successful calls require deployment/provider verification; an inference-profile string alone is insufficient evidence of all processing locations.
 
 ## HTTPS
 

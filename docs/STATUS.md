@@ -1,5 +1,7 @@
 # Implementation status
 
+> Historical checkpoint below: its counts, selected model and “public hosting deferred” row are not current-release claims. The checkout now contains AWS deployment configuration and historical rollout observations. Use [submission](HACKATHON_SUBMISSION.md), [current architecture](ARCHITECTURE.md#current-stack-and-persistence) and [current testing record](TESTING.md) for this audit. Exact approved-line guarantees apply to strict mode, not optional natural dialogue.
+
 Checkpoint date: 2026-10-10. Read [HANDOFF.md](HANDOFF.md) for teammate tasks and [BENCHMARKS.md](BENCHMARKS.md) for measured results.
 
 | Capability                                                                | Status                                                                                                  |

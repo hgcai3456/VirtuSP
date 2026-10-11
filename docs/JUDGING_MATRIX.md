@@ -1,0 +1,13 @@
+# Judging evidence matrix
+
+The five criteria below come from the user's supplied Rutgers Health Hackathon rubric. Evidence supports review, not a self-awarded numeric score. See [submission](HACKATHON_SUBMISSION.md), [requirements](REQUIREMENTS_TRACEABILITY.md) and [testing](TESTING.md).
+
+| Criterion | Why VirtuSP scores strongly | Evidence | Demo moment |
+| --- | --- | --- | --- |
+| Innovation & Creativity | Reusable faculty-reviewed cases, authored disclosure, dynamic chart and evidence-linked feedback distinguish the experience from unconstrained chat. Optional voice/avatar and faculty bias review extend the experience, with explicit limitations. | `lib/profiles.js`, `lib/engine.js`, `lib/feedback.js`, `lib/bias.js`; strict-mode boundary and new-patient tests | Publish a new profile, immediately interview it, reveal a chart item and inspect a real cited event |
+| Technical Implementation | Node API enforces case version/disclosure; adapters connect AI, objects and speech. Terraform defines an edge/load-balancer/Fargate stack and storage/monitoring roles. | `lib/http.js`, `lib/cloud.js`, `lib/store.js`, `infra/aws/`; 241 passing tests in current run; configuration is not independent deployment proof | Show UI/application/data layers and provider/fallback state |
+| Healthcare Impact | Repeated formative interviewing, communication and reasoning practice can complement faculty and human standardized patients. Reusable cases are an institutional asset. | Faculty objectives and debrief paths; no measured learner outcomes or clinical-validation study | Show elicited/missed findings and actionable next steps; describe a faculty-led pilot |
+| Presentation & Demonstration | Prominent new-case proof, concise README, repeatable four-minute sequence, truthful unavailable-provider behavior | `README.md`, `docs/DEMO.md`, publication/encounter HTTP and DOM tests; a finished pitch video is not established | Create → review/publish → encounter → dynamic chart → feedback |
+| Feasibility & Scalability | Case additions need no patient-specific deployment; compute autoscaling and integration adapters provide an extensible path. Remaining distributed state and institutional governance work is explicit. | `infra/aws/autoscaling.tf`, `lib/profile-archive.js`, `lib/store.js`; cost-dashboard implementation, not independently verified dollar savings | Show a second patient through the same engine; explain capacity and future Canvas path |
+
+Strong presentation depends on honestly disclosing strict versus natural mode, mock versus live media, configuration versus deployment evidence and formative feedback versus validated grading.

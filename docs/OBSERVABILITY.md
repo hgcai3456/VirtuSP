@@ -1,5 +1,7 @@
 # Observability
 
+> Scope clarification: basic ECS dashboards/alarms in `monitoring.tf` have historical deployment observations in the handoff. The “not cloud verified” statements here concern this instrumentation change and optional Application Signals/Synthetics resources, not absence of every CloudWatch deployment. No AWS resources were queried or applied in this documentation audit. Current local check results: [TESTING.md](TESTING.md).
+
 Status of this tree: **IMPLEMENTED AND LOCALLY VERIFIED** for the in-process path. CloudWatch dashboards, alarms, Synthetics, and the Application Signals sidecar are **IMPLEMENTED BUT NOT CLOUD VERIFIED**. Nothing in this document was applied to the AWS account during this change.
 
 ## Architecture

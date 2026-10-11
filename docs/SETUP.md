@@ -57,7 +57,7 @@ Click **New patient** or a card's **Edit** button to open the faculty form. Uplo
 
 ## ElevenLabs can be added later
 
-Leave ElevenLabs configuration empty for now; it is optional and deferred.
+Leave ElevenLabs configuration empty for offline work. The adapter is implemented and optional; live-provider observations are historical and must be rehearsed separately for this checkout.
 
 ## Bedrock schema warm-up
 
@@ -65,7 +65,7 @@ Supported Claude 4.5/4.6 models use strict JSON schemas for grounding and assess
 
 ## Optional speech configuration
 
-The encounter runs as a hands-free, real-time conversation. Entering an active encounter starts continuous listening automatically. The patient **does not interrupt you**: they wait until you have been silent for **3 seconds**, then they answer. The microphone is off while the patient is speaking, so they cannot hear themselves. Click the patient photo (or press Space or Escape) to pause; click again to resume. Sending from the text box still submits immediately. Dictation uses the browser's [continuous SpeechRecognition](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/continuous) in Chrome or Edge. Microphone-permission errors pause the conversation with a visible message; only you grant microphone access in the browser. Roster patients with a file in `public/video/` play that looping clip during the visit.
+Answer the incoming call before media capture starts and grant browser permissions yourself. Speech recognition and silence timing depend on the current browser/client implementation; do not use earlier three-second timing as a contractual behavior. Listening pauses during patient playback, and typed Send remains immediate. Permission refusal must leave text available. Rehearse speech and cancellation on trusted HTTPS; mock/DOM tests do not prove audible performance. See [avatar setup](AVATAR_SETUP.md) and [testing](TESTING.md).
 
 Set `ELEVENLABS_API_KEY` and a default `ELEVENLABS_VOICE_ID` in `.env` for natural patient speech. Restricted keys need text-to-speech; voice listing is used when the key allows it. Each patient gets a stable premade voice from age and gender. Only saved, validated patient replies are spoken, streamed turn by turn from `GET /api/encounters/:id/speech/:turnId/stream`. The portrait uses viseme (mouth-shape) animation timed to the reply, plus idle motion and blinks. The visit shows a generated talking person (not the still photo), with lip motion while they speak. An ElevenLabs talking clip can replace that avatar if the Pro video flow succeeds. Gemini Live Avatar is not used as the patient. SadTalker, MuseTalk and LivePortrait are not bundled. Mute, pause and navigation cancel playback. Optional overrides: `ELEVENLABS_MODEL_ID` (TTS model, default `eleven_flash_v2_5`), `ELEVENLABS_STT_MODEL`, `BEDROCK_FAST_MODEL`, `ELEVENLABS_VIDEO_MODEL`. A `POST /api/encounters/:id/live-token` endpoint mints a short-lived single-use Scribe token and never exposes the API key to the browser.
 
