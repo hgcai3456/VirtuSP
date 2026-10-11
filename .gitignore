@@ -38,4 +38,7 @@ infra/aws/*.tfplan
 infra/aws/tfplan
 infra/aws/crash.log
 infra/aws/terraform.tfvars
+infra/aws/synthetics/*.zip
+infra/aws/cost/node_modules/
+infra/aws/cost/*.zip
 .gstack/

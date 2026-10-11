@@ -21,6 +21,13 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
 
+  lifecycle {
+    precondition {
+      condition     = !var.enable_application_signals || tonumber(var.task_memory) >= 2048
+      error_message = "Set task_memory to at least 2048 before enabling the Application Signals sidecar."
+    }
+  }
+
   runtime_platform {
     operating_system_family = "LINUX"
     cpu_architecture        = var.cpu_architecture
@@ -40,7 +47,7 @@ resource "aws_ecs_task_definition" "app" {
     }
   }
 
-  container_definitions = jsonencode([
+  container_definitions = jsonencode(concat([
     {
       name      = local.container_name
       image     = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
@@ -70,7 +77,19 @@ resource "aws_ecs_task_definition" "app" {
         { name = "PGPORT", value = tostring(aws_db_instance.this.port) },
         { name = "PGDATABASE", value = var.db_name },
         { name = "PROFILE_ARCHIVE", value = "true" },
-        { name = "PROFILE_S3_BUCKET", value = aws_s3_bucket.reports.id }
+        { name = "PROFILE_S3_BUCKET", value = aws_s3_bucket.reports.id },
+        { name = "OBS_ENABLED", value = "true" },
+        { name = "OBS_ENVIRONMENT", value = "production" },
+        { name = "OBS_EMF", value = "true" },
+        { name = "OBS_LOG_STDOUT", value = "true" },
+        { name = "OBS_TRACE_SAMPLE_RATIO", value = tostring(var.trace_sample_ratio) },
+        { name = "OBS_AWS_READ", value = var.observability_aws_read ? "true" : "false" },
+        { name = "OBS_LOG_GROUP", value = aws_cloudwatch_log_group.app.name },
+        { name = "OTEL_METRICS_EXPORTER", value = "none" },
+        { name = "OTEL_LOGS_EXPORTER", value = "none" },
+        { name = "OTEL_TRACES_EXPORTER", value = var.enable_application_signals ? "otlp" : "none" },
+        { name = "OTEL_EXPORTER_OTLP_PROTOCOL", value = "http/protobuf" },
+        { name = "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", value = var.enable_application_signals ? "http://127.0.0.1:4316/v1/traces" : "" }
       ]
       secrets = [
         { name = "PGUSER", valueFrom = "${local.db_secret_arn}:username::" },
@@ -102,7 +121,7 @@ resource "aws_ecs_task_definition" "app" {
         startPeriod = 20
       }
     }
-  ])
+  ], var.enable_application_signals ? [local.cloudwatch_agent_container] : []))
 }
 
 resource "aws_ecs_task_definition" "migrate" {

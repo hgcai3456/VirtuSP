@@ -132,11 +132,14 @@ resource "aws_cloudwatch_dashboard" "app" {
           properties = {
             markdown = "## VirtuSP\nAverage ECS CPU above **${var.autoscaling_cpu_target}%** or memory above **${var.autoscaling_memory_target}%** for three minutes raises an alarm. Application Auto Scaling uses those same targets and can run ${var.autoscaling_min_capacity} to ${var.autoscaling_max_capacity} tasks."
           }
-        },
+        }
+      ],
+      [for widget in local.aws_cost_widgets : merge(widget, { y = widget.y + 3 })],
+      [
         {
           type   = "alarm"
           x      = 0
-          y      = 3
+          y      = 23
           width  = 24
           height = 4
           properties = {
@@ -150,7 +153,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 7
+          y      = 27
           width  = 12
           height = 6
           properties = {
@@ -179,7 +182,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 12
-          y      = 7
+          y      = 27
           width  = 12
           height = 6
           properties = {
@@ -208,7 +211,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 13
+          y      = 33
           width  = 8
           height = 6
           properties = {
@@ -226,7 +229,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 8
-          y      = 13
+          y      = 33
           width  = 8
           height = 6
           properties = {
@@ -243,7 +246,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 16
-          y      = 13
+          y      = 33
           width  = 8
           height = 6
           properties = {
@@ -260,7 +263,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 19
+          y      = 39
           width  = 24
           height = 6
           properties = {
@@ -278,7 +281,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 25
+          y      = 45
           width  = 6
           height = 6
           properties = {
@@ -298,7 +301,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 6
-          y      = 25
+          y      = 45
           width  = 6
           height = 6
           properties = {
@@ -315,7 +318,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 12
-          y      = 25
+          y      = 45
           width  = 6
           height = 6
           properties = {
@@ -332,7 +335,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 18
-          y      = 25
+          y      = 45
           width  = 6
           height = 6
           properties = {
@@ -349,7 +352,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 31
+          y      = 51
           width  = 8
           height = 6
           properties = {
@@ -369,7 +372,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 8
-          y      = 31
+          y      = 51
           width  = 8
           height = 6
           properties = {
@@ -386,7 +389,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 16
-          y      = 31
+          y      = 51
           width  = 8
           height = 6
           properties = {
@@ -405,7 +408,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 0
-          y      = 37
+          y      = 57
           width  = 12
           height = 6
           properties = {
@@ -422,7 +425,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "metric"
           x      = 12
-          y      = 37
+          y      = 57
           width  = 12
           height = 6
           properties = {
@@ -441,7 +444,7 @@ resource "aws_cloudwatch_dashboard" "app" {
         {
           type   = "log"
           x      = 0
-          y      = var.certificate_arn == "" ? 43 : 37
+          y      = var.certificate_arn == "" ? 63 : 57
           width  = 24
           height = 6
           properties = {

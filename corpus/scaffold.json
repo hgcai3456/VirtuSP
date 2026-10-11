@@ -773,6 +773,11 @@
       "Who is around to support you?",
       "Do you feel safe right now, or have you thought about ending your life?"
     ],
+    "rapport": [
+      "I am sorry this has been so hard.",
+      "I hear how heavy this feels.",
+      "I am sorry this feels so heavy."
+    ],
     "facts": [
       {
         "id": "r1",

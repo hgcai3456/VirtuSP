@@ -89,6 +89,18 @@ pipeline {
             }
         }
 
+        stage('Observability') {
+            options {
+                timeout(time: 15, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    runCmd('npm run obs:test')
+                    runCmd('npm run obs:validate')
+                }
+            }
+        }
+
         stage('Appointment conversation') {
             options {
                 timeout(time: 10, unit: 'MINUTES')

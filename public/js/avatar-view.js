@@ -21,6 +21,11 @@
     let heartbeat = 0;
     let currentUtterance = "";
     let captionText = "";
+    let dictating = false;
+    let heard = "";
+    let listenTimer = 0;
+    let speakTimer = 0;
+    const LISTEN_LIMIT_MS = 30000;
     const callbacks = {
       submitQuestion() {},
       stopLocalAudio() {},
@@ -99,7 +104,34 @@
       if (panel.parentElement !== doc.body) doc.body.appendChild(panel);
     }
 
+    function stopListenTimer() {
+      if (listenTimer) root.clearTimeout(listenTimer);
+      listenTimer = 0;
+    }
+
+    function stopSpeakTimer() {
+      if (speakTimer) root.clearTimeout(speakTimer);
+      speakTimer = 0;
+    }
+
+    function speechBudget(text) {
+      return Math.min(90000, Math.max(20000, String(text || "").length * 90));
+    }
+
+    function armSpeakTimer(mine, text) {
+      stopSpeakTimer();
+      speakTimer = root.setTimeout(() => {
+        speakTimer = 0;
+        if (mine !== playbackGen) return;
+        if (state !== "SPEAKING" && state !== "PREPARING_REPLY") return;
+        setState("READY", "Speech timed out. The transcript is saved.");
+        callbacks.onPlaybackSettled();
+      }, speechBudget(text));
+    }
+
     function stopMic() {
+      dictating = false;
+      stopListenTimer();
       try {
         recognition?.abort();
       } catch {
@@ -108,6 +140,12 @@
       recognition = null;
       micStream?.getTracks?.().forEach((track) => track.stop());
       micStream = null;
+    }
+
+    function nothingRecorded() {
+      heard = "";
+      stopMic();
+      setState("READY", "Nothing was recorded. Type your question or try Talk again.");
     }
 
     function stopRemotePlayback() {
@@ -141,6 +179,7 @@
 
     async function endSession(notify) {
       playbackGen += 1;
+      stopSpeakTimer();
       stopMic();
       stopRemotePlayback();
       await disconnectMedia();
@@ -273,15 +312,18 @@
         if (data.type === "avatar_utterance_started")
           setState("SPEAKING", "Patient speaking");
         if (data.type === "avatar_utterance_ended") {
+          stopSpeakTimer();
           setState("READY", "Simulated patient is ready.");
           callbacks.onPlaybackSettled();
         }
         if (data.type === "avatar_utterance_interrupted") {
+          stopSpeakTimer();
           panel.dataset.replay = "1";
           setState("READY", "Speech was interrupted. Replay is available.");
           callbacks.onPlaybackSettled();
         }
         if (data.type === "avatar_disconnected") {
+          stopSpeakTimer();
           setState("FALLBACK", "Avatar disconnected. The transcript is unchanged.");
           callbacks.onPlaybackSettled();
         }
@@ -337,7 +379,16 @@
       return host === "localhost" || host === "127.0.0.1";
     }
 
+    function finishDictation() {
+      if (!dictating) return;
+      const text = heard.trim();
+      if (text) sendUtterance();
+      else nothingRecorded();
+    }
+
     async function talk() {
+      stopMic();
+      heard = "";
       if (!micAllowed()) {
         setState("ERROR", "Microphone needs a secure page. Type your question.");
         const input = doc.getElementById("question");
@@ -362,33 +413,48 @@
       }
       const Rec = root.SpeechRecognition || root.webkitSpeechRecognition;
       if (!Rec) {
+        stopMic();
         setState("READY", "Dictation is unavailable. Type your question.");
         return;
       }
+      dictating = true;
       recognition = new Rec();
       recognition.continuous = false;
       recognition.interimResults = true;
       recognition.onresult = (event) => {
-        const text = Array.from(event.results)
+        if (!dictating) return;
+        heard = Array.from(event.results)
           .map((result) => result[0].transcript)
           .join(" ")
           .replace(/\s+/g, " ")
           .trim();
         const input = doc.getElementById("question");
-        if (input) input.value = text;
+        if (input) input.value = heard;
       };
-      recognition.start();
+      recognition.onerror = () => finishDictation();
+      recognition.onend = () => finishDictation();
+      stopListenTimer();
+      listenTimer = root.setTimeout(finishDictation, LISTEN_LIMIT_MS);
+      try {
+        recognition.start();
+      } catch {
+        nothingRecorded();
+        return;
+      }
+      if (!dictating) return;
       setState("LISTENING", "Listening… Speak, then Stop & send.");
     }
 
     function sendUtterance() {
       const input = doc.getElementById("question");
-      const text = input?.value || "";
+      const text = (heard || input?.value || "").trim();
+      heard = "";
       stopMic();
-      if (!text.trim()) {
-        setState("READY", "Type a question or try Talk again.");
+      if (!text) {
+        setState("READY", "Nothing was recorded. Type your question or try Talk again.");
         return;
       }
+      if (input) input.value = text;
       setState("TRANSCRIBING", "Checking what you said…");
       callbacks.submitQuestion(text);
     }
@@ -398,9 +464,11 @@
       localAudio = new root.Audio(`/api/encounters/${encounterId}/speech/${turn.id}/stream`);
       localAudio.onended = () => {
         if (mine !== playbackGen) return;
+        stopSpeakTimer();
         setState("READY", "Simulated patient is ready.");
         callbacks.onPlaybackSettled();
       };
+      armSpeakTimer(mine, turn.text);
       try {
         await localAudio.play();
         if (mine !== playbackGen) {
@@ -411,6 +479,7 @@
       } catch (error) {
         if (error?.name === "NotAllowedError") showAudioRecovery();
         else {
+          stopSpeakTimer();
           captionText = turn.text || captionText;
           updateLabels(callbacks.getEncounter?.() || { name: $("#avatar-name")?.textContent });
           setState("FALLBACK", "Audio is unavailable. The transcript remains.");
@@ -429,22 +498,34 @@
       const caption = $("#avatar-captions");
       if (caption) caption.textContent = captionText;
       setState("PREPARING_REPLY", "The patient is answering…");
+      armSpeakTimer(mine, turn.text);
       delete panel?.dataset?.replay;
-      const response = await root.fetch(`/api/encounters/${encId}/avatar/speak`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          turnId: turn.id,
-          playbackRequestId,
-          ...(session.generation != null ? { generation: session.generation } : {}),
-        }),
-      });
+      let response;
+      try {
+        response = await root.fetch(`/api/encounters/${encId}/avatar/speak`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            turnId: turn.id,
+            playbackRequestId,
+            ...(session.generation != null ? { generation: session.generation } : {}),
+          }),
+          signal: root.AbortSignal?.timeout?.(20000),
+        });
+      } catch {
+        if (mine !== playbackGen || encId !== encounterId) return;
+        stopSpeakTimer();
+        setState("FALLBACK", "This reply stays in the transcript.");
+        callbacks.onPlaybackSettled();
+        return;
+      }
       const data = await response.json().catch(() => ({}));
       if (mine !== playbackGen || encId !== encounterId) return;
       currentUtterance = data.utteranceId || "";
       if (data.generation != null && session) session.generation = data.generation;
       if (data.partial || data.replayAvailable) panel.dataset.replay = "1";
       if (!response.ok) {
+        stopSpeakTimer();
         captionText = turn.text || "";
         if (caption) caption.textContent = captionText;
         setState("FALLBACK", "This reply stays in the transcript.");
@@ -457,8 +538,10 @@
       }
       if (data.playback === "submitted" || data.utteranceId) {
         setState("SPEAKING", "Patient speaking");
+        armSpeakTimer(mine, turn.text);
         return;
       }
+      stopSpeakTimer();
       setState(data.state || "FALLBACK", data.fallback === "text"
         ? "Text only. The transcript remains."
         : "Using the portrait fallback.");
@@ -468,6 +551,7 @@
 
     async function interrupt() {
       playbackGen += 1;
+      stopSpeakTimer();
       stopRemotePlayback();
       stopMic();
       setState("INTERRUPTING", "Stopping speech…");
@@ -522,12 +606,26 @@
     }
 
     root.addEventListener?.("pagehide", () => {
+      if (heartbeat) clearInterval(heartbeat);
+      heartbeat = 0;
+      events?.close?.();
+      events = null;
       if (!session || !encounterId) return;
       root.fetch(`/api/encounters/${encounterId}/avatar/stop`, {
         method: "POST",
         keepalive: true,
       }).catch(() => {});
     });
+
+    function dispose() {
+      stopListenTimer();
+      stopSpeakTimer();
+      dictating = false;
+      if (heartbeat) clearInterval(heartbeat);
+      heartbeat = 0;
+      events?.close?.();
+      events = null;
+    }
 
     return {
       park,
@@ -541,6 +639,7 @@
       playTurn,
       interrupt,
       handleAction,
+      dispose,
       state: () => state,
       mediaElement: () => video,
       connects: () => connectCount,

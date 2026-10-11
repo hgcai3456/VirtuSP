@@ -133,3 +133,29 @@ test("finishing an appointment appends one duration row", async () => {
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
+
+test("a 20 minute interview stops and records that no question was saved", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(profile());
+  enc.interviewStartedAt = new Date(
+    Date.now() - engine.MAX_INTERVIEW_MS - 1000,
+  ).toISOString();
+  await assert.rejects(
+    engine.ask(enc, "What brings you in?", "late"),
+    /20 minute limit/,
+  );
+  assert.equal(
+    enc.transcript.some((turn) => turn.role === "student"),
+    false,
+  );
+  assert.equal(engine.interviewOverLimit(enc), true);
+  await engine.complete(enc);
+  assert.equal(enc.status, "complete");
+  assert.ok(enc.durationMs >= engine.MAX_INTERVIEW_MS);
+  const done = enc.events.find((item) => item.type === "complete");
+  assert.match(done.text, /time limit/);
+  assert.match(done.text, /no student questions recorded/);
+  const view = engine.publicView(enc);
+  assert.equal(view.interviewLimitMs, engine.MAX_INTERVIEW_MS);
+  assert.equal(view.durationMs, enc.durationMs);
+});

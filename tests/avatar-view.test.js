@@ -76,6 +76,8 @@ test("autoplay rejection exposes Enable audio and microphone denial leaves typin
   assert.equal(input.disabled, false);
   input.value = "What brings you in today?";
   assert.equal(input.value, "What brings you in today?");
+  view.dispose();
+  window.close();
 });
 
 test("ordinary rerenders do not open another provider session", async () => {
@@ -112,4 +114,97 @@ test("ordinary rerenders do not open another provider session", async () => {
   assert.equal(view.mediaElement(), media);
   assert.equal(view.connects(), 1);
   assert.equal(dock.contains(media), true);
+  view.dispose();
+  window.close();
+});
+
+function listenHarness(window) {
+  const recognizers = [];
+  const timers = [];
+  window.SpeechRecognition = class {
+    start() {
+      recognizers.push(this);
+    }
+    abort() {
+      this.aborted = true;
+    }
+  };
+  window.setTimeout = (fn, ms) => {
+    const id = timers.length + 1;
+    timers.push({ id, fn, ms, cleared: false });
+    return id;
+  };
+  window.clearTimeout = (id) => {
+    const item = timers.find((timer) => timer.id === id);
+    if (item) item.cleared = true;
+  };
+  return { recognizers, timers };
+}
+
+test("an empty voice listen stops instead of running with nothing recorded", async () => {
+  const window = await loadView();
+  const view = window.VirtuSPAvatar;
+  const { recognizers, timers } = listenHarness(window);
+  let submitted = 0;
+  view.configure({
+    submitQuestion() {
+      submitted += 1;
+    },
+    getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }),
+  });
+  view.sync({
+    tab: "enc",
+    encounter: { id: "enc-1", name: "Ada Synthetic", version: 1 },
+  });
+  await view.handleAction("avatar-talk");
+  assert.equal(view.state(), "LISTENING");
+  recognizers[0].onend();
+  assert.equal(submitted, 0);
+  assert.equal(view.state(), "READY");
+  assert.match(
+    window.document.getElementById("avatar-status").textContent,
+    /Nothing was recorded/,
+  );
+  assert.equal(
+    timers.some((timer) => timer.ms === 30000 && !timer.cleared),
+    false,
+  );
+  view.dispose();
+  window.close();
+});
+
+test("heard speech is sent, and a silent listen deadline records nothing", async () => {
+  const window = await loadView();
+  const view = window.VirtuSPAvatar;
+  const { recognizers, timers } = listenHarness(window);
+  const submitted = [];
+  view.configure({
+    submitQuestion(text) {
+      submitted.push(text);
+    },
+    getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }),
+  });
+  view.sync({
+    tab: "enc",
+    encounter: { id: "enc-1", name: "Ada Synthetic", version: 1 },
+  });
+  await view.handleAction("avatar-talk");
+  recognizers[0].onresult({
+    results: [[{ transcript: "What brings you in today" }]],
+  });
+  recognizers[0].onend();
+  assert.deepEqual(submitted, ["What brings you in today"]);
+
+  await view.handleAction("avatar-talk");
+  const deadline = timers.find((timer) => timer.ms === 30000 && !timer.cleared);
+  assert.ok(deadline);
+  deadline.fn();
+  assert.deepEqual(submitted, ["What brings you in today"]);
+  assert.equal(view.state(), "READY");
+  assert.match(
+    window.document.getElementById("avatar-status").textContent,
+    /Nothing was recorded/,
+  );
+  view.dispose();
+  window.close();
 });

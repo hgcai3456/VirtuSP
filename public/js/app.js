@@ -85,6 +85,10 @@ let list = [],
   holdMic = false,
   liveText = "",
   silenceTimer = null,
+  utteranceStarted = 0,
+  emptyListens = 0,
+  interviewClosing = false,
+  speechWatch = 0,
   audioCtx = null,
   mediaSource = null,
   mouthRaf = 0,
@@ -99,6 +103,8 @@ let list = [],
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const wordingTried = new Set();
 const SILENCE_MS = 2000;
+const MAX_UTTERANCE_MS = 20000;
+const EMPTY_LISTEN_LIMIT = 3;
 let draftRecognition = null,
   draftDictating = false;
 const liveSupported = () =>
@@ -410,7 +416,7 @@ function editor() {
   ${group("facts", "History and clinical information", `<p class="muted">The patient speaks this approved wording. The model may help choose a fact; it does not write a new clinical reply.</p>${facts}${button("Add finding", "add-fact")}${(profile.suggestions || []).map((s) => `<div class="clinical-row"><p><b>Unapproved document draft</b></p><p>${esc(s.say)}</p><p class="muted">Attaching the file did not establish that the patient remembers it. This draft is not reviewed and is not used in an encounter until you add and approve it.</p>${button("Add as editable finding", "adopt-suggestion", `data-id="${esc(s.id)}"`)}</div>`).join("")}`)}
   ${group("sources", "Documents and references", `${sources}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
   ${group("objectives", "Learning objectives", objectives + button("Add objective", "add-objective"))}
-  ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${control("Rapport phrases that may open guarded findings", "rapport", { list: true })}<p class="muted">Use a full phrase of at least 12 characters. Thank you, sorry, or I understand do not open guarded findings unless that exact longer phrase is listed here. Each phrase counts once.</p>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "General rubric only"], ["none", "General rubric only"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${(() => { const age = Number(profile.age); const match = (health.caseRubrics || []).find((r) => r.appliesTo && Number.isFinite(age) && (r.appliesTo.maxAge == null || age <= r.appliesTo.maxAge) && (r.appliesTo.minAge == null || age >= r.appliesTo.minAge)); return match && profile.caseRubric !== match.id ? `<p class="muted">Age ${esc(age)} matches “${esc(match.title)}” as a suggestion only. It is not applied until you select it.</p>` : ""; })()}${profile.pathologySample ? `<h3>Pathology sample comparison</h3><p class="muted">${esc(profile.pathologySample.summary)}</p>` : ""}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
+  ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${control("Rapport phrases that may open guarded findings", "rapport", { list: true })}<p class="muted">Use a full phrase of at least 12 characters. Thank you, sorry, or I understand do not open guarded findings unless that exact longer phrase is listed here. Each phrase counts once.</p>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "General rubric only"], ["none", "General rubric only"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${(() => { const age = profile.age === "" || profile.age == null ? NaN : Number(profile.age); const match = (health.caseRubrics || []).find((r) => r.appliesTo && Number.isFinite(age) && (r.appliesTo.maxAge == null || age <= r.appliesTo.maxAge) && (r.appliesTo.minAge == null || age >= r.appliesTo.minAge)); return match && profile.caseRubric !== match.id ? `<p class="muted">Age ${esc(age)} matches “${esc(match.title)}” as a suggestion only. It is not applied until you select it.</p>` : ""; })()}${profile.pathologySample ? `<h3>Pathology sample comparison</h3><p class="muted">${esc(profile.pathologySample.summary)}</p>` : ""}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
   <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
 function openPatientDialog(mode, selected = profile) {
@@ -883,6 +889,71 @@ function paintInterviewTimer() {
   if (!node || !enc) return;
   const label = enc.status === "complete" ? "Appointment" : "Interview";
   node.textContent = label + " " + clockText(interviewElapsedMs());
+  maybeCloseInterview();
+}
+function clearSpeechWatch() {
+  if (speechWatch) clearTimeout(speechWatch);
+  speechWatch = 0;
+}
+function releaseStuckSpeech(generation) {
+  if (generation !== speechGeneration || !patientSpeaking) return;
+  patientSpeaking = false;
+  holdMic = false;
+  ignoreMicUntil = Date.now() + 280;
+  stopMouth();
+  pulseTalkVideo(false);
+  try {
+    audio?.pause();
+  } catch {
+    /* Already stopped. */
+  }
+  window.speechSynthesis?.cancel();
+  voiceState("ready", "Speech timed out. The transcript is saved.");
+  updateMicButton();
+  syncLive();
+}
+function armSpeechWatch(generation, ms) {
+  clearSpeechWatch();
+  speechWatch = setTimeout(() => {
+    speechWatch = 0;
+    releaseStuckSpeech(generation);
+  }, ms);
+}
+async function finishEncounter(notice) {
+  if (!enc || enc.status !== "active" || interviewClosing) return;
+  interviewClosing = true;
+  stopAudio();
+  stopStudentCamera();
+  busy = true;
+  message =
+    notice ||
+    "Completing the encounter and preparing evidence-linked feedback…";
+  render();
+  try {
+    await mutate("complete", {});
+    repView = "summary";
+    await refresh();
+    tab = "rep";
+    message = notice || "Encounter saved.";
+  } catch (err) {
+    message = err.message;
+  } finally {
+    interviewClosing = false;
+    busy = false;
+    render();
+  }
+}
+function maybeCloseInterview() {
+  if (interviewClosing || busy || enc?.status !== "active" || !callIsLive())
+    return;
+  const limit = Number(enc.interviewLimitMs) || 20 * 60 * 1000;
+  if (!interviewAnchor() || interviewElapsedMs() < limit) return;
+  const recorded = (enc.transcript || []).some((turn) => turn.role === "student");
+  finishEncounter(
+    recorded
+      ? "The 20 minute limit ended this interview and saved the visit."
+      : "The 20 minute limit ended this interview. No student questions were recorded.",
+  );
 }
 function syncInterviewTimer() {
   stopInterviewTimer();
@@ -890,6 +961,7 @@ function syncInterviewTimer() {
     return;
   paintInterviewTimer();
   interviewTimer = setInterval(paintInterviewTimer, 1000);
+  if (typeof interviewTimer.unref === "function") interviewTimer.unref();
 }
 function encounter() {
   if (demoSession?.role === "faculty" && enc?.studentId) return assessment();
@@ -909,7 +981,7 @@ function encounter() {
     ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${interviewTimerMarkup()}<div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div>${window.VirtuSPAvatar ? '<div id="avatar-dock"></div>' : ""}<div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${interviewTimerMarkup()}${emergency}${incoming}<div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><div class="av-live">Camera on</div><div class="self-view"><video id="student-camera" playsinline autoplay muted hidden></video><span class="self-label" id="self-label">You</span><button type="button" class="btn" data-action="student-camera" hidden>Turn camera on</button></div><canvas class="av-still patient-call" id="patient-call" aria-hidden="true"></canvas><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div>${window.VirtuSPAvatar ? '<div id="avatar-dock"></div>' : ""}<div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -1838,6 +1910,7 @@ function stopMouth() {
   setMouth(0);
 }
 function stopPatientAudio() {
+  clearSpeechWatch();
   speechGeneration++;
   patientSpeaking = false;
   stopMouth();
@@ -1865,6 +1938,7 @@ function stopLive() {
   listening = false;
   clearTimeout(micRestartTimer);
   clearTimeout(silenceTimer);
+  utteranceStarted = 0;
   liveText = "";
   const rec = recognition;
   recognition = null;
@@ -2205,11 +2279,13 @@ async function speak(turn) {
   const generation = speechGeneration;
   patientSpeaking = true;
   holdMic = true;
+  armSpeechWatch(generation, 20000);
   visemes = visemesFromText(turn.text);
   stopLive();
   startTalkingCall(turn, generation);
   const settle = (state, text) => {
     if (generation !== speechGeneration) return;
+    clearSpeechWatch();
     patientSpeaking = false;
     holdMic = false;
     ignoreMicUntil = Date.now() + 280;
@@ -2226,6 +2302,10 @@ async function speak(turn) {
     audio.preload = "auto";
     audio.onplay = () => {
       if (generation !== speechGeneration) return;
+      armSpeechWatch(
+        generation,
+        Math.min(90000, Math.max(20000, String(turn.text || "").length * 90)),
+      );
       voiceState("speaking", "Patient speaking · ElevenLabs");
       pulseTalkVideo(true);
       startVisemes(generation, audio);
@@ -2247,6 +2327,10 @@ async function speak(turn) {
     const utter = new SpeechSynthesisUtterance(turn.text);
     utter.onstart = () => {
       if (generation !== speechGeneration) return;
+      armSpeechWatch(
+        generation,
+        Math.min(90000, Math.max(20000, String(turn.text || "").length * 90)),
+      );
       voiceState("speaking", "Patient speaking · browser voice");
       pulseTalkVideo(true);
       startVisemes(generation);
@@ -2331,6 +2415,7 @@ function togglePause() {
     stopLive();
     voiceState("ready", "Paused · tap the patient to resume.");
   } else {
+    emptyListens = 0;
     voiceState("ready", "Resuming the conversation…");
   }
   $("#avf")?.classList.toggle("paused", paused);
@@ -2408,7 +2493,10 @@ function startLive() {
     const words = liveText.split(/\s+/).filter(Boolean).length;
     clearTimeout(silenceTimer);
     if (!words) return;
+    emptyListens = 0;
+    if (!utteranceStarted) utteranceStarted = Date.now();
     silenceTimer = setTimeout(commitUtterance, SILENCE_MS);
+    if (Date.now() - utteranceStarted >= MAX_UTTERANCE_MS) commitUtterance();
   };
   rec.onerror = (e) => {
     if (!live() || e.error === "no-speech" || e.error === "aborted") return;
@@ -2425,8 +2513,27 @@ function startLive() {
     if (recognition !== rec) return;
     recognition = null;
     listening = false;
-    if (!micIsHeld() && tab === "enc" && enc?.status === "active")
-      micRestartTimer = setTimeout(syncLive, 120);
+    if (micIsHeld() || tab !== "enc" || enc?.status !== "active" || !callIsLive())
+      return;
+    if (!liveText.trim()) {
+      emptyListens += 1;
+      if (emptyListens >= EMPTY_LISTEN_LIMIT) {
+        paused = true;
+        stopLive();
+        $("#avf")?.classList.add("paused");
+        message =
+          "The microphone recorded nothing. Type your question, or tap the patient to try again.";
+        voiceState("ready", "Nothing recorded · type a question or tap to retry.");
+        const toast = $(".toast");
+        if (toast) {
+          toast.textContent = message;
+          toast.classList.remove("hidden");
+        }
+        updateMicButton();
+        return;
+      }
+    } else emptyListens = 0;
+    micRestartTimer = setTimeout(syncLive, 120);
   };
   try {
     rec.start();
@@ -2438,6 +2545,7 @@ function startLive() {
 }
 function commitUtterance() {
   clearTimeout(silenceTimer);
+  utteranceStarted = 0;
   const text = liveText.trim();
   liveText = "";
   if (!text || busy || enc?.status !== "active" || !callIsLive() || patientSpeaking) return;
@@ -2970,6 +3078,8 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "answer-call") {
       if (!enc || enc.status !== "active") return;
+      emptyListens = 0;
+      utteranceStarted = 0;
       if (!enc.interviewStartedAt) await mutate("begin", {});
       rememberCall(enc.id);
       stopStudentCamera();
@@ -3047,18 +3157,8 @@ document.addEventListener("click", async (e) => {
       message = "Demo review recorded.";
     }
     if (a === "complete") {
-      stopAudio();
-      stopStudentCamera();
-      busy = true;
-      message =
-        "Completing the encounter and preparing evidence-linked feedback…";
-      render();
-      await mutate("complete", {});
-      repView = "summary";
-      await refresh();
-      busy = false;
-      tab = "rep";
-      message = "Encounter saved.";
+      await finishEncounter();
+      return;
     }
     if (a === "toggle-pause") {
       togglePause();

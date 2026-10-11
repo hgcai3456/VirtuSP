@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observability · VirtuSP</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/observability.css">
+</head>
+<body>
+  <header>
+    <a class="brand" href="index.html">VirtuSP</a>
+    <nav>
+      <a href="app.html">Simulator</a>
+      <a href="observability.html" aria-current="page">Observability</a>
+    </nav>
+  </header>
+  <main class="obs">
+    <h1>Observability</h1>
+    <p class="muted">Faculty operators only. Figures come from the server. An empty result is not a healthy service.</p>
+    <form id="filters" class="obs-filters">
+      <label>Range
+        <select id="range" name="range">
+          <option value="15m">15 minutes</option>
+          <option value="1h" selected>1 hour</option>
+          <option value="6h">6 hours</option>
+          <option value="24h">24 hours</option>
+          <option value="7d">7 days</option>
+        </select>
+      </label>
+      <button class="btn" type="submit">Refresh</button>
+    </form>
+    <p id="status" class="obs-status">Loading</p>
+    <section id="summary" hidden></section>
+    <section id="alarms" class="obs-alarms" aria-live="polite">Loading alarms</section>
+    <section class="obs-lookup">
+      <h2>Investigation</h2>
+      <form id="lookup">
+        <label>Request id
+          <input id="requestId" name="requestId" autocomplete="off" maxlength="80">
+        </label>
+        <label>Encounter reference
+          <input id="encounterId" name="encounterId" autocomplete="off" maxlength="36">
+        </label>
+        <button class="btn" type="submit">Look up</button>
+      </form>
+      <div id="timeline"></div>
+    </section>
+    <p><a href="runbook.html">Runbook</a>. This page does not show clinical text.</p>
+  </main>
+  <script src="js/observability.js"></script>
+</body>
+</html>

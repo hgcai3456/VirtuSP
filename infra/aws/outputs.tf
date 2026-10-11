@@ -116,6 +116,18 @@ output "cpu_alarm_name" {
   value       = aws_cloudwatch_metric_alarm.cpu.alarm_name
 }
 
+output "observability_dashboards" {
+  description = "CloudWatch dashboards for application telemetry."
+  value = [
+    aws_cloudwatch_dashboard.service.dashboard_name,
+    aws_cloudwatch_dashboard.encounters.dashboard_name,
+    aws_cloudwatch_dashboard.ai.dashboard_name,
+    aws_cloudwatch_dashboard.safety.dashboard_name,
+    aws_cloudwatch_dashboard.infrastructure.dashboard_name,
+    aws_cloudwatch_dashboard.cost.dashboard_name,
+  ]
+}
+
 output "memory_alarm_name" {
   description = "Alarm raised when average ECS memory stays above the autoscaling target."
   value       = aws_cloudwatch_metric_alarm.memory.alarm_name

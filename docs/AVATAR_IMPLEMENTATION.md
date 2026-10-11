@@ -1,6 +1,6 @@
 # Talking-patient avatar
 
-Inspected on 2026-10-10. Branch `feature/talking-patient-avatar`. Git HEAD `b046173c7beeabfdb1379d5aed01f12fe7ef1bf4` (`add the pathology test data`). The avatar libraries are in that commit. Follow-up fixes, route tests, the browser view test, this note, and the setup note are additional working-tree files and were not committed.
+Inspected on 2026-10-10. Branch `feature/talking-patient-avatar`. Current Git HEAD is `eab46d47ad5979f26530385ecc0733a685bb1a0b` (`Observability: CloudWatch Dashboard`). The avatar libraries, routes, and view are in this tree. Uncommitted follow-ups are the view timer cleanup, `tests/avatar-view.test.js`, and these notes. Other uncommitted files in the working tree belong to parallel encounter, roster, and observability work and were left in place.
 
 ## Selected execution path
 
@@ -70,6 +70,8 @@ Missing credentials return `connection: "unavailable"`, `live: false`, and `stat
 
 Fallback order is live avatar, then portrait audio of the approved line, then text. A failure after audio was already sent does not replay the whole line automatically. The status sets `partial` and `replayAvailable`.
 
-## What this does not establish
+## Verification on 2026-10-10
 
-No live LiveAvatar or ElevenLabs call was made for this change. Mock events and jsdom are not lip synchronization, audible quality, or clinical validation. `browserPlaybackAt` is reported as `unavailable` because the server clock is not synchronized with the browser.
+`node --test --test-timeout=120000 tests/avatar.test.js tests/avatar-view.test.js` passed 17 tests. They use the mock provider and do not call LiveAvatar or ElevenLabs. `npm test` passed 125 tests and failed 0. `npm run avatar:smoke` exits before any provider call.
+
+A browser session on `http://127.0.0.1:3210/app.html`, with `AVATAR_ENABLED` unset, opened Omar Sinclair v1. The panel showed "Simulated patient", the chart sections, and "Voice avatar is off." Typing `hello` produced the committed reply `Hello.` with provider `approved-conversation`. End voice session left the encounter open. That pass did not start LiveAvatar. The opening answer used the existing ElevenLabs portrait path because speech is configured on this machine. Lip synchronization and live-provider playback were not observed.

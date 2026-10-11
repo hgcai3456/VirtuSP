@@ -1,0 +1,10 @@
+{
+  "name": "virtusp-aws-cost",
+  "private": true,
+  "description": "Publishes VirtuSP AWS Cost Explorer charges to CloudWatch.",
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.700.0",
+    "@aws-sdk/client-cost-explorer": "^3.700.0",
+    "@aws-sdk/client-ssm": "^3.700.0"
+  }
+}

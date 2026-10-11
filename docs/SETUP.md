@@ -15,9 +15,9 @@ In Workshop Studio, choose **Get AWS CLI credentials**. Paste all three temporar
 ```dotenv
 AWS_REGION=us-west-2
 AWS_PROFILE=
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_SESSION_TOKEN=your_session_token
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SESSION_TOKEN=
 AI_ENABLED=false
 ```
 

@@ -50,6 +50,30 @@ function profile(extra = {}) {
   };
 }
 
+test("A published finding is answerable from its topic when keywords were left blank", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(
+    profile({
+      facts: [
+        fact("nights", "Night schedule", {
+          say: "My schedule changed to nights last month.",
+          topic: "Work schedule",
+          kw: [],
+        }),
+      ],
+    }),
+  );
+  await engine.ask(enc, "What changed with your work schedule?", "schedule");
+  assert.equal(
+    enc.transcript.at(-1).text,
+    "My schedule changed to nights last month.",
+  );
+  await engine.ask(enc, "Did you have a stroke last year?", "stroke");
+  assert.equal(enc.transcript.at(-1).factIds.length, 0);
+  assert.ok(engine.isUnknownReply(enc.transcript.at(-1).text));
+  assert.doesNotMatch(enc.transcript.at(-1).text, /stroke/i);
+});
+
 test("Empty citations reject unsupported facts and still allow a courtesy", () => {
   for (const text of [
     "I suffered a stroke last year.",

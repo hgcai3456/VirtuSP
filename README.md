@@ -2,7 +2,7 @@
 
 A reusable virtual standardized patient simulator for healthcare education. Faculty author and review profiles; students interview a patient, progressively disclose chart records, document findings and receive evidence-linked feedback using the supplied seven-domain rubric.
 
-The backend owns clinical facts and disclosure rules. Bedrock selects neutral topics, receives only permitted patient facts, generates a reply, and independently reviews grounding. Rejected or unavailable responses use approved wording. These checks reduce errors; they do not establish clinical reliability.
+The backend owns clinical facts and disclosure rules. Bedrock may select a neutral topic. The server then speaks only approved wording, an approved deflection, a fixed courtesy, or an explicit unknown. It does not deliver free-form clinical paraphrase. These checks reduce errors; they do not establish clinical reliability.
 
 ## Run
 
@@ -13,7 +13,7 @@ npm ci
 npm start
 ```
 
-Open [http://localhost:3000/app.html](http://localhost:3000/app.html). Without cloud configuration it uses local keyword matching, approved patient responses and browser speech. Rubric ratings in local mode are explicitly provisional placeholders, with objective completion reported separately.
+Open [http://127.0.0.1:3000/app.html](http://127.0.0.1:3000/app.html). The demo server binds to loopback unless `HOST` is set. Without cloud configuration it uses local keyword matching, approved patient responses and browser speech. Judgment-dependent rubric ratings stay unassessed in local mode, so there is no overall total. Objective completion and the factual debrief still appear. Demo role switching is not institutional authentication.
 
 For real AWS calls, fill the root `.env` from `.env.example`, run `npm run setup:aws` and `npm run preflight`, then set `AI_ENABLED=true` and restart. [Complete setup instructions](docs/SETUP.md) cover temporary event credentials, S3, recovery and optional ElevenLabs. Credentials remain server-side.
 

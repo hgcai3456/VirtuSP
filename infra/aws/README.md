@@ -68,6 +68,8 @@ RDS storage autoscaling is already on: the database starts at 20 GiB and can gro
 
 The CloudWatch dashboard named by `dashboard_name` shows the ECS service, the load balancer, PostgreSQL, EFS, and CloudFront when that distribution exists. Recent task logs are on the same dashboard.
 
+The same dashboard, and the `virtusp-cost` dashboard, chart unblended AWS charges for this stack: the latest complete hour, the latest complete day, the last seven complete days, the calendar month to date, and the calendar year to date. A separate line shows each hour. Samples are resources tagged `Project` plus Amazon Bedrock in this account. Until that cost-allocation tag is active, the sample uses this stack's service names. If Cost Explorer hourly data is off, the hour is the latest complete day divided by 24. A function queries Cost Explorer about once an hour and republishes the five figures every five minutes. Each Cost Explorer request is billed. These figures are account charges, not the model price estimate on the cost dashboard.
+
 Two alarms use the same service metrics as Application Auto Scaling. `virtusp-ecs-cpu` enters ALARM when average CPU stays above 70% for three consecutive minutes. `virtusp-ecs-memory` does the same for average memory above 75%. One minute above the target starts scale-out and does not alarm. A missing sample, such as a short deploy gap, is treated as within the threshold.
 
 Set `alarm_email` and apply to send both alarms to that address. The recipient must confirm the subscription before mail arrives. With no address, the alarm state stays on the dashboard. Open `dashboard_url` after apply.

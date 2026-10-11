@@ -437,7 +437,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("submit-patient");
     await wait(() => !doc.getElementById("patient-dialog"));
     click("launch", '[data-id="omar"]');
-    await wait(() => !!doc.getElementById("question"));
+    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
+    click("answer-call");
+    await wait(() =>
+      doc.getElementById("avf")?.classList.contains("video-call"),
+    );
     window.speechSynthesis.cancel();
     await wait(() => {
       const r = recognizers.at(-1);
@@ -579,7 +583,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     );
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
-    assert.ok(doc.querySelector('[data-action="mic"]'));
+    assert.ok(doc.querySelector(".mic-btn"));
     assert.deepEqual(errors, []);
   } finally {
     window.close();

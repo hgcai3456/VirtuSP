@@ -4,7 +4,9 @@ try {
 } catch (error) {
   if (error.code !== "ENOENT") throw error;
 }
+require("./lib/observability/register");
 const { createApp } = require("./lib/http");
+const observability = require("./lib/observability");
 const cloud = require("./lib/cloud");
 if (require.main === module)
   createApp()
@@ -14,6 +16,7 @@ if (require.main === module)
       const port =
         requested == null || requested === "" ? 3000 : Number(requested);
       server.listen(port, host, () => {
+        observability.startHeartbeat();
         const bound = server.address();
         console.log(
           `VirtuSP running at http://${host}:${bound.port} (${cloud.enabled() ? "Bedrock configured" : "local fallback"})`,

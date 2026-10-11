@@ -1,5 +1,23 @@
 # Evaluation protocol
 
+## This checkout’s engineering checks
+
+The checks added for the judged response boundary live in `tests/release-boundary.test.js`, `tests/engine.test.js`, `tests/profiles.test.js`, `tests/rubric.test.js`, and the appointment regression. They are regression and development data. They were written while the behavior was being fixed, so they are not an untouched held-out validation and they are not an educator judgment.
+
+On 2026-10-11, `node --test --test-concurrency=2 --test-timeout=120000 tests/*.test.js` finished with 148 passed, 0 failed, 0 skipped, on Node v24.15.0. HEAD was `eab46d47ad5979f26530385ecc0733a685bb1a0b` with a dirty tree. The same day a loopback browser session published Jordan Vale and interviewed that patient in local mode. The machine-readable record is `reports/release-results.json`. That directory is gitignored.
+
+What they measure, when `npm test` is green for those files:
+
+- Supported questions return the approved sentence. A greeting and an explicit unknown still work. Refusing an unsupported claim does not refuse everything.
+- Empty citations plus model prose such as a stroke, daily smoking, or a parent’s death are not delivered. Paraphrase output is ignored.
+- A short politeness line does not open a guarded fact. An authored rapport phrase can, once.
+- An undated ECG and a headache diary do not become reviewed memories or invented timing. Unspecified allergies stay unspecified. A documented “no known drug allergies” line stays that line.
+- Age 12 with asthma does not select the pediatric hearing rubric. An explicit rubric id does.
+- A failed or local assessment is `not_assessed`, with no total and no review flag. A supported domain-6 score of 1 does require review. A faculty-excluded domain is `not_applicable`.
+- A published edit does not change an encounter already in progress. A repeated request id does not add a turn.
+
+Live Bedrock answer quality, unauthorized-disclosure rate on a held-out set, and learning outcomes were not remeasured for this change. Do not reuse older tables in [BENCHMARKS.md](BENCHMARKS.md) as results for this release. A faculty-validation protocol is still: two educators, blinded to model identity, score the same synthetic transcripts for factual faithfulness, disclosure, and whether each feedback claim is supported by the cited turn. Disagreement goes to a third reader. That protocol has not been run.
+
 Keep six development demonstrations in `corpus/development-examples.json` separate from `evaluation/`. The demonstrations have engineering behavior review, not faculty clinical approval. Evaluation profiles are minimal engineering-organized extracts of explicit organizer backgrounds; they do not turn the unreviewed Studio drafts into approved clinical cases.
 
 | Suite                  | Count                         | Checks                                                                                                          |
