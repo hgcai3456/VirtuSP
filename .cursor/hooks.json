@@ -13,6 +13,13 @@
         "timeout": 600,
         "loop_limit": 12
       }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "node agents/test-report.js",
+        "timeout": 30,
+        "matcher": "npm(\\.cmd)?\\s+(run\\s+)?test|node(\\.exe)?\\s+.*--test"
+      }
     ]
   }
 }

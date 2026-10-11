@@ -7,7 +7,7 @@
     "start": "node server.js",
     "cert:local": "node scripts/ensure-dev-cert.js",
     "dev:https": "node scripts/dev-https.js",
-    "test": "node --test --test-timeout=120000 tests/*.test.js",
+    "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter=./agents/suite-reporter.js --test-reporter-destination=stdout --test-reporter-destination=stdout --test-timeout=120000 tests/*.test.js",
     "test:pact": "node --test --test-concurrency=1 --test-timeout=300000 tests/pact/catalog.test.js tests/pact/consumer.test.js tests/pact/provider.test.js",
     "preflight": "node scripts/preflight.js",
     "corpus:fetch": "node scripts/fetch-corpus.js",

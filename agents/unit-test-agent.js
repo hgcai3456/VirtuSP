@@ -357,9 +357,14 @@ function formatFollowup({ outcome, gaps, attempt, blocked, state }) {
     );
   } else {
     lines.push(
-      "Unit-test gate is still open. Write unit tests for the new code, cover every changed line and branch at 100%, and run npm test until every unit test passes.",
+      "Unit-test gate is still open. Recursively write unit tests, run npm test, and update the code until 100% of the unit tests pass and every changed line and branch is covered.",
     );
     lines.push(`This is attempt ${attempt} of 3 for this same result.`);
+    if (outcome.code !== 0) {
+      lines.push(
+        "A test failed. Update the code under test so the existing assertion passes. Keep the assertion. Do not delete or weaken a test.",
+      );
+    }
   }
   if (files.length) {
     lines.push("", "Changed source:");
@@ -376,7 +381,9 @@ function formatFollowup({ outcome, gaps, attempt, blocked, state }) {
   }
   lines.push("", `npm test exit code: ${outcome.code}`);
   if (outcome.code === 0) {
-    lines.push("The unit tests passed. The changed lines above are not covered yet.");
+    lines.push(
+      "The unit tests passed. The changed lines above are not covered yet. Write another unit test that executes each gap, then run npm test again.",
+    );
   }
   const output = tail(outcome.output || "", 3000);
   if (output) lines.push("", "Output:", output);

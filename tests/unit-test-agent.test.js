@@ -436,6 +436,7 @@ test("a failing unit test is sent back until the same failure is reported", () =
   );
   const first = agent.handleStop({ status: "completed" }, deps);
   assert.match(first.followup_message, /exit code: 1/);
+  assert.match(first.followup_message, /Update the code under test/);
   assert.equal(first.followup_message.includes("not covered yet"), false);
   assert.match(first.followup_message, /Unit tests changed/);
   fs.rmSync(dir, { recursive: true, force: true });
@@ -668,7 +669,8 @@ test("main dispatches edit and stop events", () => {
 
 test("the project hook runs this gate for every code change", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  assert.equal(pkg.scripts.test, "node --test --test-timeout=120000 tests/*.test.js");
+  assert.match(pkg.scripts.test, /node --test --experimental-test-coverage /);
+  assert.match(pkg.scripts.test, /tests\/\*\.test\.js/);
   assert.deepEqual(agent.TEST_ARGS, ["--test", "--test-timeout=120000", "tests/*.test.js"]);
   const hooks = JSON.parse(fs.readFileSync(path.join(root, ".cursor", "hooks.json"), "utf8"));
   assert.equal(hooks.version, 1);
@@ -680,4 +682,5 @@ test("the project hook runs this gate for every code change", () => {
   const prompt = fs.readFileSync(path.join(root, ".cursor", "agents", "unit-tester.md"), "utf8");
   assert.match(prompt, /name: unit-tester/);
   assert.match(prompt, /100% of the unit tests pass/);
+  assert.match(prompt, /update the code under test so the existing assertion passes/);
 });

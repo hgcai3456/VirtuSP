@@ -1,5 +1,13 @@
 # Teammate and agent handoff
 
+## Unit-test loop (2026-10-11)
+
+`.cursor/agents/unit-tester.md` recursively writes unit tests, runs `npm test`, and updates the code until 100% of the unit tests pass and every new or changed line and branch is covered. The stop hook in `.cursor/hooks.json` sends the agent back through that loop. A failing test is fixed in the code under test, and the assertion stays. An uncovered line gets another test. The same result three times stops the loop. `VIRTUSP_SKIP_UNIT_TEST_AGENT=1` turns the hook off. `node --test tests/unit-test-agent.test.js` passed 17 tests. These checks are not clinical validation.
+
+## Testing report (2026-10-11)
+
+`.cursor/agents/test-reporter.md` writes a testing report after each full `npm test`. The suite records every test in `reports/last-suite.json`, and an `afterShellExecution` hook runs `node agents/test-report.js`. The report lists the tests that ran, which passed, which failed, and unit coverage (line, branch, and function percentages, plus uncovered lines). `npm test` passes `--experimental-test-coverage` and `./agents/suite-reporter.js`. `VIRTUSP_SKIP_TEST_REPORT=1` turns the hook off. On this run the suite recorded 217 tests, 209 passed, and 8 failed. Coverage was 74.76% lines, 78.04% branches, and 79.18% functions. The failures are cloud drafting, Grok reasoning, the studio DOM, generation, two Bedrock source checks, and two timing budgets. The cloud, generation, and Bedrock failures also fail when those files are run without the coverage flag. `node --test tests/test-report.test.js` passed 8 tests. These checks are not clinical validation.
+
 ## AWS deploy (2026-10-11)
 
 Commit `151fdc8` is running in us-west-2 on the existing ECS service. CodeBuild project `virtusp-image` built the image because Docker Desktop is not running, and pushed `389023343021.dkr.ecr.us-west-2.amazonaws.com/virtusp:latest` digest `sha256:023f28344a0c41ca68b88e056ce59eee541d161ef620eb739721be6827990015`. Task definition `virtusp:8` rolled four healthy tasks, two in `us-west-2a` and two in `us-west-2b`. All four load-balancer targets are healthy. `https://d18g7r2mfy8mll.cloudfront.net/api/health` returned `ok: true` with Bedrock `us.xai.grok-4.7`, and `/api/live` and `/api/ready` returned 200. These are engineering checks, not clinical validation.
