@@ -1,5 +1,7 @@
 # Root AWS deployment runbook
 
+Current regional decision (October 11, 2026): both regions serve independently with their original regional data stores. The primary/standby controller is deactivated and its application fence is outside the active runtime. See [the retained DR prototype and evidence](../infra/dr/README.md) before changing that architecture. Do not re-enable its EventBridge rule or Lambda during an ordinary deployment.
+
 Reviewed October 11, 2026. Scope: the root application and checked-in automation. [Status](STATUS.md) records dated public observations; live AWS configuration was not audited during this documentation review. [Historical preparation](DEPLOYMENT_PENDING.md) is superseded.
 
 ## Trigger and build path
@@ -12,7 +14,7 @@ The [configurator](../scripts/configure-aws-deployment.ps1) sets the CodeBuild G
 
 ## ECS release behavior
 
-[deploy-ecs.sh](../scripts/deploy-ecs.sh) resolves the ECR digest, captures the current service task definition, changes only the `virtusp` container image, registers a revision, updates service/cluster `virtusp`, waits for stability, and checks that the selected task revision remains active. It then polls the public `/api/live` for the expected source SHA. A mismatch fails the build; the script does not perform its own rollback on every failure.
+[deploy-ecs.sh](../scripts/deploy-ecs.sh) resolves the ECR digest, captures the current service task definition, updates the `virtusp` container image and `VIRTUSP_GIT_SHA` source identity, registers a revision, updates service/cluster `virtusp`, waits for stability, and checks that the selected task revision remains active. It then polls the public `/api/live` for the expected source SHA. A mismatch fails the build; the script does not perform its own rollback on every failure.
 
 The script preserves existing roles, environment, storage, health configuration, desired count, and deployment settings. **It does not enforce one task or prevent rolling-update overlap.** Verify task count/routing and overlap behavior before release. Process-local encounters can become unavailable when requests reach different tasks; concurrent publication writers can overwrite each other even on shared EFS. Single-process correctness does not establish seamless rolling deployment. Restrict publication/learner activity during a controlled release until shared coordination exists.
 
@@ -47,10 +49,23 @@ aws ecs wait services-stable --region us-west-2 --cluster virtusp --services vir
 
 Replace the placeholder with the captured ARN. Recheck task selection, public source identity, static UI/API alignment, and a fresh synthetic visit. Rolling back code does not roll back publications or restore attempts; restore data only through a reviewed backup/compatibility procedure. Preserve failed-release evidence privately. There is no fully automatic application/data rollback or validated zero-downtime guarantee.
 
-## Verification boundary
+## Verified 503 recovery — October 11, 2026
 
-This review inspected scripts and read the public health endpoint; it did not run a build, configure IAM, deploy, roll back, or verify live backup/full workflow. Local tests passed 37/37; [testing](TESTING.md). The observed hosted SHA differs from the local baseline; [status](STATUS.md). Public hosting remains a synthetic prototype and does not establish institutional security or clinical validation.
+The [failed Actions run for `2a6e772`](https://github.com/hgcai3456/VirtuSP/actions/runs/38153212418) authenticated to AWS successfully. CodeBuild `virtusp-image:7541cf59-817b-44d2-9d31-173ddd41c142` completed PRE_BUILD and BUILD, then failed in POST_BUILD while running `scripts/deploy-ecs.sh`. Public liveness, readiness, and simulator requests returned HTTP 503 at 12:00 PM EDT. These facts localize the failure to the deployment/verification stage; they do not establish a single exclusive root cause for every 503.
 
-## Optional authority configuration
+The concurrently running deployment work subsequently restored the service with source `0038b0cb89ee73bb7d2851bac9507f7d9db23485`. Its [Actions run completed successfully](https://github.com/hgcai3456/VirtuSP/actions/runs/38154030611). This chat did not change application code or cloud configuration to perform that recovery.
 
-Concurrent working-tree code adds `VIRTUSP_DR_TABLE`, `AWS_REGION`, and `VIRTUSP_DR_CONTROL_REGION`. Establish control-record ownership/renewal, narrow GetItem permissions, and failure procedures before enabling fencing. This is not durable encounter storage or validated disaster recovery. Confirm the deployed revision includes the feature before expecting its behavior.
+Reconfirmed at **1:14 PM EDT, October 11, 2026**:
+
+- [West simulator](https://d18g7r2mfy8mll.cloudfront.net/app.html) and [east simulator](https://d1uwsor6aitm.cloudfront.net/app.html) returned HTTP 200.
+- Both `/api/live` and `/api/ready` returned HTTP 200 with the complete source SHA above, fingerprint `0038b0c-0ad0ea897b`, and `responsePolicy: approved-case-only`.
+- HTML build identity matched each region's health identity and GitHub main at the verification time.
+- During the preceding recovery check, fresh synthetic Denise attempts in both regions returned exact approved opening wording and preserved an unspecified smoking topic as unknown. Those API checks created only process-local attempts; no case was published by this chat.
+
+These are dated verification results. This documentation push will trigger another main deployment, so later releases must be checked against their own SHA. Do not treat the recorded `0038b0c` identity as the permanent latest release.
+
+## Verification boundary and regional constraints
+
+The earlier 37-test working-tree snapshot remains historical evidence in [testing](TESTING.md); it included proposed fencing outside the subsequently selected active runtime. The recovery work's release evidence and this chat's endpoint/interview checks are separate from that snapshot. This documentation update does not rerun a container build, publish a case, test backup/restore, conduct a load test, or certify production/clinical readiness.
+
+Both regions remain independently writable with separate data stores. The retained authority-fence/controller prototype is inactive and outside the current root application. Its `VIRTUSP_DR_TABLE`/control-region settings are not active runtime setup guidance. Do not re-enable it during a normal deployment; any future primary/standby design needs a new coordinated decision and verification. See [DR review notes](../infra/dr/README.md) and [status](STATUS.md).
