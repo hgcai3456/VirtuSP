@@ -9,3 +9,5 @@ Published versions live in data/recovery/published-cases.json; keep this ignored
 The supported presentation claim is “Faculty-reviewed cases define patient responses; the same engine supports different cases.” The root demo does not currently use a model provider. Do not claim live AI, an animated avatar, clinical validation, autonomous competence assessment, zero hallucinations, replacement of standardized patients, or a tested production cloud architecture.
 
 Submission follow-up: pre-existing staged local certificates and generated Terraform/deployment artifacts were inspected and excluded from Git without deleting local files. The verified root cleanup was committed separately from unrelated staged contributor changes; the final chat response records its SHA. The separate nested checkout was preserved. No push or cloud deployment was performed.
+
+Deployment follow-up, October 11, 2026: the earlier no-deployment statement is historical. Live ECS revision 9 was independently verified serving root commit c29ccd8. See DEPLOYMENT.md for the replacement GitHub-main deployment workflow, source identity verification, runtime constraints and rollback procedure.

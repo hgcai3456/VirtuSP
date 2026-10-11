@@ -100,7 +100,7 @@ const server = http.createServer(async (req, res) => {
 
     const ext = path.extname(filePath);
     const type = types[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type + '; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(body);
   });
 });

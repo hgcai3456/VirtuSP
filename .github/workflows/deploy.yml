@@ -1,0 +1,38 @@
+name: Deploy AWS
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: virtusp-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::389023343021:role/virtusp-github-deploy
+          aws-region: us-west-2
+      - name: Build and deploy this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          build=$(aws codebuild start-build --project-name virtusp-image --source-version "$GITHUB_SHA" --query 'build.id' --output text)
+          echo "CodeBuild: $build"
+          echo "Build ID: $build" >> "$GITHUB_STEP_SUMMARY"
+          for attempt in $(seq 1 180); do
+            status=$(aws codebuild batch-get-builds --ids "$build" --query 'builds[0].buildStatus' --output text)
+            case "$status" in
+              SUCCEEDED) echo "Deployed $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"; exit 0 ;;
+              IN_PROGRESS) sleep 10 ;;
+              *) echo "CodeBuild ended with $status"; exit 1 ;;
+            esac
+          done
+          echo "Timed out waiting for CodeBuild"; exit 1
