@@ -41,7 +41,7 @@
       const status = $("#avatar-status");
       if (status) status.textContent = label || next;
       const enable = $("#avatar-enable");
-      if (enable) enable.hidden = next !== "ERROR" || !panel?.dataset.audioBlocked;
+      if (enable) enable.hidden = !panel?.dataset.audioBlocked;
       const replay = $('[data-action="avatar-replay"]');
       if (replay) replay.hidden = !panel?.dataset.replay;
     }
@@ -328,6 +328,7 @@
           body: JSON.stringify({ activity: state === "LISTENING" ? "LISTENING" : "READY" }),
         }).catch(() => {});
       }, 25000);
+      if (heartbeat && typeof heartbeat.unref === "function") heartbeat.unref();
     }
 
     function micAllowed() {

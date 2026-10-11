@@ -187,6 +187,31 @@ main {
   margin-bottom: 6px;
 }
 
+.interview-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  background: var(--soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+.interview-timer::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ac);
+}
+
+.interview-timer.done::before {
+  background: var(--mu);
+}
+
 @media (max-width: 800px) {
   .grid:not(.enc-grid) {
     grid-template-columns: 1fr;

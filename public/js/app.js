@@ -66,6 +66,7 @@ let list = [],
   audioUrl = null,
   speechGeneration = 0,
   callAnimation = 0,
+  interviewTimer = 0,
   callVideoUrl = null,
   portraitToken = 0,
   portraitImage = null,
@@ -337,7 +338,7 @@ function editor() {
               ["chart", "Chart only"],
             ],
           },
-        )}${button("Remove", "remove-fact", `data-index="${i}"`)}</div>${f.lab && f.generationId ? `<div class="fields">${control("Test", `facts.${i}.test`)}${control("Value", `facts.${i}.value`)}${control("Units", `facts.${i}.unit`)}</div>` : ""}${f.vis === "ask" ? `<div class="patient-phrasing">${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}</div>` : ""}</div>`,
+        )}${button("Remove", "remove-fact", `data-index="${i}"`)}</div>${f.lab && f.generationId ? `<div class="fields">${control("Test", `facts.${i}.test`)}${control("Value", `facts.${i}.value`)}${control("Units", `facts.${i}.unit`)}</div>` : ""}${f.vis === "ask" ? `<div class="patient-phrasing">${control("Patient wording", `facts.${i}.say`, { type: "textarea" })}</div>` : ""}${f.origin === "document-suggestion" ? control("I edited this document draft and approve its wording and disclosure.", `facts.${i}.awarenessApproved`, { type: "checkbox" }) : ""}</div>`,
     )
     .join("");
   const sources = profile.sources
@@ -406,10 +407,10 @@ function editor() {
   return `<div class="editor"><p class="muted">Only a name, at least one patient-known finding and your review acknowledgment are needed. Leave unsupplied details blank; optional objectives and documents can be added later.</p><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
   ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare organizer case", "prepare") : ""}
   <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
-  ${group("facts", "History and clinical information", `<p class="muted">Patient wording is approved phrasing for a finding; dialogue may paraphrase it.</p>${facts}${button("Add finding", "add-fact")}`)}
+  ${group("facts", "History and clinical information", `<p class="muted">The patient speaks this approved wording. The model may help choose a fact; it does not write a new clinical reply.</p>${facts}${button("Add finding", "add-fact")}${(profile.suggestions || []).map((s) => `<div class="clinical-row"><p><b>Unapproved document draft</b></p><p>${esc(s.say)}</p><p class="muted">Attaching the file did not establish that the patient remembers it. This draft is not reviewed and is not used in an encounter until you add and approve it.</p>${button("Add as editable finding", "adopt-suggestion", `data-id="${esc(s.id)}"`)}</div>`).join("")}`)}
   ${group("sources", "Documents and references", `${sources}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
   ${group("objectives", "Learning objectives", objectives + button("Add objective", "add-objective"))}
-  ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${profile.pathologySample ? `<h3>Pathology sample comparison</h3><p class="muted">${esc(profile.pathologySample.summary)}</p>` : ""}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
+  ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${control("Rapport phrases that may open guarded findings", "rapport", { list: true })}<p class="muted">Use a full phrase of at least 12 characters. Thank you, sorry, or I understand do not open guarded findings unless that exact longer phrase is listed here. Each phrase counts once.</p>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "General rubric only"], ["none", "General rubric only"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${(() => { const age = Number(profile.age); const match = (health.caseRubrics || []).find((r) => r.appliesTo && Number.isFinite(age) && (r.appliesTo.maxAge == null || age <= r.appliesTo.maxAge) && (r.appliesTo.minAge == null || age >= r.appliesTo.minAge)); return match && profile.caseRubric !== match.id ? `<p class="muted">Age ${esc(age)} matches “${esc(match.title)}” as a suggestion only. It is not applied until you select it.</p>` : ""; })()}${profile.pathologySample ? `<h3>Pathology sample comparison</h3><p class="muted">${esc(profile.pathologySample.summary)}</p>` : ""}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
   <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
 }
 function openPatientDialog(mode, selected = profile) {
@@ -843,6 +844,53 @@ function callIsLive() {
   }
   return false;
 }
+function clockText(ms) {
+  const total = Math.max(0, Math.floor(Number(ms) / 1000) || 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const ss = String(seconds).padStart(2, "0");
+  if (hours) return hours + ":" + String(minutes).padStart(2, "0") + ":" + ss;
+  return minutes + ":" + ss;
+}
+function interviewAnchor() {
+  if (!enc) return null;
+  if (enc.interviewStartedAt) return enc.interviewStartedAt;
+  if (enc.status === "complete") return enc.createdAt || null;
+  return null;
+}
+function interviewElapsedMs() {
+  if (enc?.status === "complete" && Number.isFinite(enc.durationMs))
+    return enc.durationMs;
+  const started = interviewAnchor();
+  if (!started) return 0;
+  const end = enc.completedAt ? Date.parse(enc.completedAt) : Date.now();
+  const elapsed = end - Date.parse(started);
+  return Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
+}
+function interviewTimerMarkup() {
+  if (!interviewAnchor()) return "";
+  if (enc.status === "active" && !callIsLive()) return "";
+  const label = enc.status === "complete" ? "Appointment" : "Interview";
+  return `<p class="interview-timer${enc.status === "complete" ? " done" : ""}" id="interview-timer" role="timer" aria-label="${label} duration">${label} ${clockText(interviewElapsedMs())}</p>`;
+}
+function stopInterviewTimer() {
+  if (interviewTimer) clearInterval(interviewTimer);
+  interviewTimer = 0;
+}
+function paintInterviewTimer() {
+  const node = document.getElementById("interview-timer");
+  if (!node || !enc) return;
+  const label = enc.status === "complete" ? "Appointment" : "Interview";
+  node.textContent = label + " " + clockText(interviewElapsedMs());
+}
+function syncInterviewTimer() {
+  stopInterviewTimer();
+  if (!document.getElementById("interview-timer") || enc?.status !== "active")
+    return;
+  paintInterviewTimer();
+  interviewTimer = setInterval(paintInterviewTimer, 1000);
+}
 function encounter() {
   if (demoSession?.role === "faculty" && enc?.studentId) return assessment();
   if (!enc)
@@ -861,7 +909,7 @@ function encounter() {
     ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div>${window.VirtuSPAvatar ? '<div id="avatar-dock"></div>' : ""}<div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${interviewTimerMarkup()}<div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div>${window.VirtuSPAvatar ? '<div id="avatar-dock"></div>' : ""}<div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -919,12 +967,13 @@ function attempts() {
     .sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt));
 }
 function duration() {
+  if (enc.duration) return ` · appointment ${enc.duration}`;
   if (!enc.completedAt || !enc.createdAt) return "";
   const minutes = Math.max(
     1,
     Math.round((new Date(enc.completedAt) - new Date(enc.createdAt)) / 60000),
   );
-  return ` · ${minutes} min`;
+  return ` · appointment ${minutes} min`;
 }
 function sinceLast() {
   // Change from the previous completed attempt on this patient, if any.
@@ -961,7 +1010,7 @@ function progress() {
       : e.provisional
         ? "provisional"
         : `${e.total}/${e.denominator}`;
-  return `<section class="obj-card"><h2>Your attempts with this patient</h2><div class="sc"><table><tr><th>Attempt</th><th>Date</th><th>Questions</th><th>Findings</th><th>Objectives</th><th>Rubric</th></tr>${all.map((e, i) => `<tr class="${e.id === enc.id ? "current" : ""}"><td>${i + 1}${e.id === enc.id ? " (this one)" : ""}</td><td>${esc(new Date(e.completedAt).toLocaleString())}</td><td>${e.turns}</td><td>${e.findingsTotal == null ? "–" : `${e.findingsElicited}/${e.findingsTotal}`}</td><td>${e.objectivePercent == null ? "–" : e.objectivePercent + "%"}</td><td>${score(e)}</td></tr>`).join("")}</table></div></section>`;
+  return `<section class="obj-card"><h2>Your attempts with this patient</h2><div class="sc"><table><tr><th>Attempt</th><th>Date</th><th>Appointment</th><th>Questions</th><th>Findings</th><th>Objectives</th><th>Rubric</th></tr>${all.map((e, i) => `<tr class="${e.id === enc.id ? "current" : ""}"><td>${i + 1}${e.id === enc.id ? " (this one)" : ""}</td><td>${esc(new Date(e.completedAt).toLocaleString())}</td><td>${esc(e.duration || "–")}</td><td>${e.turns}</td><td>${e.findingsTotal == null ? "–" : `${e.findingsElicited}/${e.findingsTotal}`}</td><td>${e.objectivePercent == null ? "–" : e.objectivePercent + "%"}</td><td>${score(e)}</td></tr>`).join("")}</table></div></section>`;
 }
 function findingsView(a, c) {
   const f = c.findings;
@@ -1048,18 +1097,18 @@ function caseRubricView(r) {
 function rubricView(a) {
   // One line per domain; the detail opens on demand.
   const domain = (d) =>
-    `<details class="domain-row"><summary><span class="rating">${d.score === null ? "N/A" : d.score + " / 4"}</span><span><b>${d.domain}. ${esc(d.name)}</b>${d.label ? ` · ${esc(d.label)}` : ""}<span class="muted why">${esc(d.reason)}</span></span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
+    `<details class="domain-row"><summary><span class="rating">${d.status === "not_assessed" ? "Pending" : d.score === null ? "N/A" : d.score + " / 4"}</span><span><b>${d.domain}. ${esc(d.name)}</b>${d.label ? ` · ${esc(d.label)}` : ""}<span class="muted why">${esc(d.reason)}</span></span></summary><div class="domain-detail">${d.descriptor ? `<p class="level"><b>Rubric level${d.score === null ? "" : " " + d.score}:</b> ${esc(d.descriptor)}</p>` : ""}${d.nextLevel ? `<p class="level"><b>To reach ${d.nextLevel.score} (${esc(d.nextLevel.label)}):</b> ${esc(d.nextLevel.descriptor)}</p>` : ""}<p><b>Next attempt:</b> ${esc(d.next)}</p>${d.triggersReview && d.score === 1 ? '<p class="warn">A score of 1 in this domain triggers faculty review.</p>' : ""}${evidence(d.evidence)}${d.levels ? `<details class="evidence"><summary>All four levels</summary>${d.levels.map((l) => `<p><b>${l.score} ${esc(l.label)}</b> ${esc(l.descriptor)}</p>`).join("")}</details>` : ""}</div></details>`;
   const fields = a.rubric?.evidenceFields || {
     strengths: "Strengths demonstrated",
     gaps: "Missed opportunities",
     concerns: "Safety or accuracy concerns",
   };
   const intro = a.rubric
-    ? `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p><p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
+    ? `${a.pending || a.total == null ? `<p><b>No overall total.</b> ${a.coverage?.assessed ?? 0} of ${a.coverage?.applicable ?? 0} applicable domains are assessed. ${a.na ?? 0} not applicable.</p>` : `<p><b>Total: ${a.total} / ${a.denominator}${a.denominator === a.rubric.maxTotal ? "" : ` (of a possible ${a.rubric.maxTotal})`} · N/A domains: ${a.na}</b></p>`}<p class="muted">${esc(a.rubric.interpretation)}</p><details class="evidence"><summary>How this rubric is scored</summary><p>${esc(a.rubric.instructions)}</p><div class="sc"><table><tr><th>Score</th><th>Label</th><th>Meaning</th></tr>${a.rubric.scale.map((r) => `<tr><td>${r.score}</td><td>${esc(r.label)}</td><td>${esc(r.meaning)}</td></tr>`).join("")}<tr><td>N/A</td><td>${esc(a.rubric.notApplicable.label)}</td><td>${esc(a.rubric.notApplicable.meaning)}</td></tr></table></div></details>`
     : "";
   return `<h2>${esc(a.rubric?.title || "Patient Encounter Performance Rubric")}</h2>${intro}<section class="obj-card domain-list">${a.domains.map(domain).join("")}</section>
   <h2>Evidence from the encounter</h2><div class="sc"><table class="fb-table evidence-notes"><thead><tr><th>Type</th><th>Note</th><th>Where</th></tr></thead><tbody>${["strengths", "gaps", "concerns"].map((k) => (a[k].length ? a[k].map((n, i) => `<tr>${i === 0 ? `<td rowspan="${a[k].length}"><span class="chip status-${k === "strengths" ? "strength" : "improve"}">${esc(fields[k])}</span></td>` : ""}<td>${esc(n.text)}</td><td>${turnLinks(n.evidence)}</td></tr>`).join("") : `<tr><td><span class="chip">${esc(fields[k])}</span></td><td class="muted">None identified by this assessment.</td><td><span class="muted">–</span></td></tr>`)).join("")}</tbody></table></div>
-  ${caseRubricView(a.caseRubric)}`;
+  ${caseRubricView(a.caseRubric)}${demoSession?.role === "faculty" ? `<details class="evidence"><summary>Record a demo review</summary><p class="muted">Saves a demo-alias note on one domain. This is not an institutional identity or a validated grade. The original model draft is kept.</p><div class="fields"><label>Domain<input id="review-domain" type="number" min="1" max="7" value="1"></label><label>Status<select id="review-status"><option value="not_assessed">not assessed</option><option value="not_applicable">not applicable</option><option value="assessed">assessed</option></select></label><label>Score<input id="review-score" type="number" min="1" max="4" value="1"></label></div><label>Reason<textarea id="review-reason" rows="2">Not observed in the recorded encounter.</textarea></label>${button("Save review", "save-review")}</details>` : ""}`;
 }
 function summaryView(a, c) {
   // The three most useful things, then a short balance of what worked and what did not.
@@ -1112,7 +1161,15 @@ function assessment() {
     return `<div class="pn"><h1>Encounter feedback</h1><p>${demoSession.role === "faculty" && enc.studentId ? "The student is still completing this encounter." : "Finish the encounter to assess the complete evidence."}</p>${demoSession.role === "faculty" && enc.studentId ? biasEvidenceView() : button("Finish & get feedback", "complete", "", "pri")}</div>`;
   const a = enc.assessment,
     c = a.coaching,
-    provisional = a.provider === "local-provisional";
+    provisional = a.provider === "local-provisional" || a.pending;
+  const scoreText =
+    a.pending || a.total == null
+      ? `${a.coverage?.assessed ?? 0}/${a.coverage?.applicable ?? 0}`
+      : `${a.total}/${a.denominator}`;
+  const scoreCaption =
+    a.pending || a.total == null
+      ? "domains assessed"
+      : `rubric${a.provider === "local-provisional" ? " (provisional)" : ""}`;
   const views = [
     ["summary", "Summary"],
     ...(c ? [["findings", "Objectives & findings"]] : []),
@@ -1133,8 +1190,8 @@ function assessment() {
       ? `<div><div class="score-num">${a.caseRubric.total}/${a.caseRubric.max}</div><div class="muted">case rubric</div></div>`
       : "";
   return `<div class="pn"><div class="panel-kicker">Encounter feedback</div><h1>${esc(enc.name)} · feedback on this attempt</h1>
-  <div class="score-hero"><div><div class="score-num">${a.total}/${a.denominator}</div><div class="muted">rubric${provisional ? " (provisional)" : ""}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
-  ${provisional ? '<div class="warn">Model assessment is unavailable, so the rubric ratings are provisional placeholders for faculty review, not a measured performance grade. Objectives, findings and the interview review come from the recorded encounter and are not affected.</div>' : ""}${reviewNotice(a)}
+  <div class="score-hero"><div><div class="score-num">${scoreText}</div><div class="muted">${scoreCaption}</div></div>${c?.objectivePercent == null ? "" : `<div><div class="score-num">${c.objectivePercent}%</div><div class="muted">learning objectives</div></div>`}${caseScore}<div><p>${c ? `${c.findings.elicited.length} of ${c.findings.total} findings reached · ${c.flow.questions} questions asked` : ""}${duration()}</p>${sinceLast()}<p class="muted">${esc(a.notice)}</p></div></div>
+  ${provisional ? '<div class="warn">Judgment-dependent ratings are not assessed. This provisional result has no overall total and is not a performance grade. Objectives, findings and the interview review come from the recorded encounter.</div>' : ""}${reviewNotice(a)}
   <div class="rep-tabs" role="tablist">${views.map(([k, name]) => button(name, "rep-view", `data-view="${k}" role="tab" aria-selected="${repView === k}"`, repView === k ? "on" : "")).join("")}</div>
   ${biasEvidenceView()}${body}
   ${demoSession?.role === "faculty" ? biasPanel(enc.biasAnalysis, "encounter", enc.id, enc.status === "complete") : ""}
@@ -1165,6 +1222,7 @@ function evidence(ids) {
     handoff: "Handoff submitted",
     start: "Encounter started",
     complete: "Encounter completed",
+    interview: "Interview started",
   };
   return `<details class="evidence"><summary>Evidence (${ids.length})</summary>${
     ids.length
@@ -1298,7 +1356,7 @@ function transcriptView(a, c) {
   return `<h2>Annotated transcript</h2><p class="muted">Each question, the reply, what it achieved and where the feedback refers to it. Question tags come from automated classification.</p><div class="sc"><table class="fb-table annotated"><thead><tr><th>Question and reply</th><th>What it achieved</th><th>Cited in feedback</th></tr></thead><tbody>${rows.join("") || '<tr><td colspan="3" class="muted">No questions were asked.</td></tr>'}</tbody></table></div>`;
 }
 function past() {
-  return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+  return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.duration ? ` · appointment ${esc(e.duration)}` : ""}${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
 }
 function rolePicker() {
   return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
@@ -1402,9 +1460,10 @@ function biasEvidenceView() {
   return `<section class="bias-panel cited-event"><h2>Cited encounter event</h2><p>${esc(event.type)} · ${esc(new Date(event.at).toLocaleString())}</p><p>${esc(turn?.text || event.text || "Recorded encounter action")}</p><p class="muted">${esc(event.id)}</p></section>`;
 }
 function resultsPage() {
-  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis, "attempt", a.id, a.status === "complete")}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis, "encounter", e.id, e.status === "complete")}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
+  return `<div class="pn"><h1>Student results</h1>${facultyResults.map((s) => `<section class="student-results"><h2>${esc(s.alias)}</h2>${s.attempts.map((a) => `<article class="group-card"><h3>${esc(a.title)} · ${a.completed}/${a.trials.length} trials</h3>${a.trials.map((t, i) => `<p>Trial ${i + 1}: ${esc(t.name)} · ${esc(t.status)} ${t.encounterId ? button("View trial", "resume", `data-id="${esc(t.encounterId)}"`) : ""}</p>`).join("")}${biasPanel(a.biasAnalysis, "attempt", a.id, a.status === "complete")}</article>`).join("")}${s.encounters.map((e) => `<article class="result-row"><h3>${esc(e.name)} · ${esc(e.status)}</h3><p>${e.total == null ? "Assessment pending" : `Rubric ${e.total}/${e.denominator}${e.provisional ? " · provisional" : ""}`} · ${e.turns} questions${e.duration ? ` · appointment ${esc(e.duration)}` : ""}</p>${button("View assessment & evidence", "resume", `data-id="${esc(e.id)}"`)}${biasPanel(e.biasAnalysis, "encounter", e.id, e.status === "complete")}</article>`).join("") || "<p>No encounters yet.</p>"}</section>`).join("")}</div>`;
 }
 function render() {
+  stopInterviewTimer();
   window.VirtuSPAvatar?.park();
   if (!demoSession) {
     $("#nav").innerHTML = "";
@@ -1532,6 +1591,7 @@ function render() {
   syncVideoCall();
   syncLive();
   window.VirtuSPAvatar?.sync({ encounter: enc, tab, health, reducedMotion });
+  syncInterviewTimer();
 }
 function resetTalkVideo() {
   clearInterval(talkVideoPoll);
@@ -2910,6 +2970,7 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "answer-call") {
       if (!enc || enc.status !== "active") return;
+      if (!enc.interviewStartedAt) await mutate("begin", {});
       rememberCall(enc.id);
       stopStudentCamera();
       studentCameraTried = false;
@@ -2943,6 +3004,8 @@ document.addEventListener("click", async (e) => {
           : "enc";
       repView = "summary";
       resetTalkVideo();
+      if (tab === "enc" && enc?.status === "active" && callIsLive() && !enc.interviewStartedAt)
+        await mutate("begin", {});
       if (tab === "enc") warmTalkVideo();
     }
     if (a === "section") {
@@ -2963,6 +3026,25 @@ document.addEventListener("click", async (e) => {
     if (a === "plan") {
       await mutate("plan", { text: formMemory.careplan });
       formMemory.careplan = "";
+    }
+    if (a === "save-review") {
+      const domain = Number(document.getElementById("review-domain")?.value);
+      const status = document.getElementById("review-status")?.value;
+      const score = Number(document.getElementById("review-score")?.value);
+      const reason = document.getElementById("review-reason")?.value || "";
+      const evidence = (enc.events || [])
+        .filter((e) => e.type === "student")
+        .slice(0, 1)
+        .map((e) => e.id);
+      await mutate("assessment-review", {
+        domain,
+        decision: "edit",
+        status,
+        score: status === "assessed" ? score : null,
+        reason,
+        evidence: status === "assessed" && score >= 2 ? evidence : [],
+      });
+      message = "Demo review recorded.";
     }
     if (a === "complete") {
       stopAudio();
@@ -2995,6 +3077,22 @@ document.addEventListener("click", async (e) => {
       );
       updateMicButton();
       return;
+    }
+    if (a === "adopt-suggestion") {
+      const s = (profile.suggestions || []).find((item) => item.id === t.dataset.id);
+      const id = "awareness-" + String(s?.fromArtifact || "").replace(/[^a-zA-Z0-9_-]/g, "");
+      if (s && id.length > 10 && !profile.facts.some((f) => f.id === id)) {
+        profile.facts.push({
+          ...s,
+          id,
+          reviewed: false,
+          awarenessApproved: false,
+          origin: "document-suggestion",
+        });
+        profile.suggestions = profile.suggestions.filter((item) => item.id !== s.id);
+        profile.reviewAcknowledged = false;
+        dirty = true;
+      }
     }
     if (a === "add-fact")
       profile.facts.push({
@@ -3112,6 +3210,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 window.addEventListener("beforeunload", (e) => {
+  stopInterviewTimer();
   stopAudio();
   if (dirty) {
     e.preventDefault();
@@ -3145,6 +3244,17 @@ async function boot() {
       } catch {
         localStorage.removeItem("virtusp-active-v2");
       }
+    if (
+      enc?.status === "active" &&
+      callIsLive() &&
+      !enc.interviewStartedAt
+    ) {
+      try {
+        await mutate("begin", {});
+      } catch (error) {
+        message = error.message;
+      }
+    }
     render();
     if (enc?.status === "active") warmTalkVideo();
   } catch (e) {

@@ -64,6 +64,14 @@ Application Auto Scaling tracks both average CPU (70%) and average memory (75%).
 
 RDS storage autoscaling is already on: the database starts at 20 GiB and can grow to 100 GiB. The same bounds are set in `infra/rds`.
 
+## Monitoring
+
+The CloudWatch dashboard named by `dashboard_name` shows the ECS service, the load balancer, PostgreSQL, EFS, and CloudFront when that distribution exists. Recent task logs are on the same dashboard.
+
+Two alarms use the same service metrics as Application Auto Scaling. `virtusp-ecs-cpu` enters ALARM when average CPU stays above 70% for three consecutive minutes. `virtusp-ecs-memory` does the same for average memory above 75%. One minute above the target starts scale-out and does not alarm. A missing sample, such as a short deploy gap, is treated as within the threshold.
+
+Set `alarm_email` and apply to send both alarms to that address. The recipient must confirm the subscription before mail arrives. With no address, the alarm state stays on the dashboard. Open `dashboard_url` after apply.
+
 ## Bedrock
 
 The task sets `AI_ENABLED=true` and `BEDROCK_MODEL_ID=us.xai.grok-4.7`. Patient replies and encounter turns call Grok 4.7 with reasoning effort high, using the task role. Processing stays in the US geography. There is no model API key to store. The role may invoke the default Bedrock project, that inference profile, and the foundation models the profile routes to. A reply is sent only when it keeps the server-approved patient line.

@@ -171,3 +171,14 @@ variable "autoscaling_memory_target" {
     error_message = "autoscaling_memory_target must be from 10 to 90."
   }
 }
+
+variable "alarm_email" {
+  type        = string
+  description = "Email that receives the ECS CPU and memory alarms. Leave empty to keep those alarms on the CloudWatch dashboard only."
+  default     = ""
+
+  validation {
+    condition     = var.alarm_email == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alarm_email))
+    error_message = "alarm_email must be empty or an email address."
+  }
+}

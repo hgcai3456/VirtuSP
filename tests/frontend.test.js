@@ -393,9 +393,14 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       doc.getElementById("voice-status").textContent,
       /Incoming video call/,
     );
+    assert.equal(doc.getElementById("interview-timer"), null);
     click("answer-call");
     await wait(() =>
       doc.getElementById("avf")?.classList.contains("video-call"),
+    );
+    assert.match(
+      doc.getElementById("interview-timer").textContent,
+      /^Interview \d+:\d{2}$/,
     );
     assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
     assert.equal(doc.getElementById("question").disabled, false);
@@ -532,8 +537,20 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("complete");
     // Feedback opens on a short summary; the rubric is one of its views.
     await wait(() => !!doc.querySelector(".rep-tabs"));
+    assert.match(
+      doc.querySelector(".score-hero").textContent,
+      /appointment \d+ (sec|min|hr)/,
+    );
+    const appointmentLog = await fs.readFile(
+      path.join(dir, "appointment-log.csv"),
+      "utf8",
+    );
+    assert.match(appointmentLog, /duration_ms/);
+    assert.match(appointmentLog, /Omar Sinclair/);
     assert.ok(doc.querySelector(".warn").textContent.includes("provisional"));
-    assert.ok(doc.querySelector(".score-num").textContent.includes("/28"));
+    assert.ok(doc.querySelector(".warn").textContent.includes("not assessed"));
+    assert.equal(doc.querySelector(".score-num").textContent.includes("/28"), false);
+    assert.ok(doc.querySelector(".score-num").textContent.includes("0/7"));
     assert.ok(doc.querySelector(".plan"));
     assert.equal(doc.querySelectorAll(".domain-row").length, 0);
     click("rep-view", '[data-view="rubric"]');
@@ -556,6 +573,10 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       doc.getElementById("avf")?.classList.contains("video-call"),
     );
     assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
+    assert.match(
+      doc.getElementById("interview-timer").textContent,
+      /^Interview \d+:\d{2}$/,
+    );
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
     assert.ok(doc.querySelector('[data-action="mic"]'));

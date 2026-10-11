@@ -1,5 +1,15 @@
 # Teammate and agent handoff
 
+## CloudWatch (2026-10-10)
+
+`infra/aws/monitoring.tf` adds dashboard `virtusp` and alarms `virtusp-ecs-cpu` (average CPU above 70% for 3 minutes) and `virtusp-ecs-memory` (average memory above 75% for 3 minutes). Those are the same ECS service metrics and targets as Application Auto Scaling. Applied in us-west-2. Both alarms were OK: CPU about 2%, memory about 8%. The dashboard also graphs the load balancer, RDS, EFS, CloudFront, and recent task logs. No alarm email is set. Console: `https://us-west-2.console.aws.amazon.com/cloudwatch/home?region=us-west-2#dashboards:name=virtusp`
+
+Applying that change also registered task definition `virtusp:8` and finished a rollout. The only difference from `virtusp:7` is the container health command, which now requests `/api/live`. Desired count 4 completed with four healthy load-balancer targets. `https://d18g7r2mfy8mll.cloudfront.net/api/health` returned `ok: true`. These are engineering checks, not clinical validation.
+
+## Talking-patient avatar (2026-10-10)
+
+The encounter UI can render a LiveAvatar LITE session as an output device for a committed patient turn. The case engine remains the only source of the line. Speech requests send an encounter id and a saved turn id. `docs/AVATAR_IMPLEMENTATION.md` records the path and the provider notes. `docs/AVATAR_SETUP.md` has the local setup. `AVATAR_ENABLED` stays false, and `AVATAR_LOCAL_ONLY` stays true, so a public host does not open billable sessions. Automated coverage is `tests/avatar.test.js` and `tests/avatar-view.test.js` inside `npm test`. Those tests use the mock provider. No live LiveAvatar session, audible check, or lip-synchronization check was run. `npm run avatar:smoke` exits without calling a provider; `--live` is the opt-in billable check. This is an engineering integration, not clinical validation.
+
 ## Pathology sample (2026-10-10)
 
 `pathology_results` stores the public Kaggle sample `pareshbadnore/diagnostic-pathology-test-results` (`health_markers_dataset.csv`: glucose, HbA1c, blood pressure, LDL, HDL, triglycerides, haemoglobin, MCV, and a condition label). `npm run pathology:load` downloads that file when it is missing, replaces the rows for that source, and writes one `pathology_evaluations` row per draft. Faculty Patient Studio shows that comparison under Advanced scenario settings. The comparison uses only chart markers that already carry a unit. Markers that are absent, and values whose units the chart leaves unspecified, stay unspecified. The closest labeled sample group is a distance on the markers present. It is an engineering check against the imported sample, and it is not clinical validation. These rows are not patient facts and are not sent to the dialogue model. A local load stored 25,000 sample rows and 20 evaluations, and copied each comparison onto the matching draft for the faculty form. Published releases stay unchanged. `tests/pathology.test.js` covers the import, a blood-pressure match, a haemoglobin match, an orthostatic drop kept off the blood-pressure columns, and unitless lipid text.
