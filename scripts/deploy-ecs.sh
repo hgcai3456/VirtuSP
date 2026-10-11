@@ -8,7 +8,7 @@ digest=$(aws ecr describe-images --repository-name "$IMAGE_REPO" --image-ids "im
 image="$REGISTRY/$IMAGE_REPO@$digest"
 previous=$(aws ecs describe-services --cluster "$cluster" --services "$service" --query 'services[0].taskDefinition' --output text)
 aws ecs describe-task-definition --task-definition "$previous" --query taskDefinition > /tmp/virtusp-task-before.json
-jq --arg image "$image" 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt) | (.containerDefinitions[] | select(.name == "virtusp") | .image) = $image' /tmp/virtusp-task-before.json > /tmp/virtusp-task-next.json
+jq --arg image "$image" --arg sha "$SOURCE_SHA" 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt) | (.containerDefinitions[] | select(.name == "virtusp")) |= (.image = $image | .environment = ((.environment // [] | map(select(.name != "VIRTUSP_GIT_SHA"))) + [{name: "VIRTUSP_GIT_SHA", value: $sha}]))' /tmp/virtusp-task-before.json > /tmp/virtusp-task-next.json
 next=$(aws ecs register-task-definition --cli-input-json file:///tmp/virtusp-task-next.json --query 'taskDefinition.taskDefinitionArn' --output text)
 echo "Deploying $SOURCE_SHA as $next; rollback task: $previous"
 aws ecs update-service --cluster "$cluster" --service "$service" --task-definition "$next" --query 'service.taskDefinition' --output text
