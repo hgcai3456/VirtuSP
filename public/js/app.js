@@ -22,7 +22,11 @@ async function changeDiscipline(discipline) {
   } else catalogDiscipline = discipline;
 }
 const appHeader = $("body > header");
-const sideMenu = () => !!window.matchMedia?.("(min-width: 1000px)").matches;
+// The menu is a side panel on a wide screen once a workspace is chosen; the
+// workspace picker itself keeps the plain top bar.
+const sideMenu = () =>
+  document.body.classList.contains("has-menu") &&
+  !!window.matchMedia?.("(min-width: 1000px)").matches;
 function updateHeaderHeight() {
   document.documentElement.style.setProperty(
     "--app-header-height",
@@ -1752,7 +1756,7 @@ function past() {
   }</div>`;
 }
 function rolePicker() {
-  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
+  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
 }
 function assignmentCards(items) {
   return items
@@ -2169,6 +2173,10 @@ function notice() {
   return `<div class="toast ${message ? "" : "hidden"}" role="status"><span>${esc(message)}</span>${message ? '<button type="button" class="toast-close" data-action="dismiss-message" aria-label="Dismiss notification"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>' : ""}</div>`;
 }
 function render() {
+  if (document.body.classList.contains("has-menu") !== !!demoSession) {
+    document.body.classList.toggle("has-menu", !!demoSession);
+    updateHeaderHeight();
+  }
   if (!demoSession) {
     $("#nav").innerHTML = "";
     $("#app").innerHTML =
