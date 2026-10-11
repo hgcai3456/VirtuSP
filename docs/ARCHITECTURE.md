@@ -8,13 +8,8 @@ flowchart LR
     U[Student browser] -->|serialized question| E
     E --> T[Bedrock neutral topic selection]
     T --> G[Server disclosure gates]
-    G -->|permitted patient facts only| M[Bedrock patient reply]
-    H[Saved transcript] --> M
-    M --> C[Schema, fact IDs and numeric checks]
-    C --> R[Independent Bedrock grounding review]
-    R -->|accepted| D[Saved patient reply]
-    R -->|rejected| A[Approved fallback]
-    A --> D
+    G -->|permitted fact IDs only| C[Server constructs approved wording]
+    C --> D[Saved patient reply]
     D --> U
     D --> O[Optional ElevenLabs speech]
     E --> L[Atomic local recovery]
@@ -43,7 +38,7 @@ The entry picker selects a local Faculty/Student demo session. Server guards pro
 | Data                               | Source of authority                      | Model use                                                                         |
 | ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
 | Patient name, age and identity     | Published faculty metadata               | Patient identity                                                                  |
-| Patient facts and approved wording | Reviewed published profile               | Only selected, permitted facts enter reply generation                             |
+| Patient facts and approved wording | Reviewed published profile               | The server speaks the selected, permitted wording; the model does not write it   |
 | Hidden clinical values             | Backend profile snapshot                 | Excluded from topic selection and dialogue context until permitted                |
 | Neutral topic descriptions         | Faculty-authored descriptors             | Semantic question matching; authors must avoid hidden values in these descriptors |
 | History                            | Saved encounter turns                    | Conversational context; student statements remain untrusted claims                |
@@ -60,16 +55,16 @@ Disclosure includes patient-known `ask` facts and chart-only `chart` facts. Trus
 1. The backend validates and serializes the question, deduplicating client request IDs.
 2. An optional configured Bedrock Guardrail filters input. Explicit attacks are blocked locally too.
 3. A semantic selector sees only neutral topic IDs/descriptions and the conversation. It does not receive hidden fact text or chart values.
-4. The server applies disclosure conditions and selects approved deflections. The patient generator receives permitted patient wording, identity, style, recent history and behavior examples.
-5. Returned JSON must have valid supporting IDs. Empty citations allow only an exact approved deflection or unknown response. New numeric values fail validation.
-6. An independent model call checks every factual clause against supporting facts. Claims must cite existing IDs and quote actual approved wording; only typographic quotation/whitespace normalization is tolerated. A failure returns approved wording, never the rejected candidate. Neutral selector IDs are opaque aliases, so an authored ID cannot reveal a hidden value.
-7. Stable events record actual patient replies, disclosure, release, review, provider, model, latency and fallback reason. Speech uses only those saved replies.
+4. The server applies authored disclosure rules. A guarded fact opens only when the student says a faculty-authored rapport phrase, once per phrase. Politeness keywords do not raise trust. Model empathy flags are recorded as uncertain and are not learner credit.
+5. The server builds the spoken line from approved fact wording, an approved deflection, the courtesy catalog, or the unknown catalog. Unexpected model prose is ignored. `cloud.paraphrase()` is not on this path. Offline, a finding with no keywords can still be selected from the words in its topic and label. A direct question that matches nothing becomes an explicit unknown.
+6. Attached documents do not become patient memories. A document-awareness note is an unapproved draft until faculty edit and approve it. An encounter keeps the published version it started with.
+7. Stable events record the case version, selected permitted IDs, response mode, whether text was server-constructed, latency and fallback reason. Speech uses only the saved line. Students do not receive unreleased fact text through that metadata.
 
 This is a bounded backend workflow, not an autonomous agent loop. A model-based reviewer can also make mistakes; the held-out suite and manual review remain necessary. The local fallback uses keyword matching and does not provide equivalent naturalness or semantic matching.
 
 ## Assessment and persistence
 
-Seven domains use 1–4 or N/A, with denominator `4 × applicable domains`. N/A is selected by scenario authors, not inferred from a skipped action. Ratings of 1 in domains 6 or 7 require review. Faculty objectives and completion evidence remain separate. Positive ratings require existing evidence IDs; invented evidence and unsupported prose trigger a clearly labeled provisional local fallback. The total is a discussion aid.
+Seven domains use three states. `assessed` is a supported 1–4 rating. `not_applicable` is a faculty choice that the scenario cannot show the domain; it has no score. `not_assessed` means the domain applies but a judgment is unavailable, failed, or still pending; it has no score and is not treated as a 1 or as N/A. The denominator is `4 × applicable domains` only when every applicable domain is assessed. A supported 1 in domain 6 or 7 still requires review. A provider failure does not. Faculty objectives stay separate from rubric ratings. Local mode still produces the factual debrief. A demo-alias review can accept or edit one domain and keeps the original model draft. That alias is not an institutional identity. A specialty checklist runs only when faculty select its id. Age can suggest the pediatric hearing checklist; it does not apply it.
 
 Local snapshots use a serialized write queue and atomic rename. Cloud snapshots copy attachments before their manifest; immutable profile versions and completed encounters also have explicit paths. These are application-level immutable versions with S3 versioning, not S3 Object Lock. Recovery is explicit into a new directory.
 

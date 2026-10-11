@@ -62,6 +62,7 @@ function profile() {
       },
     ],
     sources: [],
+    rapport: ["I understand this is difficult"],
   };
 }
 test("Released chart access is observed without review buttons or fabricated comprehension", async () => {
@@ -100,7 +101,7 @@ test("Server gates, chart visibility and unknowns do not leak hidden facts", asy
   );
   await engine.ask(enc, "Are you allergic to penicillin?", "two");
   assert.ok(engine.isUnknownReply(enc.transcript.at(-1).text));
-  await engine.ask(enc, "I understand. Do you skip doses?", "three");
+  await engine.ask(enc, "I understand this is difficult. Do you skip doses?", "three");
   assert.equal(enc.transcript.at(-1).text, "I miss the evening dose.");
 });
 test("Courtesies work without clinical facts or Bedrock; clinical questions stay grounded", async () => {
@@ -161,7 +162,7 @@ test("Gated chart values remain withheld through section and question report rel
   await engine.ask(enc, "Please show the report", "one");
   assert.equal(enc.released.report, undefined);
   assert.equal(enc.disclosed.chart, undefined);
-  await engine.ask(enc, "I understand. Please show the report", "two");
+  await engine.ask(enc, "I understand this is difficult. Please show the report", "two");
   assert.ok(enc.released.report);
   assert.ok(enc.disclosed.chart);
 });
@@ -228,14 +229,21 @@ test("Reject unsupported numeric claims, empty citations and wrong IDs", () => {
     !engine.validResponse({ text: "I feel tired.", factIds: [] }, [], []),
   );
 });
-test("Grounded replies may add natural phrasing but never new clinical facts", () => {
+test("Approved wording is used exactly; interpolated prose is rejected", () => {
   const allowed = [{ id: "a", say: "I've had a cough for two weeks." }];
   assert.ok(
-    engine.validResponse(
+    !engine.validResponse(
       {
         text: "Yeah, honestly I've had a cough for two weeks now and it's been wearing me down.",
         factIds: ["a"],
       },
+      allowed,
+      [],
+    ),
+  );
+  assert.ok(
+    engine.validResponse(
+      { text: "I've had a cough for two weeks.", factIds: ["a"] },
       allowed,
       [],
     ),
@@ -387,6 +395,9 @@ test("Completed encounters reject new turns and preserve applicable denominator"
   assert.equal(enc.assessment.denominator, 16);
   assert.equal(enc.assessment.na, 3);
   assert.equal(enc.assessment.reviewRequired, false);
+  assert.equal(enc.assessment.domains[0].status, "not_assessed");
+  assert.equal(enc.assessment.domains[0].score, null);
+  assert.equal(enc.assessment.domains[4].status, "not_applicable");
   assert.equal(enc.assessment.provider, "local-provisional");
   await assert.rejects(engine.ask(enc, "Hello", "late"));
   assert.equal(objectives(enc)[0].credit, 0);
@@ -475,17 +486,22 @@ test("Dialogue memory passed to the model excludes withheld wording", async () =
     process.env.AI_ENABLED = prior || "false";
   }
 });
-test("Patients recall their own reports without speaking hidden result numbers", async () => {
+test("Attached records do not become patient memories or reviewed facts", async () => {
   process.env.AI_ENABLED = "false";
   const enc = engine.create(profile());
+  assert.equal(
+    enc.p.facts.some((f) => f.origin === "document-suggestion"),
+    false,
+  );
   await engine.ask(enc, "Have you had any labs recently?", "labs");
   const reply = enc.transcript.at(-1).text;
-  assert.match(reply, /faculty report|tests|October 10/i);
-  assert.doesNotMatch(reply, /195|LDL/i);
+  assert.ok(engine.isUnknownReply(reply));
+  assert.doesNotMatch(reply, /recently|October|195|faculty report|I had/i);
   await engine.ask(enc, "Do you keep a headache journal?", "journal");
   assert.ok(engine.isUnknownReply(enc.transcript.at(-1).text));
+  assert.doesNotMatch(enc.transcript.at(-1).text, /a lot|diary|journal/i);
 });
-test("Document answers stay with the current patient's attached record", async () => {
+test("Another patient's attached record is not spoken as this patient's memory", async () => {
   process.env.AI_ENABLED = "false";
   const { rosterProfiles } = require("../lib/roster-profiles");
   const published = (id) => ({
@@ -493,13 +509,23 @@ test("Document answers stay with the current patient's attached record", async (
     version: 1,
   });
   const nisha = engine.create(published("nisha"));
+  assert.equal(
+    nisha.p.facts.some((f) => f.origin === "document-suggestion"),
+    false,
+  );
   await engine.ask(nisha, "Have you had any labs recently?", "nisha-labs");
-  assert.match(nisha.transcript.at(-1).text, /respiratory|breathing|October 8/i);
-  assert.doesNotMatch(nisha.transcript.at(-1).text, /210|93|diary|journal/i);
+  assert.ok(engine.isUnknownReply(nisha.transcript.at(-1).text));
+  assert.doesNotMatch(
+    nisha.transcript.at(-1).text,
+    /210|93|October|recently|diary|journal|respiratory/i,
+  );
   await engine.ask(nisha, "Do you keep a headache journal?", "nisha-journal");
   assert.ok(engine.isUnknownReply(nisha.transcript.at(-1).text));
   const vadko = engine.create(published("vadko"));
   await engine.ask(vadko, "Do you have a headache journal?", "vadko-journal");
-  assert.match(vadko.transcript.at(-1).text, /headache diary|journal/i);
-  assert.doesNotMatch(vadko.transcript.at(-1).text, /\b26\b|peak flow|210/i);
+  assert.ok(engine.isUnknownReply(vadko.transcript.at(-1).text));
+  assert.doesNotMatch(
+    vadko.transcript.at(-1).text,
+    /\b26\b|a lot|I write|peak flow|210/i,
+  );
 });

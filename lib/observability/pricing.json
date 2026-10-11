@@ -1,0 +1,31 @@
+{
+  "source": "Operator-supplied estimates. These are not AWS bill line items. Confirm against the current Amazon Bedrock price list before using them for a budget decision.",
+  "effectiveDate": "2026-10-01",
+  "currency": "USD",
+  "models": {
+    "us.anthropic.claude-sonnet-4-6": {
+      "regions": ["us-west-2", "us-east-1"],
+      "inferenceMode": "on-demand",
+      "inputPer1k": null,
+      "outputPer1k": null,
+      "cacheReadPer1k": null,
+      "cacheWritePer1k": null
+    },
+    "us.amazon.nova-2-lite-v1:0": {
+      "regions": ["us-west-2", "us-east-1"],
+      "inferenceMode": "on-demand",
+      "inputPer1k": null,
+      "outputPer1k": null,
+      "cacheReadPer1k": null,
+      "cacheWritePer1k": null
+    },
+    "us.xai.grok-4.7": {
+      "regions": ["us-west-2", "us-east-1"],
+      "inferenceMode": "on-demand",
+      "inputPer1k": null,
+      "outputPer1k": null,
+      "cacheReadPer1k": null,
+      "cacheWritePer1k": null
+    }
+  }
+}

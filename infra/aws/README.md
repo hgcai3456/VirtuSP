@@ -32,6 +32,8 @@ terraform apply
 
 The service stays unhealthy until an image exists in ECR. That is expected on the first apply.
 
+The container probe is `GET /api/live` (the process answered HTTP). The image `HEALTHCHECK` and the load balancer use `GET /api/ready`, which runs `SELECT 1` on the ground-truth SQLite connection and returns 503 when it cannot. Neither response includes the database error. Publish a new image and apply the task definition and target group before the running service uses these paths.
+
 ## Publish the image and load the schema
 
 From the repository root, on Windows:
@@ -61,6 +63,16 @@ Application Auto Scaling tracks both average CPU (70%) and average memory (75%).
 `autoscaling_min_capacity` defaults to 4 and `autoscaling_max_capacity` defaults to 8. Each task runs one app container. The service registers both public subnets, which are in different Availability Zones, and Fargate places tasks across them. With four tasks running, that is two containers in each zone. Tasks share the SQLite file on EFS with a busy timeout. The service sets `VIRTUSP_SQLITE_EXCLUSIVE=0` so one task does not hold the file for its whole life. A deployment still stops the running tasks before starting the next revision, so Availability Zone rebalancing stays off.
 
 RDS storage autoscaling is already on: the database starts at 20 GiB and can grow to 100 GiB. The same bounds are set in `infra/rds`.
+
+## Monitoring
+
+The CloudWatch dashboard named by `dashboard_name` shows the ECS service, the load balancer, PostgreSQL, EFS, and CloudFront when that distribution exists. Recent task logs are on the same dashboard.
+
+The same dashboard, and the `virtusp-cost` dashboard, chart unblended AWS charges for this stack: the latest complete hour, the latest complete day, the last seven complete days, the calendar month to date, and the calendar year to date. A separate line shows each hour. Samples prefer resources tagged `Project`. This account cannot activate that tag, so the sample uses this stack's service names plus Fargate, `db.t4g.micro`, and public IPv4 usage. Other EC2 instances and other databases are left out. If Cost Explorer hourly data is off, the hour is the latest complete day divided by 24. A function queries Cost Explorer about once an hour and republishes the five figures every five minutes. Each Cost Explorer request is billed. These figures are account charges, not the model price estimate on the cost dashboard.
+
+Two alarms use the same service metrics as Application Auto Scaling. `virtusp-ecs-cpu` enters ALARM when average CPU stays above 70% for three consecutive minutes. `virtusp-ecs-memory` does the same for average memory above 75%. One minute above the target starts scale-out and does not alarm. A missing sample, such as a short deploy gap, is treated as within the threshold.
+
+Set `alarm_email` and apply to send both alarms to that address. The recipient must confirm the subscription before mail arrives. With no address, the alarm state stays on the dashboard. Open `dashboard_url` after apply.
 
 ## Bedrock
 

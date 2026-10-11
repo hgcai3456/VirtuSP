@@ -28,6 +28,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     }),
     w = dom.window,
     d = w.document;
+  Object.defineProperty(w, "isSecureContext", {
+    configurable: true,
+    get: () => true,
+  });
   const cloudOriginal = {
     enabled: cloud.enabled,
     bias: cloud.bias,

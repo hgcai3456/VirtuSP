@@ -61,11 +61,15 @@ test("Completed encounters carry the rubric text and level wording", async () =>
   await engine.complete(enc);
   const a = enc.assessment;
   assert.equal(a.rubric.title, "Patient Encounter Performance Rubric");
-  assert.equal(a.domains[0].label, "Unsafe or absent");
+  assert.equal(a.domains[0].status, "not_assessed");
+  assert.equal(a.domains[0].score, null);
+  assert.equal(a.domains[0].label, "Not assessed");
+  assert.equal(a.total, null);
+  assert.equal(a.pending, true);
   assert.equal(a.domains[0].levels.length, 4);
   assert.equal(a.caseRubric, null);
 });
-test("Pediatric hearing rubric applies by age or by explicit choice", () => {
+test("Pediatric hearing rubric applies only by explicit choice", () => {
   const rubric = caseRubric.rubrics.find(
     (r) => r.id === "pediatric-hearing-treatment",
   );
@@ -82,15 +86,19 @@ test("Pediatric hearing rubric applies by age or by explicit choice", () => {
       Math.abs(s.criteria.reduce((sum, c) => sum + c.share, 0) - 1) < 1e-9,
       s.title,
     );
-  assert.equal(caseRubric.forProfile(profile()).id, rubric.id);
-  assert.equal(caseRubric.forProfile(profile({ age: 17 })).id, rubric.id);
+  assert.equal(caseRubric.forProfile(profile()), null);
+  assert.equal(caseRubric.suggest(profile()).id, rubric.id);
+  assert.equal(caseRubric.forProfile(profile({ age: 12 })), null);
+  assert.equal(caseRubric.forProfile(profile({ age: 17 })), null);
   assert.equal(caseRubric.forProfile(profile({ age: 18 })), null);
   assert.equal(caseRubric.forProfile(profile({ age: null })), null);
   assert.equal(caseRubric.forProfile(profile({ caseRubric: "none" })), null);
+  assert.equal(caseRubric.suggest(profile({ caseRubric: "none" })), null);
   assert.equal(
     caseRubric.forProfile(profile({ age: 40, caseRubric: rubric.id })).id,
     rubric.id,
   );
+  assert.match(caseRubric.selectionIssue(profile({ caseRubric: "retired" })), /not a known checklist/);
 });
 test("Case rubric scoring validates evidence and computes points", async () => {
   const saved = { ...cloud },
@@ -98,7 +106,7 @@ test("Case rubric scoring validates evidence and computes points", async () => {
   const rubric = caseRubric.rubrics[0];
   try {
     process.env.AI_ENABLED = "false";
-    const enc = engine.create(profile());
+    const enc = engine.create(profile({ caseRubric: rubric.id }));
     await engine.ask(
       enc,
       "Hello, I'm a student clinician. What brings you in?",

@@ -68,7 +68,19 @@ test("session accepts the site host and rejects a foreign origin", async (t) => 
     "X-Forwarded-Host": "d18g7r2mfy8mll.cloudfront.net",
     Origin: "https://d18g7r2mfy8mll.cloudfront.net",
   });
-  assert.equal(forwarded.status, 200);
+  assert.equal(forwarded.status, 403);
+
+  process.env.VIRTUSP_TRUST_PROXY = "true";
+  process.env.VIRTUSP_EDGE_SECRET = "edge-test-secret";
+  const trusted = await request(port, "GET", "/api/session", {
+    Host: "virtusp-alb.elb.amazonaws.com",
+    "X-Forwarded-Host": "d18g7r2mfy8mll.cloudfront.net",
+    "X-VirtuSP-Edge": "edge-test-secret",
+    Origin: "https://d18g7r2mfy8mll.cloudfront.net",
+  });
+  assert.equal(trusted.status, 200);
+  delete process.env.VIRTUSP_TRUST_PROXY;
+  delete process.env.VIRTUSP_EDGE_SECRET;
 
   const foreign = await request(port, "POST", "/api/session", {
     Host: "d18g7r2mfy8mll.cloudfront.net",

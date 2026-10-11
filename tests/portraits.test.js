@@ -29,7 +29,7 @@ test("Assigned and active encounters retain pinned portraits after draft edits a
     assert.equal(encounter.imageUrl,`/api/encounters/${encounter.id}/image`);
     assert.deepEqual(Buffer.from(await(await student(encounter.imageUrl)).arrayBuffer()),old);
     assert.deepEqual(Buffer.from(await(await student(`/api/profiles/${p.id}/image`)).arrayBuffer()),replacement);
-    assert.equal((await other(encounter.imageUrl)).status,404);
+    assert.equal((await other(encounter.imageUrl)).status,403);
     assert.deepEqual(Buffer.from(await(await faculty(`/api/profiles/${p.id}/image?version=1`)).arrayBuffer()),old);
     assert.equal((await faculty(`/api/profiles/${p.id}/image?version=999`)).status,404);
     assert.equal((await call(student,`/api/encounters/${encounter.id}`)).encounter.videoUrl,"/video/yvette.mp4");

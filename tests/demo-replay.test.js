@@ -65,6 +65,7 @@ test("Demo replay creates only labeled synthetic aliases, uses real encounter ro
     const enc = app.store.state.encounters[manifest.encounterIds[0]];
     assert.equal(enc.studentId, manifest.studentId);
     assert.equal(enc.status, "complete");
+    assert.ok(enc.interviewStartedAt, "Replay starts the interview clock before learner turns");
     assert.equal(enc.transcript.filter((t) => t.role === "student").length, 4);
     assert.ok(enc.events.some((e) => e.type === "student"));
     assert.ok(enc.assessment);
@@ -80,7 +81,7 @@ test("Demo replay creates only labeled synthetic aliases, uses real encounter ro
     });
     await assert.rejects(
       humanClient(`/api/encounters/${enc.id}`),
-      /not found/i,
+      /not found|do not have access/i,
     );
     await assert.rejects(
       humanClient(`/api/bias/encounter/${enc.id}`),

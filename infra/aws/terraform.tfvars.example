@@ -19,3 +19,6 @@ deletion_protection = true
 # autoscaling_max_capacity  = 8
 # autoscaling_cpu_target    = 70
 # autoscaling_memory_target = 75
+
+# Leave unset to keep CPU and memory alarms on the dashboard only.
+# alarm_email = "ops@example.com"

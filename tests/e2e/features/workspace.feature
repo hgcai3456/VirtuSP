@@ -31,20 +31,20 @@ Feature: Simulator workspace
     Then the mode chip reads "Local demo · no API keys"
 
   Scenario: Theme cycles through light, dark, and auto, and the choice survives reload
-    Then the theme button reads "Theme: Auto"
-    And the document theme is "auto"
-    When the faculty cycles the theme
     Then the theme button reads "Theme: Light"
     And the document theme is "light"
     When the faculty cycles the theme
     Then the theme button reads "Theme: Dark"
     And the document theme is "dark"
-    When the page is reloaded
-    Then the theme button reads "Theme: Dark"
-    And the document theme is "dark"
     When the faculty cycles the theme
     Then the theme button reads "Theme: Auto"
     And the document theme is "auto"
+    When the page is reloaded
+    Then the theme button reads "Theme: Auto"
+    And the document theme is "auto"
+    When the faculty cycles the theme
+    Then the theme button reads "Theme: Light"
+    And the document theme is "light"
 
   Scenario: The workspaces stay reachable on a phone-width window
     When the window is 390 by 844
@@ -52,4 +52,4 @@ Feature: Simulator workspace
     Then the page shows "Complete an interview first."
     When the user opens the "Encounter" workspace
     Then the page shows "Start a visit"
-    And the page shows "Theme: Auto"
+    And the page shows "Theme: Light"

@@ -89,7 +89,7 @@ test("Individual assignments pin versions, restrict ownership, resume once and r
     assert.equal(first.groupProgress, undefined);
     assert.equal(
       (await call(other, `/api/encounters/${first.id}/export`)).status,
-      404,
+      403,
     );
     await app.store.flush();
     await new Promise((r) => app.server.close(r));
