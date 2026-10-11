@@ -21,4 +21,3 @@ Use case: photorealistic-natural. Asset type: portrait for a fictional standardi
 ### public/img/roberto.png
 
 Use case: photorealistic-natural. Asset type: portrait for a fictional standardized patient in a healthcare education app. Generate one photo of a 67-year-old Latino American man, short gray hair. All characters fictional. Neutral plain dark navy top, neutral relaxed attentive expression, seated facing camera, eye-level chest-up framing, complete head and shoulders, vertical 3:4 composition, softly blurred light gray clinic background, soft even daylight, realistic skin texture and age. This is a simple consistent identity portrait, no text, no labels, no logos, no objects suggesting wealth, occupation or diagnosis. Match an ordinary clinical interview portrait.
-
