@@ -10,14 +10,19 @@ phases:
       - set -euo pipefail
       - export SOURCE_SHA="$CODEBUILD_RESOLVED_SOURCE_VERSION"
       - test "${#SOURCE_SHA}" -eq 40
+      - test "$AWS_DEFAULT_REGION" = us-west-2
       - npm ci
       - npm test
       - export REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com"
       - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+      - export EAST_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com"
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin "$EAST_REGISTRY"
   build:
     commands:
       - docker build --platform linux/amd64 --build-arg VIRTUSP_GIT_SHA="$SOURCE_SHA" -t "$REGISTRY/$IMAGE_REPO:$SOURCE_SHA" .
+      - docker tag "$REGISTRY/$IMAGE_REPO:$SOURCE_SHA" "$EAST_REGISTRY/virtusp-east:$SOURCE_SHA"
       - docker push "$REGISTRY/$IMAGE_REPO:$SOURCE_SHA"
+      - docker push "$EAST_REGISTRY/virtusp-east:$SOURCE_SHA"
   post_build:
     commands:
       - test "$CODEBUILD_BUILD_SUCCEEDING" = 1

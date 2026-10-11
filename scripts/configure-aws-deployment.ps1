@@ -35,10 +35,11 @@ if ('virtusp-github-deploy' -in $roles) {
 $triggerPolicy = @{Version='2012-10-17';Statement=@(@{Effect='Allow';Action=@('codebuild:StartBuild','codebuild:BatchGetBuilds');Resource=@("arn:aws:codebuild:${region}:${account}:project/virtusp-image","arn:aws:codebuild:${region}:${account}:build/virtusp-image:*")})}
 Invoke-Aws @('iam','put-role-policy','--role-name','virtusp-github-deploy','--policy-name','virtusp-main-build','--policy-document',(Write-Json 'github-policy.json' $triggerPolicy)) | Out-Null
 $deployPolicy = @{Version='2012-10-17';Statement=@(
-  @{Effect='Allow';Action='ecr:DescribeImages';Resource="arn:aws:ecr:${region}:${account}:repository/virtusp"},
-  @{Effect='Allow';Action=@('ecs:DescribeServices','ecs:UpdateService');Resource="arn:aws:ecs:${region}:${account}:service/virtusp/virtusp"},
+  @{Effect='Allow';Action=@('ecr:DescribeImages','ecr:BatchCheckLayerAvailability','ecr:InitiateLayerUpload','ecr:UploadLayerPart','ecr:CompleteLayerUpload','ecr:PutImage');Resource=@("arn:aws:ecr:us-west-2:${account}:repository/virtusp","arn:aws:ecr:us-east-1:${account}:repository/virtusp-east")},
+  @{Effect='Allow';Action='ecr:GetAuthorizationToken';Resource='*'},
+  @{Effect='Allow';Action=@('ecs:DescribeServices','ecs:UpdateService');Resource=@("arn:aws:ecs:us-west-2:${account}:service/virtusp/virtusp","arn:aws:ecs:us-east-1:${account}:service/virtusp-east/virtusp-east")},
   @{Effect='Allow';Action=@('ecs:DescribeTaskDefinition','ecs:RegisterTaskDefinition');Resource='*'},
-  @{Effect='Allow';Action='iam:PassRole';Resource=@("arn:aws:iam::${account}:role/virtusp-ecs-task","arn:aws:iam::${account}:role/virtusp-ecs-execution");Condition=@{StringEquals=@{'iam:PassedToService'='ecs-tasks.amazonaws.com'}}}
+  @{Effect='Allow';Action='iam:PassRole';Resource=@("arn:aws:iam::${account}:role/virtusp-ecs-task","arn:aws:iam::${account}:role/virtusp-ecs-execution","arn:aws:iam::${account}:role/virtusp-east-ecs-task","arn:aws:iam::${account}:role/virtusp-east-ecs-execution");Condition=@{StringEquals=@{'iam:PassedToService'='ecs-tasks.amazonaws.com'}}}
 )}
 Invoke-Aws @('iam','put-role-policy','--role-name','virtusp-codebuild','--policy-name','virtusp-ecs-deploy','--policy-document',(Write-Json 'codebuild-deploy-policy.json' $deployPolicy)) | Out-Null
 $source = @{type='GITHUB';location='https://github.com/hgcai3456/VirtuSP.git';gitCloneDepth=1;buildspec='buildspec.yml';reportBuildStatus=$false;insecureSsl=$false;gitSubmodulesConfig=@{fetchSubmodules=$false}}

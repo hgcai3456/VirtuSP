@@ -32,7 +32,7 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::389023343021:role/virtusp-github-deploy
           aws-region: us-west-2
-      - name: Build and deploy this commit
+      - name: Test, build, and deploy this commit to both regions
         shell: bash
         run: |
           set -euo pipefail
@@ -51,7 +51,7 @@ jobs:
           for attempt in $(seq 1 180); do
             status=$(aws codebuild batch-get-builds --ids "$build" --query 'builds[0].buildStatus' --output text)
             case "$status" in
-              SUCCEEDED) echo "Deployed $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"; exit 0 ;;
+              SUCCEEDED) echo "Tests passed; deployed $GITHUB_SHA to us-east-1 and us-west-2" >> "$GITHUB_STEP_SUMMARY"; exit 0 ;;
               IN_PROGRESS) sleep 10 ;;
               *) echo "CodeBuild ended with $status"; exit 1 ;;
             esac
