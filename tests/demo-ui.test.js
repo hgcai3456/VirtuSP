@@ -178,6 +178,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     click("choose-role", '[data-role="student"]');
     await wait(() => !!d.querySelector(".student-assignments"));
+    assert.equal(d.querySelector('.group-details'), null);
+    assert.ok(!d.querySelector('#app').textContent.includes('Similar conditions, different demographics'));
+    assert.ok(!d.querySelector('#app').textContent.includes('Exploratory comparison'));
+    assert.ok(!d.querySelector('#app').textContent.includes('About this assessment'));
     assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Student workspace/);
     assert.match(
       d.querySelector("#app").textContent,

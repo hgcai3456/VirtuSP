@@ -291,6 +291,12 @@ Presentation only; no route, data shape or scoring changed apart from one option
 
 ## Compact cards and named assignments (2026-10-11)
 
+Student privacy/portrait follow-up: student group projections omit comparison purpose, type, demographic differences, source notes and limitations. Faculty still receives the full setup. Student cards contain neutral instructions and patient names only. Transcript bubbles no longer show provider/fact-ID labels such as “approved”; diagnostic metadata remains stored. Conversation panels grow with content and scroll with the page.
+
+Portraits use explicit mappings in `corpus/portrait-map.json`, distinct generated portraits for the four comparison cases, and a matching existing synthetic portrait for Marlene. Unmapped cases use a neutral avatar. Assigned/active image endpoints resolve the encounter's immutable profile snapshot and enforce ownership; draft edits cannot change an old encounter's uploaded portrait. Static videos match explicit IDs only and are suppressed for uploaded replacement portraits. See [PORTRAITS.md](PORTRAITS.md).
+
+`corpus/shared-demo.json` contains the 12 current synthetic published cases and two groups, without runtime identities, encounters, assessment data or credentials. Teammates stop the server and run `npm run demo:sync` after pulling, then restart. Imports back up local JSON, preserve pinned versions/histories and edited drafts, and report group conflicts. It does not silently replace another faculty member's work. Verification: 125 tests pass before browser rehearsal; no paid Bedrock or ElevenLabs calls were made for these checks. Preserve concurrent research-document edits.
+
 Follow-up UI cleanup: removed the repeated “Assign this simulation to student” and “Assigned to” text from cards; the **Assign to** selector and Assign button remain, with named confirmation. Removed the Saved patient library section and its frontend fetch. Older profiles, releases, uploads and histories remain stored and recoverable through the existing faculty API. Edit and AI generation remain in the main catalog.
 
 Patient portraits fill vertical frames; cards are narrower and age sits beside the name. Multi-patient catalog and assignment cards show their patient names directly, using published/pinned case versions. Faculty cards keep Edit, quick AI generation and visible assignment controls, plus the assigned recipients. Stored clinical descriptions and histories are unchanged.
