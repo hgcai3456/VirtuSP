@@ -81,11 +81,17 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     el.dispatchEvent(new w.Event("input", { bubbles: true }));
   };
   try {
+    w.eval(await fs.readFile("public/js/catalog.js", "utf8"));
     w.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => !!d.getElementById("demo-student"));
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.ok(d.querySelector('.patient-name .patient-age'));
+    assert.equal(d.querySelectorAll('.patient-card [data-action="pick"]').length, 8);
+    assert.equal(d.querySelector(".case-caption"), null);
+    assert.ok(!d.querySelector(".patient-grid").textContent.includes("AI-synthetic"));
+    assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Faculty workspace/);
     assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
     assert.ok(
       !d.querySelector(".patient-grid").textContent.includes("Marcus Ramirez"),
@@ -121,8 +127,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
         .querySelector(".patient-grid")
         .textContent.match(/organizer|scaffold/i),
     );
+    d.documentElement.scrollTop = 900;
     click("nav", '[data-tab="tests"]');
     await wait(() => !!d.getElementById("new-student-alias"));
+    assert.equal(d.documentElement.scrollTop, 0);
     fill("new-student-alias", "Student C");
     click("add-student");
     await wait(
@@ -141,6 +149,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     assert.match(d.querySelector("#app").textContent, /Available practice/);
     assert.equal(d.querySelectorAll(".group-details[open]").length, 0);
+    assert.match(d.querySelector('.faculty-group .group-patients').textContent, /Jordan Ellis.*Daniel Brooks.*Meera Shah.*Roberto Vega/);
     assert.ok(
       !d.querySelector("#app").textContent.includes("Make available to all"),
     );
@@ -151,6 +160,7 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
       !d.querySelector("#app").textContent.includes("Review & publish"),
     );
     assert.ok(d.querySelector('[data-action="assign-simulation"]'));
+    assert.equal(d.querySelector(".simulation-assignment").tagName, "SECTION", "Assignment controls are directly visible, not in a collapsed details element");
     const assign = d.querySelector(
       '[data-action="assign-simulation"][data-id="omar-dyslipidemia-comparison"]',
     );
@@ -173,9 +183,10 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     click("choose-role", '[data-role="student"]');
     await wait(() => !!d.querySelector(".student-assignments"));
+    assert.match(d.querySelector('[data-action="switch-role"]').textContent, /Student workspace/);
     assert.match(
       d.querySelector("#app").textContent,
-      /My assigned assessments/,
+      /Assigned to you by faculty/,
     );
     assert.equal(d.querySelectorAll(".simulation-choice").length, 0);
     assert.ok(d.querySelector('[data-action="start-test"]'));
@@ -190,6 +201,19 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelectorAll(".patient-card").length, 8);
     assert.equal(d.querySelector('[data-action="add-student"]'), null);
     assert.equal(d.querySelector('[data-action="create-group"]'), null);
+    click("filter-objective", '[data-objective="urgent-referral"]');
+    assert.equal(d.querySelectorAll(".patient-card").length, 0);
+    assert.equal(d.querySelectorAll(".faculty-group").length, 0);
+    assert.ok(d.querySelector(".assignment-card"), "Assigned work must remain visible even when it does not match the selected objective");
+    const discipline = d.getElementById("catalog-discipline");
+    discipline.value = "pa";
+    discipline.dispatchEvent(new w.Event("change", { bubbles: true }));
+    await wait(() => app.store.state.students[Object.values(app.store.state.students)[0].id].discipline === "pa");
+    await wait(() => d.getElementById("catalog-discipline")?.value === "pa");
+    assert.ok(d.querySelector(".assignment-card"));
+    click("clear-catalog");
+    await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.equal(d.getElementById("catalog-discipline").value, "");
     click("start-test");
     await wait(() => !!d.getElementById("question"));
     click("complete");
@@ -397,6 +421,51 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
         click("next-test");
       } else await wait(() => !!d.querySelector(".rep-tabs"));
     }
+    assert.deepEqual(errors, []);
+    // Bias follow-up topics have a named recipient and are distinct from cases.
+    click("switch-role");
+    await wait(() => !!d.getElementById("demo-student"));
+    click("choose-role", '[data-role="faculty"]');
+    await wait(() => !!d.querySelector('.studio'));
+    click("nav", '[data-tab="bias"]');
+    await wait(() => !!d.getElementById("board-student"));
+    const studentA = Object.values(app.store.state.students).find((s) => s.alias === "Student A");
+    const studentB = Object.values(app.store.state.students).find((s) => s.alias === "Student B");
+    assert.equal(d.getElementById("board-student").value, studentA.id);
+    const topicId = d.querySelector('[data-action="module-toggle"]').dataset.module;
+    click("module-toggle");
+    await wait(() => /assigned to Student A/.test(d.querySelector('.toast').textContent));
+    assert.match(d.querySelector('.modules').textContent, /Assigned to Student A/);
+    click("dismiss-message");
+    assert.ok(d.querySelector('.toast').classList.contains('hidden'));
+    d.getElementById('board-student').value = 'unassigned';
+    d.getElementById('board-student').dispatchEvent(new w.Event('change', {bubbles:true}));
+    assert.ok([...d.querySelectorAll('[data-action="module-toggle"]')].every((el) => el.disabled));
+    assert.equal(d.querySelector('[data-action="assign-case-from-board"]'), null);
+    d.getElementById('board-student').value = studentB.id;
+    d.getElementById('board-student').dispatchEvent(new w.Event('change', {bubbles:true}));
+    click('assign-case-from-board');
+    await wait(() => !!d.querySelector('.studio'));
+    assert.equal(d.querySelector('[data-assignment-student]').value, studentB.id);
+    click("switch-role");
+    await wait(() => !!d.getElementById("demo-student"));
+    fill('demo-student', studentA.id);
+    click("choose-role", '[data-role="student"]');
+    await wait(() => !!d.querySelector('.faculty-learning-topics'));
+    const topicTitle = d.querySelector('.faculty-learning-topics .mod b').textContent;
+    assert.match(d.querySelector('.faculty-learning-topics').textContent, /not patient simulations/);
+    assert.ok(app.store.state.moduleAssignments[studentA.id][topicId]);
+    assert.ok(d.querySelector('.assigned-work .assignment-badge'));
+    assert.ok(d.querySelector('.assigned-work .group-patients'));
+    assert.ok(d.querySelector('.open-assessments .patient-card'));
+    assert.equal(d.querySelector('[data-action="module-toggle"]'), null);
+    click("switch-role");
+    await wait(() => !!d.getElementById("demo-student"));
+    fill('demo-student', studentB.id);
+    click("choose-role", '[data-role="student"]');
+    await wait(() => !!d.querySelector('.student-assignments'));
+    assert.equal(d.querySelector('.faculty-learning-topics'), null);
+    assert.ok(!d.querySelector('.student-assignments').textContent.includes(topicTitle));
     assert.deepEqual(errors, []);
   } finally {
     Object.assign(cloud, cloudOriginal);

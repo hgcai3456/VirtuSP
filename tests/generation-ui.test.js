@@ -70,6 +70,7 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
     el.dispatchEvent(new w.Event("input", { bubbles: true }));
   };
   try {
+    w.eval(await fs.readFile("public/js/catalog.js", "utf8"));
     w.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => doc.querySelectorAll(".patient-card").length === 8);
     click("new-ai");
@@ -80,6 +81,7 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
       "Quick setup has no full clinical form",
     );
     fill("patient-description", "An adult with cholesterol concerns.");
+    fill("ai-objective", "medications");
     click("dictate-patient");
     recognizers[0].onresult({
       results: [[{ transcript: "Worried about medication." }]],
@@ -109,6 +111,7 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
     await wait(() => !!doc.querySelector(".ai-case-preview"));
     assert.equal(calls.length, 1);
     assert.equal(calls[0].sources.length, 1);
+    assert.match(calls[0].learningObjective, /Medication review and shared decisions/);
     assert.match(calls[0].description, /Worried about medication/);
     assert.equal(
       doc.querySelectorAll('.patient-dialog input[type="checkbox"]').length,
@@ -152,6 +155,7 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
       (p) => p.name === "Reviewed Taylor Reed",
     );
     assert.ok(app.store.latest(created.id));
+    assert.deepEqual(created.catalog, { objectives: ["medications"], disciplines: [] });
     assert.equal(created.artifacts[0].rows[0].value, "245");
     assert.match(created.facts[14].label, /245/);
     click("new-ai");

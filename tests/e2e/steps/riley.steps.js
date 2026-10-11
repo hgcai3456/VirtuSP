@@ -27,10 +27,6 @@ When("the student starts the visit for {string}", async function (name) {
   );
   await ui.clickElement(button);
   await ui.waitForText(name + ",");
-  const answer = await ui
-    .driver()
-    .findElement(By.css('[data-action="answer-call"]'));
-  await ui.clickElement(answer);
   await ui.driver().wait(async () => {
     const boxes = await ui.driver().findElements(By.css("#question"));
     return boxes.length === 1 && (await boxes[0].isEnabled());
@@ -62,12 +58,9 @@ Then("the patient's camera is on", async function () {
   await ui.driver().wait(async () => {
     return ui.driver().executeScript(`
       var frame = document.getElementById("avf");
-      var badge = frame && frame.querySelector(".av-live");
       return !!(
         frame &&
         frame.classList.contains("video-call") &&
-        badge &&
-        badge.textContent.includes("Camera on") &&
         !document.querySelector("[data-action='answer-call']")
       );
     `);

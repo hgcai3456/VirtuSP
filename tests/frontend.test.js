@@ -113,13 +113,14 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     el.dispatchEvent(new window.Event("input", { bubbles: true }));
   };
   try {
+    window.eval(await fs.readFile("public/js/catalog.js", "utf8"));
     window.eval(await fs.readFile("public/js/app.js", "utf8"));
     await wait(() => doc.querySelectorAll(".patient-card").length === 8);
     assert.equal(doc.querySelector(".editor"), null);
     click("new");
     assert.ok(doc.getElementById("patient-dialog").hasAttribute("open"));
     assert.equal(
-      doc.querySelectorAll('.patient-dialog input[type="checkbox"]').length,
+      doc.querySelectorAll('.patient-dialog input[data-path="reviewAcknowledged"]').length,
       1,
     );
     assert.equal(
@@ -350,7 +351,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "Extraction is only a preview",
     );
     assert.equal(
-      doc.querySelectorAll('.patient-dialog input[type="checkbox"]').length,
+      doc.querySelectorAll('.patient-dialog input[data-path="reviewAcknowledged"]').length,
       1,
     );
     assert.ok(
@@ -390,23 +391,12 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     ).profiles.find((p) => p.name === "Test New Patient");
     assert.equal(created.version, 1);
     click("launch", '[data-id="' + created.id + '"]');
-    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
-    assert.match(doc.querySelector(".incoming-call").textContent, /is calling/);
-    assert.equal(doc.getElementById("question").disabled, true);
-    assert.match(
-      doc.getElementById("voice-status").textContent,
-      /Incoming video call/,
-    );
-    assert.equal(doc.getElementById("interview-timer"), null);
-    click("answer-call");
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    assert.equal(doc.querySelector(".incoming-call"), null);
+    assert.match(doc.getElementById("visit-timer").textContent, /^\d{2}:\d{2}/);
     await wait(() =>
       doc.getElementById("avf")?.classList.contains("video-call"),
     );
-    assert.match(
-      doc.getElementById("interview-timer").textContent,
-      /^Interview \d+:\d{2}$/,
-    );
-    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
     assert.equal(doc.getElementById("question").disabled, false);
     fill("question", "What brings you in today?");
     doc
@@ -441,13 +431,8 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("submit-patient");
     await wait(() => !doc.getElementById("patient-dialog"));
     click("launch", '[data-id="omar"]');
-    await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
-    click("answer-call");
-    await wait(() =>
-      /Patient speaking|Listening/.test(
-        doc.getElementById("voice-status")?.textContent || "",
-      ),
-    );
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    await new Promise((resolve) => setTimeout(resolve, 20));
     window.speechSynthesis.cancel();
     await wait(() => {
       const r = recognizers.at(-1);
@@ -547,57 +532,30 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     assert.equal(doc.querySelector('[data-action="review"]'), null);
     assert.equal(doc.querySelector('[data-action="review-section"]'), null);
     click("complete");
-    // Feedback opens on a short summary; the rubric is one of its views.
-    await wait(() => !!doc.querySelector(".rep-tabs"));
-    assert.match(
-      doc.querySelector(".score-hero").textContent,
-      /appointment \d+ (sec|min|hr)/,
-    );
-    const appointmentLog = await fs.readFile(
-      path.join(dir, "appointment-log.csv"),
-      "utf8",
-    );
-    assert.match(appointmentLog, /duration_ms/);
-    assert.match(appointmentLog, /Omar Sinclair/);
+    // Faculty can read all feedback and evidence without changing tabs.
+    await wait(() => !!doc.querySelector(".faculty-feedback"));
+    assert.equal(doc.querySelector(".rep-tabs"), null);
     assert.ok(doc.querySelector(".warn").textContent.includes("provisional"));
     assert.ok(doc.querySelector(".warn").textContent.includes("not assessed"));
     assert.equal(doc.querySelector(".score-num").textContent.includes("/28"), false);
     assert.ok(doc.querySelector(".score-num").textContent.includes("0/7"));
     assert.ok(doc.querySelector(".plan"));
-    assert.equal(doc.querySelectorAll(".domain-row").length, 0);
-    click("rep-view", '[data-view="rubric"]');
-    await wait(() => doc.querySelectorAll(".domain-row").length === 7);
-    click("rep-view", '[data-view="findings"]');
-    await wait(() => !!doc.querySelector(".meter"));
-    click("rep-view", '[data-view="interview"]');
-    await wait(() => !!doc.querySelector(".annotated .turn"));
-    click("nav", '[data-tab="history"]');
-    await wait(() => !!doc.querySelector(".history-table"));
-    assert.match(doc.querySelector(".history-table").textContent, /Omar Sinclair/);
-    assert.match(
-      doc.querySelector(".history-table").textContent,
-      /View encounter/,
-    );
+    assert.equal(doc.querySelectorAll(".domain-row[open]").length, 7);
+    assert.ok(doc.querySelector(".meter"));
+    assert.ok(doc.querySelector(".annotated .turn"));
+    assert.ok(doc.querySelector(".domain-detail .evidence[open]"));
     click("nav", '[data-tab="studio"]');
     click("launch", '[data-id="riley"]');
-    await wait(() => !!doc.querySelector(".incoming-call"));
+    await wait(() => !!doc.getElementById("question") && !doc.getElementById("question").disabled);
+    assert.equal(doc.querySelector(".incoming-call"), null);
     assert.equal(doc.body.textContent.includes("Text message"), false);
     assert.equal(doc.body.textContent.includes("Patient is texting"), false);
-    assert.match(
-      doc.querySelector(".incoming-call").textContent,
-      /Riley Chen is calling/,
-    );
-    click("answer-call");
     await wait(() =>
       doc.getElementById("avf")?.classList.contains("video-call"),
     );
-    assert.match(doc.querySelector(".av-live").textContent, /Camera on/);
-    assert.match(
-      doc.getElementById("interview-timer").textContent,
-      /^Interview \d+:\d{2}$/,
-    );
     assert.equal(doc.getElementById("question").disabled, false);
     assert.ok(doc.querySelector("#student-camera"));
+    assert.ok(doc.getElementById("visit-timer"));
     assert.ok(doc.querySelector('.mic-btn[data-action="toggle-pause"]'));
     assert.deepEqual(errors, []);
   } finally {

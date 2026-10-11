@@ -389,11 +389,10 @@ test("Completed encounters reject new turns and preserve applicable denominator"
   p.rubricApplicable = [1, 2, 3, 4];
   const enc = engine.create(p);
   await engine.complete(enc);
-  assert.equal(enc.assessment.total, null);
-  assert.equal(enc.assessment.denominator, null);
-  assert.equal(enc.assessment.pending, true);
-  assert.equal(enc.assessment.coverage.applicable, 4);
-  assert.equal(enc.assessment.coverage.notAssessed, 4);
+  assert.equal(typeof enc.durationSec, "number");
+  assert.ok(enc.durationSec >= 0);
+  assert.equal(engine.publicView(enc).durationSec, enc.durationSec);
+  assert.equal(enc.assessment.denominator, 16);
   assert.equal(enc.assessment.na, 3);
   assert.equal(enc.assessment.reviewRequired, false);
   assert.equal(enc.assessment.domains[0].status, "not_assessed");
