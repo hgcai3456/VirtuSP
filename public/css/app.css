@@ -4250,6 +4250,55 @@ summary:focus-visible {
 .bias-citation q {
   font-size: 0.9em;
 }
+.results-controls {
+  align-items: end;
+  margin-bottom: 16px;
+}
+.results-controls label {
+  min-width: 240px;
+}
+.bias-spotlight {
+  padding: 16px 0;
+}
+.bias-spotlight > h4 {
+  margin: 8px 0;
+}
+.bias-spotlight .bias-citation q {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.bias-rating-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.bias-rating-strip span {
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 10px;
+}
+.bias-rating-strip b {
+  display: block;
+  margin-bottom: 6px;
+}
+.ai-demo-label {
+  padding: 10px 14px;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  background: var(--soft);
+}
+.bias-comparison th:first-child {
+  width: auto;
+}
+.bias-comparison td {
+  white-space: nowrap;
+}
+.bias-comparison caption {
+  text-align: left;
+  margin-bottom: 8px;
+}
 .ai-sparkle {
   display: inline-block;
   vertical-align: -3px;

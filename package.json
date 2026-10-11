@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "demo:sync": "node scripts/sync-demo.js",
+    "demo:bias": "node scripts/prepare-bias-demo.js",
     "test": "node --test --test-timeout=120000 tests/*.test.js",
     "preflight": "node scripts/preflight.js",
     "corpus:fetch": "node scripts/fetch-corpus.js",

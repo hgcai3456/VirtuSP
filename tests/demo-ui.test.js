@@ -321,6 +321,21 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     await wait(() => d.querySelectorAll(".bias-rubric tbody tr").length === 10);
     assert.match(d.querySelector(".bias-rubric").textContent, /Not observable/);
     assert.ok(d.querySelector('a[href="/api/bias/rubric/file"]'));
+    click("bias-presentation");
+    assert.equal(d.querySelectorAll(".bias-spotlight").length, 1);
+    assert.equal(d.querySelectorAll(".bias-comparison tbody tr").length, 2);
+    assert.match(d.querySelector(".bias-rating-strip").textContent, /Not observable/);
+    assert.ok(!d.querySelector(".bias-spotlight").textContent.includes("Observed strength"));
+    const resultsPick = d.getElementById("results-student");
+    resultsPick.value = Object.values(app.store.state.students).find((s) => s.alias === "Student A").id;
+    resultsPick.dispatchEvent(new w.Event("change", {bubbles:true}));
+    assert.equal(d.querySelectorAll(".student-results").length, 1);
+    assert.ok(!d.querySelector(".student-results").textContent.includes("Unassigned demo encounters"));
+    resultsPick.value = "";
+    // Rendering replaced the selector; change the current node.
+    d.getElementById("results-student").value = "";
+    d.getElementById("results-student").dispatchEvent(new w.Event("change", {bubbles:true}));
+    click("bias-presentation");
     Object.assign(cloud, cloudOriginal);
     const submitted = await client(`/api/bias/encounter/${record.id}`, {
       method: "PUT",

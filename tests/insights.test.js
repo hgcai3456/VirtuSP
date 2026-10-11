@@ -69,6 +69,15 @@ function store(encounters, extra = {}) {
     },
   };
 }
+test("AI demonstration aliases remain reviewable but do not enter human cohort comparisons", () => {
+  const s = store([visit({studentId:"s1"}), visit({studentId:"s2"}), visit({studentId:"ai",total:28})]);
+  s.state.students.ai={id:"ai",alias:"AI demo",aiDemo:true};
+  const view=insights.facultyView(s, anchors);
+  assert.equal(view.cohort.students,2);
+  assert.equal(view.cohort.encounters,2);
+  assert.equal(view.cohort.rubricPct,50);
+  assert.ok(view.students.find(p=>p.student.id==="ai"));
+});
 test("Variance levels follow the widest rubric or empathy gap between patient groups", () => {
   const s = store([
     visit({ gender: "female", total: 21, empathy: 3 }),
