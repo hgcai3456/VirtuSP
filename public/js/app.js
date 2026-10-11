@@ -98,7 +98,6 @@ let loginStudent = "",
   boardDraft = null,
   visitModal = "";
 let list = [],
-  savedPatients = [],
   history = [],
   profile = null,
   patientDialog = null,
@@ -328,10 +327,8 @@ async function refresh() {
   selectedStudent ||= students[0]?.id || "";
   selectedGroup ||= groups[0]?.id || "";
   if (demoSession?.role === "faculty") {
-    savedPatients = (await api("/api/profiles?library=saved")).profiles;
     facultyResults = (await api("/api/faculty-results")).students;
   } else {
-    savedPatients = [];
     insightsData = ownInsights;
   }
 }
@@ -352,8 +349,7 @@ async function save() {
 function assignmentControl(kind, id, ready = true) {
   if (!ready)
     return `<p class="muted">${kind === "group" ? "Publish compatible cases" : "Publish this patient"} before assigning.</p>`;
-  const recipients = [...new Set(assignments.filter((a) => a.origin !== "open" && (kind === "group" ? a.groupId === id : a.kind === "individual" && a.cases?.[0]?.profileId === id)).map((a) => students.find((s) => s.id === a.studentId)?.alias).filter(Boolean))];
-  return `<section class="simulation-assignment" data-simulation="${esc(id)}" aria-label="Assign ${esc(kind === "group" ? "group" : "patient")} simulation"><p>Assign this simulation to student</p>${recipients.length ? `<p class="assignment-recipients">Assigned to: ${recipients.map(esc).join(", ")}</p>` : ""}<label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</section>`;
+  return `<section class="simulation-assignment" data-simulation="${esc(id)}" aria-label="Assign ${esc(kind === "group" ? "group" : "patient")} simulation"><label>Assign to<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}" ${s.id === selectedStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</section>`;
 }
 // ---- Importing case files or a whole folder, and deleting a patient.
 const IMPORT_TYPES = [
@@ -570,7 +566,6 @@ function studio() {
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}${button(importing ? "Importing…" : "Import files", "import-files")}${button("Import folder", "import-folder")}<input id="files-import" type="file" multiple hidden><input id="folder-import" type="file" webkitdirectory hidden></div></div>${importPanel()}
  ${catalogPicker()}<h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("") || '<p class="catalog-empty">No individual patients match. Clear filters to see all cases.</p>'}</div>
- ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
  </div>`;
 }
@@ -3497,7 +3492,6 @@ document.addEventListener("click", async (e) => {
       patientDialog = null;
       history = [];
       list = [];
-      savedPatients = [];
       facultyResults = [];
       insightsData = null;
       boardStudent = "";

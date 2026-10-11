@@ -291,6 +291,8 @@ Presentation only; no route, data shape or scoring changed apart from one option
 
 ## Compact cards and named assignments (2026-10-11)
 
+Follow-up UI cleanup: removed the repeated “Assign this simulation to student” and “Assigned to” text from cards; the **Assign to** selector and Assign button remain, with named confirmation. Removed the Saved patient library section and its frontend fetch. Older profiles, releases, uploads and histories remain stored and recoverable through the existing faculty API. Edit and AI generation remain in the main catalog.
+
 Patient portraits fill vertical frames; cards are narrower and age sits beside the name. Multi-patient catalog and assignment cards show their patient names directly, using published/pinned case versions. Faculty cards keep Edit, quick AI generation and visible assignment controls, plus the assigned recipients. Stored clinical descriptions and histories are unchanged.
 
 Student entry separates **Assigned to you by faculty** from **Open simulations**. Bias-board follow-ups are **Faculty learning topics**, distinct from runnable simulations. Assignment requires a real student, returns their alias and persists privately through restart. Legacy unassigned encounters remain reviewable but cannot receive new assignments. **Assign a patient simulation** on the board opens Patient Studio with the recipient preselected. Role changes clear cached faculty board data. Notifications identify recipients and can be dismissed; they no longer stick over the board.
