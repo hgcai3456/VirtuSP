@@ -360,6 +360,20 @@ textarea.code {
   margin-bottom: 10px;
 }
 
+.emergency {
+  border: 2px solid #9b1c1c;
+  background: #fdecea;
+  color: #7a1b14;
+  padding: 12px 14px;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+
+.emergency b {
+  display: block;
+  margin-bottom: 4px;
+}
+
 .err {
   color: #c0392b;
 }
@@ -1161,14 +1175,123 @@ main {
   background: var(--soft);
   box-shadow: 0 10px 28px rgba(16, 39, 42, 0.1);
 }
-.av-frame .patient-photo {
+.av-frame .patient-photo,
+.av-frame .patient-call,
+.av-frame .patient-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
+.av-frame .patient-call,
+.av-frame .patient-video {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.av-frame.video-call .patient-call {
+  display: block;
+}
+.av-frame.video-call.face-ready .patient-photo {
+  visibility: hidden;
+}
+.av-frame.ringing {
+  animation: call-ring 1.4s ease-out infinite;
+}
+.incoming-call {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: color-mix(in srgb, #e23b3b 12%, var(--soft));
+  border: 1px solid color-mix(in srgb, #e23b3b 45%, var(--bd));
+}
+.incoming-call h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.incoming-call p {
+  margin: 4px 0 0;
+}
+.self-view {
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  z-index: 4;
+  width: 96px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #17262b;
+  box-shadow: 0 6px 16px rgba(16, 39, 42, 0.28);
+}
+.self-view video {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+  background: #17262b;
+}
+.self-label {
+  display: block;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 4px 6px;
+}
+@keyframes call-ring {
+  70% {
+    box-shadow: 0 0 0 12px rgba(226, 59, 59, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(226, 59, 59, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-frame.ringing {
+    animation: none;
+    box-shadow: 0 0 0 3px #e23b3b;
+  }
+}
+.av-frame.generated-video .patient-video {
+  display: block;
+}
+.av-frame.generated-video .patient-call {
+  display: none;
+}
+.av-live {
+  display: none;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  align-items: center;
+  gap: 6px;
+  background: #17262bbd;
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.av-live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e23b3b;
+}
+.av-frame.video-call .av-live {
+  display: inline-flex;
+}
 .av-frame .voice-bars {
   z-index: 2;
+  top: auto;
+  bottom: 10px;
 }
 .av-frame.listening {
   box-shadow: 0 0 0 3px var(--ac);

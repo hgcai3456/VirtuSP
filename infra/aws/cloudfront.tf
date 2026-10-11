@@ -1,7 +1,7 @@
 # The default load balancer name is under amazonaws.com, so ACM cannot issue
 # a publicly trusted certificate for it. CloudFront's default certificate is
 # trusted for *.cloudfront.net. That HTTPS origin is what lets the browser
-# offer microphone permission.
+# offer camera and microphone permission.
 
 resource "random_password" "edge" {
   count = var.certificate_arn == "" ? 1 : 0
@@ -14,7 +14,7 @@ resource "aws_cloudfront_response_headers_policy" "app" {
   count = var.certificate_arn == "" ? 1 : 0
 
   name    = "${var.name}-security-headers"
-  comment = "HTTPS security headers and microphone permission for VirtuSP"
+  comment = "HTTPS security headers and camera and microphone permission for VirtuSP"
 
   security_headers_config {
     strict_transport_security {
@@ -43,7 +43,7 @@ resource "aws_cloudfront_response_headers_policy" "app" {
     items {
       header   = "Permissions-Policy"
       override = true
-      value    = "microphone=(self)"
+      value    = "camera=(self), microphone=(self)"
     }
   }
 }

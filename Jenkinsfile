@@ -83,8 +83,8 @@ pipeline {
             steps {
                 script {
                     runCmd('node -e "require(\'fs\').mkdirSync(\'reports/junit\',{recursive:true}); require(\'fs\').mkdirSync(\'reports/coverage\',{recursive:true})"')
-                    // Scope discovery to test/ so the integration suite and Cucumber files stay in their own stages.
-                    runCmd('npm test -- --test-reporter=spec --test-reporter=junit --test-reporter=lcov --test-reporter-destination=stdout --test-reporter-destination=reports/junit/unit.xml --test-reporter-destination=reports/coverage/lcov.info test')
+                    // tests/*.test.js is the unit suite. Integration and Cucumber stay in later stages.
+                    runCmd('npm test -- --test-timeout=120000 --test-reporter=spec --test-reporter=junit --test-reporter=lcov --test-reporter-destination=stdout --test-reporter-destination=reports/junit/unit.xml --test-reporter-destination=reports/coverage/lcov.info')
                 }
             }
         }

@@ -23,7 +23,7 @@ Module._extensions['.js'] = function (module, filename) {
   }
   return ext(module, filename);
 };
-require('/app/server.js');
+Module._load('/app/server.js', null, true);
 JS
 EOT
   , "\r", "")

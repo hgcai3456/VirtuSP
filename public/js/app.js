@@ -71,6 +71,15 @@ let list = [],
   audio = null,
   audioUrl = null,
   speechGeneration = 0,
+  callAnimation = 0,
+  callVideoUrl = null,
+  portraitToken = 0,
+  portraitImage = null,
+  portraitUrl = "",
+  studentStream = null,
+  studentCameraTried = false,
+  studentCameraRequest = 0,
+  studentCameraNote = "",
   listening = false,
   micRestartTimer = null,
   repView = "summary",
@@ -846,6 +855,31 @@ function dismissPublicationError() {
     target.scrollIntoView?.({ block: "nearest" });
   }
 }
+function callStorageKey(id) {
+  return "virtusp-call-" + id;
+}
+const connectedCalls = new Set();
+function rememberCall(id) {
+  connectedCalls.add(id);
+  try {
+    sessionStorage.setItem(callStorageKey(id), "live");
+  } catch {
+    /* The in-memory set keeps this page on the call. */
+  }
+}
+function callIsLive() {
+  if (!enc || enc.status !== "active") return false;
+  if (connectedCalls.has(enc.id)) return true;
+  try {
+    if (sessionStorage.getItem(callStorageKey(enc.id)) === "live") {
+      connectedCalls.add(enc.id);
+      return true;
+    }
+  } catch {
+    /* Private mode can block storage. */
+  }
+  return false;
+}
 function encounter() {
   if (demoSession?.role === "faculty" && enc?.studentId) return assessment();
   if (!enc)
@@ -853,6 +887,16 @@ function encounter() {
       .filter((p) => p.version)
       .map((p) => card(p, false))
       .join("")}</div></div>`;
+  const live = callIsLive();
+  const waiting = enc.status === "active" && !live;
+  const locked = busy || enc.status !== "active" || waiting;
+  const first = esc(enc.name.split(" ")[0]);
+  const emergency = enc.emergency
+    ? `<div class="emergency" role="alert"><b>911 emergency services</b><p>${esc(enc.emergency.text)}</p></div>`
+    : "";
+  const incoming = waiting
+    ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
+    : "";
   const clip = packagedVisitVideo(enc);
   return `<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div><div class="av-frame${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${enc.status === "complete" ? "Encounter complete" : "Ready for your question"}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${busy || enc.status === "complete" ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${busy || enc.status === "complete" ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
@@ -1728,7 +1772,9 @@ function biasBoard() {
 function render() {
   if (!demoSession) {
     $("#nav").innerHTML = "";
-    $("#app").innerHTML = rolePicker();
+    $("#app").innerHTML =
+      `<div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+      rolePicker();
     return;
   }
   if (tab === "open-assessments") tab = "student-home";
@@ -1833,11 +1879,13 @@ function render() {
     $("#question").dataset.memory = "question";
   }
   if (tab === "enc") $("#transcript")?.scrollTo(0, 1e9);
+  if (voiceDisplay.state === "ready") voiceDisplay.text = readyStatus();
   voiceState(voiceDisplay.state, voiceDisplay.text);
   setFaceAnchor();
   initTalkAvatar();
   attachTalkVideo();
   updateMicButton();
+  syncVideoCall();
   syncLive();
 }
 function resetTalkVideo() {
@@ -2105,6 +2153,7 @@ function stopPatientAudio() {
     mediaSource = null;
   }
   window.speechSynthesis?.cancel();
+  stopTalkingCall();
   $("#avf")?.classList.remove("speaking");
 }
 function stopLive() {
@@ -2124,19 +2173,273 @@ function stopLive() {
 function stopAudio() {
   stopPatientAudio();
   stopLive();
-  voiceState(
-    "ready",
-    enc?.status === "complete"
-      ? "Encounter complete"
-      : "Ready for your question",
-  );
+  voiceState("ready", readyStatus());
   updateMicButton();
+}
+function readyStatus() {
+  if (!enc) return "Ready for your question";
+  if (enc.status === "complete") return "Call ended";
+  if (!callIsLive()) return "Incoming video call";
+  return "Camera on · ready for your question";
 }
 function voiceState(state, text) {
   voiceDisplay = { state, text };
   $("#avf")?.classList.toggle("speaking", state === "speaking");
   $("#avf")?.classList.toggle("listening", state === "listening");
   if ($("#voice-status")) $("#voice-status").textContent = text;
+}
+function stopTalkingCall() {
+  portraitToken++;
+  if (typeof cancelAnimationFrame === "function")
+    cancelAnimationFrame(callAnimation);
+  callAnimation = 0;
+  const frame = $("#avf");
+  const video = $("#patient-video");
+  if (video?.getAttribute("src")) {
+    try {
+      video.pause();
+    } catch {
+      /* jsdom has no media playback. */
+    }
+    video.removeAttribute("src");
+  }
+  if (callVideoUrl) {
+    URL.revokeObjectURL(callVideoUrl);
+    callVideoUrl = null;
+  }
+  frame?.classList.remove("generated-video");
+  if (callIsLive()) {
+    frame?.classList.add("video-call", "camera-on");
+    startIdlePortrait();
+    return;
+  }
+  frame?.classList.remove("video-call", "camera-on", "face-ready");
+}
+function mouthOpen(text, elapsed) {
+  const syllables = Math.max(
+    3,
+    (String(text || "").match(/[aeiou]/gi) || []).length,
+  );
+  const cycle = Math.max(0.16, 2.4 / syllables);
+  const phase = (elapsed % cycle) / cycle;
+  const shape = phase < 0.35 ? phase / 0.35 : 1 - (phase - 0.35) / 0.65;
+
+  return Math.max(0, shape);
+}
+function paintCall(image, open, shift = 0) {
+  const canvas = $("#patient-call");
+  const ctx = canvas?.getContext?.("2d");
+  if (!ctx || !image?.width || typeof ctx.drawImage !== "function") return;
+  const w = canvas.width;
+  const h = canvas.height;
+  const scale = Math.max(w / image.width, h / image.height);
+  const dw = image.width * scale;
+  const dh = image.height * scale;
+  const dx = (w - dw) / 2;
+  const dy = (h - dh) / 2 + shift;
+  const breathe = 1 + Math.max(0, open) * 0.015;
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(
+    image,
+    dx - ((breathe - 1) * dw) / 2,
+    dy - ((breathe - 1) * dh) / 2,
+    dw * breathe,
+    dh * breathe,
+  );
+}
+function ensurePortrait(done) {
+  const url = enc?.imageUrl;
+  if (!url) return;
+  if (portraitUrl === url && portraitImage?.width) {
+    done(portraitImage);
+    return;
+  }
+  const image = new Image();
+  image.onload = () => {
+    if (enc?.imageUrl !== url) return;
+    portraitUrl = url;
+    portraitImage = image;
+    done(image);
+  };
+  image.onerror = () => {};
+  image.src = url;
+}
+function runPortrait(token, sample) {
+  ensurePortrait((image) => {
+    if (token !== portraitToken) return;
+    const frame = $("#avf");
+    const canvas = $("#patient-call");
+    if (!frame || !canvas || typeof CanvasRenderingContext2D !== "function")
+      return;
+    if (!canvas.getContext?.("2d")) return;
+    frame.classList.add("video-call", "camera-on");
+    const started = performance.now();
+    const draw = () => {
+      if (token !== portraitToken || !$("#patient-call")) return;
+      const elapsed = (performance.now() - started) / 1000;
+      const pose = sample(elapsed);
+      paintCall(image, pose.open, pose.shift || 0);
+      frame.classList.add("face-ready");
+      if (typeof requestAnimationFrame !== "function") return;
+      callAnimation = requestAnimationFrame(draw);
+    };
+    if (typeof cancelAnimationFrame === "function")
+      cancelAnimationFrame(callAnimation);
+    draw();
+  });
+}
+function startIdlePortrait() {
+  if (!callIsLive()) return;
+  const token = ++portraitToken;
+  runPortrait(token, (elapsed) => ({
+    open: 0,
+    shift: Math.sin(elapsed * 0.8) * 1.5,
+  }));
+}
+function startTalkingCall(turn, generation) {
+  const canvas = $("#patient-call");
+  if (typeof CanvasRenderingContext2D !== "function" || !canvas || !turn?.text)
+    return;
+  if (!canvas.getContext?.("2d")) return;
+  const token = ++portraitToken;
+  runPortrait(token, (elapsed) => {
+    if (generation !== speechGeneration) return { open: 0, shift: 0 };
+    const open = mouthOpen(turn.text, elapsed);
+    return { open, shift: Math.sin(elapsed * 10) * (2 + open * 4) };
+  });
+  if (health.speech === "elevenlabs-configured")
+    pollTalkingVideo(turn, generation);
+}
+function syncVideoCall() {
+  if (tab === "enc" && callIsLive()) {
+    const turn = [...(enc?.transcript || [])]
+      .reverse()
+      .find((item) => item.role === "patient");
+    if (
+      (voiceDisplay.state === "speaking" ||
+        voiceDisplay.state === "thinking") &&
+      turn
+    )
+      startTalkingCall(turn, speechGeneration);
+    else startIdlePortrait();
+    attachStudentCamera();
+    if (!studentStream) startStudentCamera();
+    return;
+  }
+  portraitToken++;
+  if (typeof cancelAnimationFrame === "function")
+    cancelAnimationFrame(callAnimation);
+  callAnimation = 0;
+}
+function attachStudentCamera() {
+  const video = $("#student-camera");
+  const label = $("#self-label");
+  const retry = $('[data-action="student-camera"]');
+  if (retry) retry.hidden = !!studentStream;
+  if (!video || !label) return;
+  if (studentStream) {
+    if (video.srcObject !== studentStream) video.srcObject = studentStream;
+    video.hidden = false;
+    label.textContent = "You · Camera on";
+    return;
+  }
+  video.hidden = true;
+  label.textContent = studentCameraNote || "You";
+}
+function startStudentCamera() {
+  if (studentStream || studentCameraTried) {
+    attachStudentCamera();
+    return;
+  }
+  studentCameraTried = true;
+  const devices = navigator.mediaDevices;
+  if (!devices?.getUserMedia) {
+    studentCameraNote = "Your camera is unavailable";
+    attachStudentCamera();
+    return;
+  }
+  const request = ++studentCameraRequest;
+  devices
+    .getUserMedia({ video: { facingMode: "user" }, audio: false })
+    .catch(() => devices.getUserMedia({ video: true, audio: false }))
+    .then(
+      (stream) => {
+        if (request !== studentCameraRequest || !callIsLive()) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        studentStream = stream;
+        studentCameraNote = "";
+        attachStudentCamera();
+      },
+      () => {
+        if (request !== studentCameraRequest) return;
+        studentCameraNote = "Your camera is off";
+        attachStudentCamera();
+      },
+    );
+}
+function stopStudentCamera() {
+  studentCameraRequest++;
+  studentStream?.getTracks().forEach((track) => track.stop());
+  studentStream = null;
+  studentCameraNote = "";
+}
+async function pollTalkingVideo(turn, generation) {
+  try {
+    const started = await fetch(
+      `/api/encounters/${enc.id}/talking-video`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ turnId: turn.id }),
+      },
+    );
+    if (!started.ok && started.status !== 202) return;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      if (generation !== speechGeneration) return;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (generation !== speechGeneration) return;
+      const response = await fetch(
+        `/api/encounters/${enc.id}/talking-video?turnId=${encodeURIComponent(turn.id)}`,
+      );
+      if (response.status === 501 || response.status === 503) return;
+      if (
+        response.ok &&
+        response.headers.get("content-type")?.includes("video")
+      ) {
+        const blob = await response.blob();
+        if (generation !== speechGeneration) return;
+        callVideoUrl = URL.createObjectURL(blob);
+        const video = $("#patient-video");
+        if (!video) return;
+        video.src = callVideoUrl;
+        video.muted = false;
+        $("#avf")?.classList.add("video-call", "generated-video");
+        try {
+          await video.play();
+          if (audio) audio.pause();
+          window.speechSynthesis?.cancel();
+        } catch {
+          video.muted = true;
+          try {
+            await video.play();
+          } catch {
+            $("#avf")?.classList.remove("generated-video");
+          }
+        }
+        video.onended = () => {
+          if (generation !== speechGeneration) return;
+          $("#avf")?.classList.remove("generated-video");
+          voiceState("ready", readyStatus());
+          if (callIsLive()) startIdlePortrait();
+        };
+        return;
+      }
+    }
+  } catch {
+    /* The live portrait keeps moving if a generated clip is unavailable. */
+  }
 }
 function visemesFromText(text) {
   const seq = [];
@@ -2180,7 +2483,7 @@ function pulseTalkVideo(speaking) {
 }
 async function speak(turn) {
   stopPatientAudio();
-  if (muted || tab !== "enc" || !turn) {
+  if (muted || tab !== "enc" || !turn || !callIsLive()) {
     holdMic = false;
     ignoreMicUntil = Date.now() + 250;
     syncLive();
@@ -2192,6 +2495,7 @@ async function speak(turn) {
   holdMic = true;
   visemes = visemesFromText(turn.text);
   stopLive();
+  startTalkingCall(turn, generation);
   const settle = (state, text) => {
     if (generation !== speechGeneration) return;
     patientSpeaking = false;
@@ -2199,6 +2503,7 @@ async function speak(turn) {
     ignoreMicUntil = Date.now() + 280;
     stopMouth();
     pulseTalkVideo(false);
+    if (!$("#avf")?.classList.contains("generated-video")) stopTalkingCall();
     voiceState(state, text);
     updateMicButton();
     syncLive();
@@ -2251,7 +2556,7 @@ async function mutate(action, payload) {
   health.storage = r.storage;
 }
 async function question(text) {
-  if (busy || !text.trim() || enc?.status !== "active") return;
+  if (busy || !text.trim() || enc?.status !== "active" || !callIsLive()) return;
   stopPatientAudio();
   holdMic = true;
   busy = true;
@@ -2306,7 +2611,7 @@ function setFaceAnchor() {
   avf.style.setProperty("--mouth-h", anchor.mouthHeight);
 }
 function togglePause() {
-  if (!enc || enc.status !== "active") return;
+  if (!enc || enc.status !== "active" || !callIsLive()) return;
   paused = !paused;
   if (paused) {
     stopPatientAudio();
@@ -2325,7 +2630,13 @@ function micIsHeld() {
   );
 }
 function syncLive() {
-  if (tab !== "enc" || !enc || enc.status !== "active" || !liveSupported()) {
+  if (
+    tab !== "enc" ||
+    !enc ||
+    enc.status !== "active" ||
+    !callIsLive() ||
+    !liveSupported()
+  ) {
     if (listening) stopLive();
 
     return;
@@ -2408,7 +2719,7 @@ function commitUtterance() {
   clearTimeout(silenceTimer);
   const text = liveText.trim();
   liveText = "";
-  if (!text || busy || enc?.status !== "active" || patientSpeaking) return;
+  if (!text || busy || enc?.status !== "active" || !callIsLive() || patientSpeaking) return;
   if ($("#question")) $("#question").value = "";
   question(text);
 }
@@ -2945,7 +3256,6 @@ document.addEventListener("click", async (e) => {
       tab = "enc";
       await refresh();
       render();
-      speak(enc.transcript.at(-1));
       return;
     }
     if (a === "launch") {
@@ -2963,8 +3273,27 @@ document.addEventListener("click", async (e) => {
       tab = "enc";
       resetTalkVideo();
       render();
+      return;
+    }
+    if (a === "answer-call") {
+      if (!enc || enc.status !== "active") return;
+      rememberCall(enc.id);
+      stopStudentCamera();
+      studentCameraTried = false;
+      paused = false;
+      const opening = [...enc.transcript]
+        .reverse()
+        .find((turn) => turn.role === "patient");
+      render();
       warmTalkVideo();
-      speak(enc.transcript.at(-1));
+      if (opening) speak(opening);
+      return;
+    }
+    if (a === "student-camera") {
+      stopStudentCamera();
+      studentCameraTried = false;
+      studentCameraNote = "";
+      startStudentCamera();
       return;
     }
     if (a === "resume") {
@@ -3011,6 +3340,7 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "complete") {
       stopAudio();
+      stopStudentCamera();
       busy = true;
       message =
         "Completing the encounter and preparing evidence-linked feedback…";
@@ -3024,6 +3354,10 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "toggle-pause") {
       togglePause();
+      return;
+    }
+    if (a === "mic") {
+      syncLive();
       return;
     }
     if (a === "mute") {

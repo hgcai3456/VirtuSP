@@ -1,7 +1,8 @@
 "use strict";
 const test = require("node:test"),
   assert = require("node:assert/strict");
-const { blank, fact } = require("../lib/profiles");
+const fs = require("node:fs/promises");
+const { blank, fact, validate } = require("../lib/profiles");
 const engine = require("../lib/engine"),
   cloud = require("../lib/cloud");
 const {
@@ -420,7 +421,21 @@ test("Assessment rejects invented evidence, invalid N/A and unsupported positive
     "Classifier tags are not observed student evidence.",
   );
 });
-test("Bedrock receives only permitted values; verifier rejection returns approved fallback", async () => {
+test("The patient remembers this visit and does not reveal a withheld fact", async () => {
+  process.env.AI_ENABLED = "false";
+  const enc = engine.create(profile());
+  await engine.ask(enc, "What brings you in?", "memory-1");
+  assert.equal(enc.transcript.at(-1).text, "I feel tired.");
+  await engine.ask(enc, "Tell me more", "memory-2");
+  assert.equal(enc.transcript.at(-1).text, "As I said, I feel tired.");
+  await engine.ask(enc, "What brings you in?", "memory-3");
+  assert.equal(enc.transcript.at(-1).text, "As I said, I feel tired.");
+  const memory = engine.interactionMemory(enc);
+  assert.equal(memory.exchanges.length, 3);
+  assert.ok(!JSON.stringify(memory).includes("evening dose"));
+  assert.ok(!JSON.stringify(memory).includes("I miss"));
+});
+test("Dialogue memory passed to the model excludes withheld wording", async () => {
   const saved = { ...cloud },
     prior = process.env.AI_ENABLED;
   process.env.AI_ENABLED = "true";

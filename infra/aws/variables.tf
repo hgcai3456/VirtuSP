@@ -112,8 +112,8 @@ variable "db_multi_az" {
 
 variable "deletion_protection" {
   type        = bool
-  description = "Block deletion of the load balancer and the database. Leave this off so terraform destroy can remove a practice stack. A protected database also keeps a final snapshot."
-  default     = false
+  description = "Block deletion of the load balancer and the database. On by default. Set this to false and apply before terraform destroy. A protected database also keeps a final snapshot."
+  default     = true
 }
 
 variable "efs_backup" {
@@ -124,8 +124,8 @@ variable "efs_backup" {
 
 variable "autoscaling_min_capacity" {
   type        = number
-  description = "Minimum number of Fargate tasks."
-  default     = 1
+  description = "Minimum number of app containers. Each Fargate task runs one container, and the service keeps at least this many running across both Availability Zones."
+  default     = 4
 
   validation {
     condition     = var.autoscaling_min_capacity >= 1 && var.autoscaling_min_capacity <= 10
@@ -135,8 +135,8 @@ variable "autoscaling_min_capacity" {
 
 variable "autoscaling_max_capacity" {
   type        = number
-  description = "Maximum number of Fargate tasks. CPU or memory above target scales the service up to this count."
-  default     = 4
+  description = "Maximum number of app containers. CPU or memory above target scales the service up to this many Fargate tasks."
+  default     = 8
 
   validation {
     condition     = var.autoscaling_max_capacity >= 1 && var.autoscaling_max_capacity <= 10
@@ -157,8 +157,8 @@ variable "autoscaling_cpu_target" {
 
 variable "bedrock_model_id" {
   type        = string
-  description = "Bedrock inference profile the task calls for patient replies. The task role is used; there is no model API key."
-  default     = "us.anthropic.claude-sonnet-4-6"
+  description = "Bedrock inference profile for deployed task calls. us.xai.grok-4.7 is Grok 4.7 routed inside the US. The task sends reasoning effort high."
+  default     = "us.xai.grok-4.7"
 }
 
 variable "autoscaling_memory_target" {

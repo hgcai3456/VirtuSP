@@ -61,6 +61,14 @@ test("Talking-video prompt uses appearance only and never includes chart facts",
   assert.match(prompt, /man/i);
   assert.doesNotMatch(prompt, /Omar|LDL|195|dyslipidemia|mechanic/i);
 });
+test("Talking clips are generated per spoken line", () => {
+  assert.equal(speech.talkingClipName("Hello."), speech.talkingClipName("Hello."));
+  assert.notEqual(
+    speech.talkingClipName("Hello."),
+    speech.talkingClipName("I feel tired."),
+  );
+  assert.doesNotMatch(speech.talkingClipName("LDL 195"), /LDL|195/);
+});
 test("Talking-video jobs stay idle without a configured key", () => {
   const previous = process.env.ELEVENLABS_API_KEY;
   delete process.env.ELEVENLABS_API_KEY;

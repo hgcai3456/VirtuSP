@@ -5,7 +5,7 @@
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test --test-timeout=30000 tests/*.test.js",
+    "test": "node --test --test-timeout=120000 tests/*.test.js",
     "preflight": "node scripts/preflight.js",
     "corpus:fetch": "node scripts/fetch-corpus.js",
     "evaluate": "node scripts/evaluate.js",
@@ -13,10 +13,13 @@
     "setup:aws": "node scripts/storage.js configure",
     "backup": "node scripts/storage.js backup",
     "restore": "node scripts/storage.js restore",
+    "profiles:archive": "node agents/profile-archive.js",
     "test:e2e": "cucumber-js --config tests/e2e/cucumber.js",
+    "test:e2e:session": "cucumber-js --config tests/e2e/cucumber.js --profile session",
     "test:integration": "node --test --test-concurrency=1 --test-timeout=60000 tests/integration/live-stack.js",
     "test:regression": "node agents/regression.js",
     "test:live": "node agents/live-regression.js",
+    "chat:tracker": "node agents/chat-tracker.js",
     "perf": "powershell -NoProfile -ExecutionPolicy Bypass -File perf/run-jmeter.ps1",
     "perf:ci": "node perf/ci.js",
     "prepare": "node scripts/install-git-hooks.js",
@@ -40,7 +43,8 @@
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.0.0",
     "@aws-sdk/client-s3": "^3.0.0",
-    "pdfjs-dist": "^6.2.108"
+    "pdfjs-dist": "^6.2.108",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.3.0",

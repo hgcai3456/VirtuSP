@@ -90,7 +90,11 @@ async function startServer() {
     LANG: 'en_US.UTF-8',
     LC_ALL: 'en_US.UTF-8',
     VIRTUSP_SHARDS: '1',
-    VIRTUSP_DB: dbPath
+    VIRTUSP_DB: dbPath,
+    VIRTUSP_DATA_DIR: tmpDir,
+    AI_ENABLED: 'false',
+    ELEVENLABS_API_KEY: '',
+    ELEVENLABS_VOICE_ID: ''
   });
   delete childEnv.VIRTUSP_CONVERSATION_CHECKPOINT;
   server = spawn(process.execPath, ['server.js'], {

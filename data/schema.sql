@@ -99,3 +99,36 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_conversation_turns_order
 
 CREATE INDEX IF NOT EXISTS idx_conversation_turns_speaker
   ON conversation_turns(speaker, move);
+
+-- Profile documents and artifact bytes are also copied to S3 by
+-- agents/profile-archive.js. These rows are the relational copy.
+CREATE TABLE IF NOT EXISTS patient_profiles (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  version INTEGER,
+  name TEXT NOT NULL,
+  document TEXT NOT NULL,
+  s3_key TEXT,
+  updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_patient_profiles_stage
+  ON patient_profiles(profile_id, stage);
+
+CREATE TABLE IF NOT EXISTS patient_profile_artifacts (
+  id TEXT PRIMARY KEY,
+  profile_id TEXT NOT NULL,
+  stage TEXT NOT NULL,
+  artifact_id TEXT NOT NULL,
+  file_id TEXT,
+  name TEXT,
+  media_type TEXT,
+  size_bytes INTEGER,
+  s3_key TEXT,
+  document TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_patient_profile_artifacts_stage
+  ON patient_profile_artifacts(profile_id, stage, artifact_id);
