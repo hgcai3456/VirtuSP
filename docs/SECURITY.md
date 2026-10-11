@@ -1,0 +1,13 @@
+# Security and deployment boundary
+
+This documents the application started by `npm start` in the repository root. `VirtuSP-upstream/` is a separate nested checkout; its deployment, integrations, and historical test reports are not evidence for this root application.
+
+The root server uses built-in Node modules, reads no .env file and exposes no provider credentials. Static serving is limited to public plus the explicitly shared synthetic-case script. API input is bounded, malformed URLs/JSON fail visibly, changed-payload replay returns 409, cross-origin writes are rejected, and localhost Host headers are required. No wildcard CORS was added.
+
+Local supervised demo: synthetic data only, loopback binding, no identity or role enforcement, full faculty case definitions available to the browser, file-persisted published cases and process-local attempts. Anyone with local server access can publish cases. This is not production authentication.
+
+Public prototype: requires application authentication, faculty/student permissions, deployment-specific origin/host allowlists, TLS, durable attempts and shared idempotency, rate/resource limits, backup/recovery, and monitoring. The root API must be deployed with the static UI; a static-only site is insufficient.
+
+Production healthcare deployment additionally requires privacy and consent review, approved data boundaries, audit trails resistant to modification, retention/deletion policy, access reviews, secret management, operational incident handling, accessibility, validated clinical/educational governance, and faculty assessment review. Neither objective completion nor heuristic empathy/SBAR coverage establishes competence. No PHI, HIPAA-compliance or clinical-validation claim is supported.
+
+Ignore rules cover .env, recovery, provider caches, session artifacts, output, historical reports, the local certificate directory, Terraform state/variables/plans/provider caches, and the generated AWS deployment ZIP. At the user's request, all 14 previously staged certificate and generated infrastructure artifacts were removed from the Git index; their local contents were preserved and hash-checked. CER and PEM contain public certificates, with no private-key blocks. The PFX and binary plan/bundles were excluded conservatively without decryption. Terraform state metadata and variable counts were inspected without printing values. A bounded text-pattern scan found no credential matches but did not inspect encrypted PFX contents, ignored .env values, every data record, or Git history. This is not a comprehensive secret audit; rotate any credentials independently found exposed.

@@ -4,9 +4,15 @@
   "private": true,
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node scripts/run-tests.js",
+    "test:core": "node --test tests/core.test.js",
+    "test:grounding": "node --test tests/grounding.test.js",
+    "test:integration": "node --test tests/integration.test.js",
+    "test:ui": "node --test tests/ui.test.js",
+    "test:all": "npm test"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=18"
   }
 }

@@ -5,6 +5,7 @@ const F = (id, label, k, o) => Object.assign({
   id, label, k, type: 'reported', src: 'Approved case', role: 'Patient', vis: 'ask', kw: [], ehr: 'hx', gate: 0
 }, o);
 
+const CORE = window.VirtuSPCore;
 const SERVICES = { dialogue: 'local', voice: 'browser', avatar: 'photo' };
 const KEY = 'virtusp-v1';
 const LEGACY_KEY = 'ptl-v1';
@@ -28,139 +29,7 @@ const EHR_HINTS = {
   soc: 'Ask about diet, cost, smoking, or daily routine.'
 };
 
-const SEED = [{
-  id: 'denise',
-  name: 'Denise Carter',
-  age: 58,
-  intro: "Hi, I'm Denise.",
-  hints: [
-    'What brings you in today?',
-    'Tell me how you take your metformin.',
-    'I am sorry this has been hard. What gets in the way of every dose?',
-    'How are cost and meals affecting your routine?',
-    'What do you usually eat and drink?'
-  ],
-  facts: [
-    F('d1', 'Chief complaint: thirst and fatigue for months', 'thirst', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'tired', 'thirst', 'why'], say: "I've been really thirsty and tired for a few months. My doctor says it's diabetes." }),
-    F('d2', 'Understanding of diagnosis: partial, confused about diet', 'understand', { kw: ['understand', 'diabetes mean', 'know about', 'diagnos'], say: "They said my sugar is high. I think it means no sweets? Honestly I'm confused about the rest." }),
-    F('d3', 'Metformin: patient says she takes it every day', 'metformin', { kw: ['medication', 'medicine', 'pills', 'taking', 'metformin', 'prescri'], ehr: 'meds', say: 'I take my metformin every day, like I\'m supposed to.' }),
-    F('d4', 'Skips evening metformin dose (GI upset, runs out early)', 'evening', { kw: ['forget', 'miss', 'skip', 'adher', 'trouble', 'difficult', 'consistent', 'every dose', 'ever'], ehr: 'meds', gate: 1, deflect: 'I take it. Like I said.', say: '...Okay, honestly I skip the evening one a lot. It upsets my stomach and I run out before the refill.' }),
-    F('d5', 'Cost barrier: delays refills until payday', 'cost', { kw: ['cost', 'afford', 'insurance', 'pay', 'money'], ehr: 'soc', gate: 1, deflect: "I'd rather not talk about money.", say: 'Money is tight. Sometimes I wait to refill until payday.' }),
-    F('d6', 'Allergy: sulfa drugs (rash)', 'sulfa', { kw: ['allerg', 'reaction'], allergyDrug: 'sulfonamide', say: 'Sulfa drugs gave me a rash.' }),
-    F('d7', 'Recall of labs: does not remember values (unknown)', 'recall', { type: 'unknown', kw: ['kidney', 'lab', 'result', 'a1c', 'number'], say: "Someone mentioned my kidneys, but I don't remember any numbers." }),
-    F('d8', 'Diet: sweet tea, frequent takeout (shift work)', 'tea', { kw: ['eat', 'diet', 'food', 'drink', 'soda', 'meal'], ehr: 'soc', say: 'I drink a lot of sweet tea and eat out a lot because of my work hours.' }),
-    F('c1', 'eGFR 58 mL/min/1.73m² (ref ≥90), 2026-09-14', 'egfr', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Report LR-0914', ehr: 'labs', lab: true, unit: 'mL/min/1.73m²', ref: '≥90', kw: ['lab', 'kidney', 'egfr', 'result', 'number'] }),
-    F('c2', 'HbA1c 8.4 % (ref <5.7), 2026-09-14', 'a1c', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Report LR-0914', ehr: 'labs', lab: true, unit: '%', ref: '<5.7', kw: ['a1c', 'sugar', 'glucose', 'lab', 'result'] }),
-    F('c3', 'PCP note 09-21: pharmacy fill history shows 45-day gap in metformin refills', 'refill', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Primary care physician', src: 'Note N-0921', ehr: 'notes', kw: ['refill', 'pharmacy', 'chart', 'note'] }),
-    F('c4', 'Chart list: metformin 500 mg PO BID', '500', { vis: 'chart', sec: 'meds', type: 'documented', role: 'Primary care physician', src: 'Med list ML-1', ehr: 'meds' }),
-    F('c5', 'ECG 09-14: sinus rhythm, nonspecific T-wave changes', 'ecg', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Cardiology', src: 'ECG-0914', ehr: 'img', artifact: 'ecg', kw: ['ecg', 'ekg', 'heart', 'chest'] }),
-    F('c6', 'Abdominal CT 09-14: no acute renal obstruction', 'ct', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Radiology', src: 'CT-0914', ehr: 'img', artifact: 'ct', kw: ['ct', 'scan', 'imaging', 'kidney'] })
-  ],
-  artifacts: [
-    { id: 'den-lab', kind: 'lab', title: 'Laboratory report LR-0914', date: '2026-09-14', src: 'Report LR-0914', sec: 'labs', unlock: ['lab', 'kidney', 'a1c', 'result', 'number', 'egfr', 'glucose', 'sugar', 'blood work'], facts: ['c1', 'c2'], rows: [{ name: 'eGFR', value: '58', unit: 'mL/min/1.73m²', ref: '≥90', flag: 'low' }, { name: 'HbA1c', value: '8.4', unit: '%', ref: '<5.7', flag: 'high' }] },
-    { id: 'den-ecg', kind: 'ecg', title: '12-lead ECG', date: '2026-09-14', src: 'ECG-0914', sec: 'img', unlock: ['ecg', 'ekg', 'heart', 'chest pain', 'palpit'], facts: ['c5'], img: 'img/denise-ecg.jpg' },
-    { id: 'den-ct', kind: 'ct', title: 'Abdominal CT', date: '2026-09-14', src: 'CT-0914', sec: 'img', unlock: ['ct', 'scan', 'imaging', 'kidney scan', 'abdomen'], facts: ['c6'], img: 'img/denise-ct.jpg' }
-  ],
-  obj: [
-    { id: 'o1', t: 'Elicit adherence barrier (critical)', w: 25, ty: 'fact', f: ['d4'], tip: 'Ask open, nonjudgmental questions about missed doses.' },
-    { id: 'o2', t: 'Explore cost and diet barriers', w: 15, ty: 'fact', f: ['d5', 'd8'], tip: 'Ask how cost and daily routine affect the regimen.' },
-    { id: 'o3', t: 'Review eGFR and HbA1c', w: 20, ty: 'review', s: ['labs'], tip: 'Open the lab report before drawing conclusions.' },
-    { id: 'o4', t: 'Recognize and reconcile adherence discrepancy', w: 25, ty: 'mm', tip: 'Compare the patient report with the refill history, ask follow-ups, document the reconciliation.' },
-    { id: 'o5', t: 'Empathic, open-ended communication', w: 10, ty: 'emp', tip: 'Acknowledge feelings and use open questions.' },
-    { id: 'o6', t: 'Structured SBAR handoff', w: 5, ty: 'ho', tip: 'Include the barrier, the discrepancy and labs.' }
-  ],
-  mm: { a: 'd3', b: 'c3', fu: 'd4', kw: ['refill', 'gap', 'miss', 'skip', 'discrep', 'not taking', 'nonadher', 'adherence'] },
-  personality: 'Wants to be seen as a good patient',
-  emotion: 'Embarrassed about cost and missed doses',
-  style: 'Short answers until trust is earned',
-  complaint: 'Thirst and fatigue for months',
-  history: 'Newly diagnosed type 2 diabetes',
-  diagnosis: 'Type 2 diabetes',
-  medications: 'Metformin 500 mg twice a day',
-  allergies: 'Sulfa drugs, rash',
-  labs: 'eGFR | 58 | mL/min/1.73m² | ≥90\nHbA1c | 8.4 | % | <5.7',
-  patientSays: 'I take my metformin every day, like I\'m supposed to.',
-  chartSays: 'Pharmacy fill history shows a 45-day gap in metformin refills',
-  objText: 'Elicit adherence barrier\nReview eGFR and HbA1c\nReconcile the refill discrepancy'
-}, {
-  id: 'marcus',
-  name: 'Marcus Lee',
-  age: 67,
-  intro: "Morning, doc. I'm Marcus.",
-  hints: [
-    'What brings you in today?',
-    'Tell me about your inhaler.',
-    'That sounds worrying. How do you use it?',
-    'Can you tell me about smoking?'
-  ],
-  facts: [
-    F('m1', 'Chief complaint: breathless on stairs', 'stairs', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'breath', 'why'], say: "I get winded climbing one flight of stairs. It's worse than last winter." }),
-    F('m2', 'Rescue inhaler used about 4x/week', 'inhaler', { kw: ['inhaler', 'medication', 'medicine', 'taking', 'puff'], ehr: 'meds', say: 'I use my blue inhaler maybe four times a week.' }),
-    F('m3', 'Inhaler technique: does not use spacer, shallow breath', 'spacer', { kw: ['technique', 'show', 'how do you use', 'spacer', 'trouble', 'difficult'], ehr: 'meds', gate: 1, deflect: 'I use it fine.', say: "Truth is, nobody showed me. I just puff and breathe in quick." }),
-    F('m4', 'Smoking: half pack/day (patient says he quit)', 'smok', { kw: ['smok', 'cigar', 'tobacco', 'quit'], ehr: 'soc', gate: 1, deflect: 'I quit a while back.', say: "Okay... I still have about half a pack a day. I didn't want to say." }),
-    F('m5', 'Smoking status claimed: quit', 'quit', { kw: ['habit', 'lifestyle', 'social'], ehr: 'soc', say: 'I quit smoking years ago.' }),
-    F('x1', 'FEV1 52 % predicted (ref ≥80), 2026-08-30', 'fev1', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Lab', src: 'Spirometry SP-0830', ehr: 'labs', lab: true, unit: '% predicted', ref: '≥80', kw: ['lab', 'fev', 'spirom', 'result', 'lung'] }),
-    F('x2', 'Note 08-30: current smoker, 0.5 ppd, pack-years 30', 'ppd', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Pulmonologist', src: 'Note N-0830', ehr: 'notes', kw: ['note', 'chart', 'pack'] }),
-    F('x3', 'ECG 08-30: sinus rhythm, possible right atrial strain', 'ecg', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Cardiology', src: 'ECG-0830', ehr: 'img', artifact: 'ecg', kw: ['ecg', 'ekg', 'heart'] }),
-    F('x4', 'Chest CT 08-30: hyperinflation, no mass', 'ct', { vis: 'chart', sec: 'img', type: 'confirmed', role: 'Radiology', src: 'CT-0830', ehr: 'img', artifact: 'ct', kw: ['ct', 'scan', 'imaging', 'chest', 'xray'] })
-  ],
-  artifacts: [
-    { id: 'mar-lab', kind: 'lab', title: 'Spirometry SP-0830', date: '2026-08-30', src: 'Spirometry SP-0830', sec: 'labs', unlock: ['lab', 'fev', 'spirom', 'result', 'lung', 'breath test'], facts: ['x1'], rows: [{ name: 'FEV1', value: '52', unit: '% predicted', ref: '≥80', flag: 'low' }] },
-    { id: 'mar-ecg', kind: 'ecg', title: '12-lead ECG', date: '2026-08-30', src: 'ECG-0830', sec: 'img', unlock: ['ecg', 'ekg', 'heart'], facts: ['x3'], img: 'img/marcus-ecg.jpg' },
-    { id: 'mar-ct', kind: 'ct', title: 'Chest CT', date: '2026-08-30', src: 'CT-0830', sec: 'img', unlock: ['ct', 'scan', 'imaging', 'chest', 'xray'], facts: ['x4'], img: 'img/marcus-ct.jpg' }
-  ],
-  obj: [
-    { id: 'p1', t: 'Uncover true smoking status (critical)', w: 30, ty: 'fact', f: ['m4'], tip: 'Build rapport, then ask directly and kindly.' },
-    { id: 'p2', t: 'Assess inhaler technique', w: 20, ty: 'fact', f: ['m3'], tip: 'Ask the patient to describe how they use it.' },
-    { id: 'p3', t: 'Review spirometry', w: 20, ty: 'review', s: ['labs'], tip: 'Open labs before concluding.' },
-    { id: 'p4', t: 'Reconcile smoking status discrepancy', w: 20, ty: 'mm', tip: 'Compare statement vs note and document.' },
-    { id: 'p5', t: 'Empathic communication', w: 10, ty: 'emp', tip: 'Acknowledge feelings.' }
-  ],
-  mm: { a: 'm5', b: 'x2', fu: 'm4', kw: ['smok', 'current', 'quit', 'discrep', 'cigar'] },
-  personality: 'Proud, minimizes illness',
-  emotion: 'Guarded about smoking',
-  style: 'Casual, then more honest once rapport is there',
-  complaint: 'Breathless climbing stairs',
-  history: 'COPD, long smoking history',
-  diagnosis: 'COPD',
-  medications: 'Rescue inhaler about four times a week',
-  allergies: 'None known',
-  labs: 'FEV1 | 52 | % predicted | ≥80',
-  patientSays: 'I quit smoking years ago.',
-  chartSays: 'Current smoker, 0.5 packs per day, 30 pack-years',
-  objText: 'Uncover true smoking status\nAssess inhaler technique\nReconcile smoking discrepancy'
-}];
-
-function templateGeneral() {
-  return {
-    id: 'general',
-    name: 'New Patient',
-    age: 55,
-    intro: 'Hello.',
-    hints: [
-      'What brings you in today?',
-      'Tell me how you take your medications.',
-      'I am sorry this has been hard. What gets in the way of every dose?',
-      'How are daily routines affecting your health?'
-    ],
-    facts: [
-      F('g1', 'Chief complaint: morning headaches for 3 weeks', 'head', { kw: ['bring', 'here', 'concern', 'problem', 'symptom', 'head', 'why', 'pain'], say: "I've been waking up with headaches for about three weeks." }),
-      F('g2', 'Lisinopril: patient says they take it every day', 'lisin', { kw: ['medication', 'medicine', 'pills', 'taking', 'lisinopril', 'prescri', 'blood pressure'], ehr: 'meds', say: 'I take my blood pressure pill every day.' }),
-      F('g3', 'Misses evening lisinopril when working late', 'evening', { kw: ['forget', 'miss', 'skip', 'adher', 'trouble', 'difficult', 'consistent', 'every dose'], ehr: 'meds', gate: 1, deflect: 'I take it. Like I said.', say: 'Okay... I miss the evening one when I work late.' }),
-      F('g4', 'Allergy: penicillin (rash)', 'pen', { kw: ['allerg', 'reaction'], allergyDrug: 'penicillin', say: 'Penicillin gave me a rash years ago.' }),
-      F('c1', 'BP 158/94 mmHg (ref <120/80), 2026-09-10', 'bp', { vis: 'chart', sec: 'labs', type: 'confirmed', role: 'Nurse', src: 'Vitals V-0910', ehr: 'labs', lab: true, unit: 'mmHg', ref: '<120/80' }),
-      F('c2', 'PCP note 09-12: fill history shows missed lisinopril refill', 'refill', { vis: 'chart', sec: 'notes', type: 'documented', role: 'Primary care physician', src: 'Note N-0912', ehr: 'notes' }),
-      F('c3', 'Chart list: lisinopril 10 mg PO daily', '10mg', { vis: 'chart', sec: 'meds', type: 'documented', role: 'Primary care physician', src: 'Med list ML-2', ehr: 'meds' })
-    ],
-    obj: [
-      { id: 'q1', t: 'Elicit missed evening doses', w: 30, ty: 'fact', f: ['g3'], tip: 'Ask open questions about how they take the medicine.' },
-      { id: 'q2', t: 'Review blood pressure', w: 25, ty: 'review', s: ['labs'], tip: 'Open labs before concluding.' },
-      { id: 'q3', t: 'Reconcile adherence discrepancy', w: 25, ty: 'mm', tip: 'Compare the patient report with the refill note.' },
-      { id: 'q4', t: 'Empathic communication', w: 20, ty: 'emp', tip: 'Acknowledge feelings and use open questions.' }
-    ],
-    mm: { a: 'g2', b: 'c2', fu: 'g3', kw: ['refill', 'gap', 'miss', 'skip', 'discrep', 'not taking', 'adherence'] }
-  };
-}
+const { SEED, templateGeneral } = window.VirtuSPCases;
 
 let drafts = {};
 let rel = [];
@@ -194,6 +63,8 @@ function dumpEnc(value) {
     trust: value.trust,
     disc: [...value.disc.entries()],
     opened: [...value.opened],
+    reviewedSections: [...(value.reviewedSections || new Set())],
+    reviewedArtifacts: [...(value.reviewedArtifacts || new Set())],
     ev: value.ev,
     tr: value.tr,
     prov: value.prov,
@@ -222,6 +93,8 @@ function loadEnc(value) {
   return Object.assign({}, value, {
     disc: new Map(value.disc || []),
     opened: new Set(value.opened || ['ov']),
+    reviewedSections: new Set(value.reviewedSections || []),
+    reviewedArtifacts: new Set(value.reviewedArtifacts || []),
     arts: new Map(value.arts || [])
   });
 }
@@ -485,7 +358,7 @@ function runValidate() {
   render();
 }
 
-function publish(id) {
+async function publish(id) {
   let p;
   try {
     p = JSON.parse(drafts[id]);
@@ -506,10 +379,15 @@ function publish(id) {
     return;
   }
 
-  p.version = rel.filter((r) => r.p.id === p.id).length + 1;
-  rel.push({ p: JSON.parse(JSON.stringify(p)), at: now() });
+  if (window.__publishing) return;
+  window.__publishing = true;
+  try { p = (await api('/api/cases', {profile: p})).profile; }
+  catch (error) { msg = error.message; render(); return; }
+  finally { window.__publishing = false; }
+  rel.push({ p, at: now() });
   msg = `Published ${p.name} v${p.version} (immutable). Ready to launch.`;
   save();
+  render();
 }
 
 function cloneCase(base, meta) {
@@ -544,194 +422,54 @@ function nlDraft(txt) {
   drafts[id] = JSON.stringify(p, null, 2);
   sel = id;
   issues = validate(p);
-  msg = `Created a publishable ${kind} case for ${name}, ${age}. Review every fact against your description, then publish.`;
+  msg = `Copied a synthetic ${kind} template (includes example facts) for ${name}, ${age}. Review every fact against your description, then publish.`;
   save();
 }
 
-function launch(pid, version) {
-  let release;
-  if (version != null) {
-    release = rel.find((item) => item.p.id === pid && Number(item.p.version) === Number(version));
-  }
-  if (!release) {
-    release = [...rel].reverse().find((item) => item.p.id === pid);
-  }
-  if (!release) {
-    return;
-  }
-
-  enc = {
-    id: 'ENC-' + Math.random().toString(36).slice(2, 7).toUpperCase(),
-    p: attachCaseExtras(release.p),
-    trust: 0,
-    disc: new Map(),
-    opened: new Set(['ov']),
-    ev: [],
-    tr: [{ w: 'Patient', t: release.p.intro }],
-    prov: [],
-    role: ROLES[0],
-    emp: 0,
-    open: 0,
-    turns: 0,
-    ho: null,
-    plan: [],
-    notes: [],
-    rec: false,
-    blocked: 0,
-    prof: 0,
-    judg: 0,
-    arts: new Map(),
-    lastArt: null
-  };
-  log('start', `Launched ${release.p.name} profile v${release.p.version}`);
-  tab = 'enc';
-  rt = 'ov';
-  window.__convo = true;
-  window.__type = false;
-  window.__busy = true;
-  save();
-  render();
-  speak(release.p.intro, 'neutral');
+async function launch(pid, version) {
+  if (window.__sending || window.__publishing) return;
+  try {
+    enc = loadEnc((await api('/api/encounters', {caseId: pid, version})).state);
+    pendingRequest = null; tab = 'enc'; rt = 'ov'; window.__convo = false; window.__type = true;
+    save(); render(); speak(enc.p.intro, 'neutral');
+  } catch (error) { msg = error.message; render(); }
 }
 
 function log(type, text) {
   enc.ev.push({ n: enc.ev.length + 1, t: now(), role: enc.role, type, text });
 }
 
-function attachCaseExtras(p) {
-  const copy = JSON.parse(JSON.stringify(p));
-  const seed = SEED.find((s) => s.id === copy.id);
-  if (!seed) {
-    return copy;
-  }
-  if (!(copy.artifacts || []).length && seed.artifacts) {
-    copy.artifacts = JSON.parse(JSON.stringify(seed.artifacts));
-  }
-  const have = new Set((copy.facts || []).map((f) => f.id));
-  (seed.facts || []).forEach((f) => {
-    if (!have.has(f.id) && (f.ehr === 'img' || f.artifact)) {
-      copy.facts.push(JSON.parse(JSON.stringify(f)));
-    }
-  });
-
-  return copy;
+let pendingRequest = null;
+async function api(url, body) {
+  const response = await fetch(url, {method: body === undefined ? 'GET' : 'POST', headers: {'Content-Type': 'application/json'}, body: body === undefined ? undefined : JSON.stringify(body)});
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Request failed');
+  return result;
+}
+async function ask(q, requestId) {
+  if (!enc || !String(q).trim() || window.__sending) return;
+  window.__sending = true;
+  const payload = String(q).trim().replace(/\s+/g, ' ');
+  const id = requestId || (pendingRequest && pendingRequest.payload === payload ? pendingRequest.id : crypto.randomUUID());
+  pendingRequest = {id, payload};
+  const send = $('#sendBtn');
+  if (send) send.disabled = true;
+  try {
+    const result = await api('/api/encounters/' + enc.id + '/turns', {question: q, requestId: id});
+    enc = loadEnc(result.state);
+    pendingRequest = null;
+    save(); render(true);
+    if (!result.replayed) speak(result.reply, result.emotion);
+    return true;
+  } catch (error) { $('#mst').textContent = error.message + '. Retry the same question, or start a new visit if the server restarted.'; }
+  finally { window.__sending = false; if (send) send.disabled = false; }
 }
 
-function releaseArtifact(art, via) {
-  if (!art || enc.arts.has(art.id)) {
-    return;
-  }
-
-  enc.arts.set(art.id, { via, t: now() });
-  enc.lastArt = art.id;
-  (art.facts || []).forEach((id) => {
-    const fact = enc.p.facts.find((f) => f.id === id);
-    if (fact) {
-      disclose(fact, via);
-    }
-  });
-  if (art.sec) {
-    enc.opened.add(art.sec);
-    rt = art.sec;
-  }
-  log('artifact', art.title + ' released via ' + via);
-}
-
-function releaseByQuestion(q) {
-  const lower = String(q).toLowerCase();
-  (enc.p.artifacts || []).forEach((art) => {
-    if ((art.unlock || []).some((k) => lower.includes(k))) {
-      releaseArtifact(art, q);
-    }
-  });
-  enc.p.facts.filter((f) => f.vis === 'chart').forEach((f) => {
-    if ((f.kw || []).some((k) => lower.includes(k))) {
-      disclose(f, q);
-    }
-  });
-}
-
-function disclose(f, q) {
-  if (enc.disc.has(f.id)) {
-    return;
-  }
-
-  enc.disc.set(f.id, { q });
-  enc.prov.push({
-    f,
-    who: f.vis === 'chart' ? f.role : 'Patient',
-    rec: enc.role,
-    t: now(),
-    st: f.type
-  });
-  log('disclose', `${f.id} released (${f.type}) via ${q}`);
-}
-
-function ask(q) {
-  if (!enc || !String(q).trim()) {
-    return;
-  }
-
-  const lower = q.toLowerCase();
-  const profile = enc.p;
-  enc.turns += 1;
-  enc.tr.push({ w: 'Student', t: q });
-  log('student', q);
-
-  if (/(understand|sorry|must be|sounds|thank you for|worr|concern about|appreciate|no judg|i hear|that must)/.test(lower)) {
-    enc.emp += 1;
-    enc.prof += 1;
-    enc.trust = Math.min(3, enc.trust + 1);
-    log('empathy', 'Empathic acknowledgment');
-  }
-  if (/please|appreciate your time/.test(lower)) {
-    enc.prof += 1;
-  }
-  if (/(noncompliant|you need to|why didn't you|should have taken|that's stupid)/.test(lower)) {
-    enc.judg += 1;
-    log('professionalism', 'Judgmental wording logged');
-  }
-  if (/^(how|what|tell|can you|could you|walk me)/.test(lower)) {
-    enc.open += 1;
-  }
-
-  let best = null;
-  let score = 0;
-  profile.facts.filter((f) => f.vis === 'ask').forEach((f) => {
-    const s = (f.kw || []).filter((k) => lower.includes(k)).length;
-    if (s > score) {
-      score = s;
-      best = f;
-    }
-  });
-
-  let reply;
-  let grounded = 'fallback';
-  let emotion = 'neutral';
-
-  if (!best) {
-    reply = "I'm not sure about that. Could you ask me another way?";
-  } else if (best.gate > enc.trust && !enc.disc.has(best.id)) {
-    reply = best.deflect;
-    grounded = 'blocked:' + best.id;
-    emotion = 'embarrassed';
-    enc.blocked += 1;
-    log('gate', `${best.id} withheld (trust ${enc.trust}<${best.gate})`);
-  } else {
-    reply = best.say;
-    grounded = best.id;
-    disclose(best, q);
-    if (best.gate) {
-      emotion = 'relieved';
-    }
-  }
-
-  enc.tr.push({ w: 'Patient', t: reply, g: grounded });
-  releaseByQuestion(q);
-  surfaceMM();
-  save();
-  render(true);
-  speak(reply, emotion);
+async function sendQuestion() {
+  const input = $('#q');
+  if (!input || window.__sending) return;
+  const question = input.value;
+  if (await ask(question)) { if (input.value === question) input.value = ''; }
 }
 
 function askHint(i) {
@@ -741,50 +479,24 @@ function askHint(i) {
   }
 }
 
-function surfaceMM() {
-  const mismatch = enc.p.mm;
-  if (mismatch && enc.disc.has(mismatch.a) && enc.disc.has(mismatch.b) && !enc.mmS) {
-    enc.mmS = 1;
-    log('mismatch', 'Patient report and chart now both visible (discrepancy surfaced)');
-  }
+async function encounterAction(action, value) {
+  if (!enc || window.__sending) return;
+  window.__sending = true;
+  try { enc = loadEnc((await api('/api/encounters/' + enc.id + '/actions', {action, value})).state); save(); renderEhr(); }
+  catch (error) { $('#mst').textContent = error.message; }
+  finally { window.__sending = false; }
 }
-
-function openSec(s) {
-  if (!enc.opened.has(s)) {
-    enc.opened.add(s);
-    log('open', 'Opened ' + s);
-    enc.p.facts.filter((f) => f.sec === s).forEach((f) => disclose(f, 'section ' + s));
-    (enc.p.artifacts || []).filter((a) => a.sec === s).forEach((a) => releaseArtifact(a, 'opened ' + s));
-    surfaceMM();
-    save();
-  }
-  rt = s;
-  renderEhr();
-}
-
-function reconcile(t) {
-  if (!String(t).trim()) {
-    return;
-  }
-
-  const ok = enc.p.mm && enc.mmS && enc.p.mm.kw.some((k) => t.toLowerCase().includes(k));
-  enc.notes.push({ t, who: enc.role, at: now(), ok });
-  if (ok) {
-    enc.rec = true;
-  }
-  log('reconcile', `Clinician claim documented${ok ? ' (addresses discrepancy)' : ''}: ${t}`);
-  save();
-  renderEhr();
-}
+async function openSec(s) { rt = s; await encounterAction('open', s); }
+async function recordSectionReview(s) { await encounterAction('reviewSection', s); }
+async function reviewArtifact(id) { await encounterAction('reviewArtifact', id); }
+async function reconcile(t) { await encounterAction('reconcile', t); }
 
 let mouthTimer;
 let recActive = null;
+let speechSequence = 0;
 
 function photoSet(p) {
-  const known = { denise: true, marcus: true };
-  const base = p && known[p.id] ? p.id : 'patient';
-
-  return { still: 'img/' + base + '.jpg', talk: 'img/' + base + '-talk.jpg' };
+  return { still: 'img/patient.svg' };
 }
 
 function avatarHtml(p) {
@@ -806,7 +518,7 @@ function setMicLabel() {
 function av(state, em) {
   const status = $('#avs');
   if (status) {
-    const label = state === 'speaking' ? 'Speaking' : state === 'listening' ? 'Listening' : state;
+    const label = state === 'speaking' ? 'Speech requested · text ready' : state === 'listening' ? (recActive ? 'Microphone listening' : 'Ready for typed input') : state;
     status.textContent = label + (em && em !== 'neutral' ? ' · ' + em : '');
   }
 
@@ -820,6 +532,7 @@ function av(state, em) {
 }
 
 function speak(t, em) {
+  const sequence = ++speechSequence;
   window.__busy = true;
   stopListen();
   av('speaking', em);
@@ -827,8 +540,11 @@ function speak(t, em) {
   if (status) {
     status.textContent = 'The patient is talking…';
   }
+  let finished = false;
   const done = () => {
+    if(finished || sequence !== speechSequence) return; finished = true;
     window.__busy = false;
+    if ($('#mst')) $('#mst').textContent = 'Response delivered as text. Browser speech is optional.';
     av('listening', 'neutral');
     if (window.__convo !== false) {
       startListen();
@@ -842,6 +558,7 @@ function speak(t, em) {
       utter.onend = done;
       utter.onerror = done;
       speechSynthesis.speak(utter);
+      setTimeout(done, 15000);
 
       return;
     } catch (err) {
@@ -896,6 +613,7 @@ function startListen() {
     }
   };
   rec.onerror = (e) => {
+    window.__convo = false;
     if (e.error === 'no-speech' || e.error === 'aborted') {
       return;
     }
@@ -949,7 +667,7 @@ function stopSpeech() {
 }
 
 function toggleType() {
-  window.__type = !window.__type;
+  window.__type = true;
   const typeRow = $('#typeRow');
   if (typeRow) {
     typeRow.hidden = !window.__type;
@@ -962,13 +680,16 @@ function grade(o) {
   let credit = null;
 
   if (o.ty === 'fact') {
-    const got = o.f.filter((i) => disclosed.has(i));
-    credit = got.length / o.f.length;
+    const got = (o.f || []).filter((i) => disclosed.has(i));
+    credit = got.length / Math.max((o.f || []).length, 1);
     got.forEach((i) => evidence.push(`${i}: "${disclosed.get(i).q}"`));
   } else if (o.ty === 'review') {
-    const got = o.s.filter((s) => enc.opened.has(s));
-    credit = got.length / o.s.length;
-    got.forEach((s) => evidence.push('Opened ' + s));
+    const got = (o.s || []).filter((s) => enc.reviewedSections && enc.reviewedSections.has(s));
+    credit = got.length / Math.max((o.s || []).length, 1);
+    got.forEach((s) => evidence.push('Reviewed ' + s));
+    if (!got.length) {
+      evidence.push('No explicit section review recorded for the required evidence.');
+    }
   } else if (o.ty === 'mm') {
     const mismatch = enc.p.mm;
     if (!enc.mmS) {
@@ -993,7 +714,7 @@ function grade(o) {
     if (!enc.ho) {
       return { c: null, E: ['No handoff submitted'] };
     }
-    credit = enc.ho.inc / enc.ho.tot;
+    credit = enc.ho.tot ? enc.ho.inc / enc.ho.tot : 0;
     evidence.push(`${enc.ho.inc}/${enc.ho.tot} documented facts included`);
   }
 
@@ -1030,12 +751,12 @@ function interviewSequence() {
   }
 
   parts += 1;
-  const reviewed = enc.ev.some((e) => e.type === 'open' || e.type === 'artifact');
+  const reviewed = enc.ev.some((e) => e.type === 'review') || (enc.reviewedSections && enc.reviewedSections.size > 0);
   if (reviewed) {
     score += 1;
-    notes.push('Reviewed chart evidence during the visit.');
+    notes.push('Recorded an explicit review of chart evidence before drawing conclusions.');
   } else {
-    notes.push('Next attempt: open labs or imaging before deciding what is true.');
+    notes.push('Next attempt: review a section explicitly before concluding what the chart says.');
   }
 
   return { c: score / parts, notes };
@@ -1225,7 +946,7 @@ function removeObjective(i) {
 }
 
 function resetDemo() {
-  if (!confirm('Reset all saved patients, releases, and the active encounter?')) {
+  if (!confirm('Reset browser drafts and leave this visit? Server published versions remain saved.')) {
     return;
   }
   localStorage.removeItem(KEY);
@@ -1238,39 +959,21 @@ function latestReleases() {
 }
 
 function factCard(f, i) {
-  const types = ['reported', 'confirmed', 'documented', 'unknown'];
-  const ehrs = ['hx', 'meds', 'labs', 'notes', 'soc'];
-
   return `<div class="card-edit">
-    <h3>${esc(f.id)} <button class="btn" type="button" onclick="removeFact(${i})">Remove</button></h3>
-    <div class="fields">
-      <div><label>ID</label><input value="${esc(f.id)}" oninput="setFact(${i},'id',this.value)"></div>
-      <div><label>Label</label><input value="${esc(f.label)}" oninput="setFact(${i},'label',this.value)"></div>
-      <div><label>Visibility</label>
-        <select onchange="setFact(${i},'vis',this.value)">
-          <option value="ask" ${f.vis === 'ask' ? 'selected' : ''}>Interview</option>
-          <option value="chart" ${f.vis === 'chart' ? 'selected' : ''}>Chart</option>
-        </select>
+    <h3>${esc(f.vis === 'ask' ? 'Patient report' : 'Chart evidence')} · ${esc(f.id)}</h3>
+    <label>Finding / chart evidence</label><input value="${esc(f.label)}" oninput="setFact(${i},'label',this.value)">
+    ${f.vis === 'ask' ? `<div class="stack"><label>Exact approved patient wording</label><textarea rows="2" oninput="setFact(${i},'say',this.value)">${esc(f.say || '')}</textarea></div>` : ''}
+    <details><summary>Disclosure rules and source</summary>
+      <div class="stack"><label>Keywords, comma separated</label><input value="${esc((f.kw || []).join(', '))}" oninput="setFact(${i},'kw',this.value)"></div>
+      <div class="fields">
+        <div><label>Visibility</label><select onchange="setFact(${i},'vis',this.value);render()"><option value="ask" ${f.vis === 'ask' ? 'selected' : ''}>Interview</option><option value="chart" ${f.vis === 'chart' ? 'selected' : ''}>Chart</option></select></div>
+        <div><label>Source</label><input value="${esc(f.src || '')}" oninput="setFact(${i},'src',this.value)"></div>
+        <div><label>Chart section</label><select onchange="setFact(${i},'sec',this.value);setFact(${i},'ehr',this.value)">${SEC.map(([s,name]) => `<option value="${s}" ${(f.sec || f.ehr) === s ? 'selected' : ''}>${name}</option>`).join('')}</select></div>
+        <div><label>Trust gate</label><input type="number" min="0" max="3" value="${esc(f.gate || 0)}" oninput="setFact(${i},'gate',this.value)"></div>
       </div>
-      <div><label>EHR section</label>
-        <select onchange="setFact(${i},'ehr',this.value)">
-          ${ehrs.map((s) => `<option ${f.ehr === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Type</label>
-        <select onchange="setFact(${i},'type',this.value)">
-          ${types.map((s) => `<option ${f.type === s ? 'selected' : ''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div><label>Chart release section</label><input value="${esc(f.sec || '')}" oninput="setFact(${i},'sec',this.value)" placeholder="labs / notes / meds"></div>
-      <div><label>Source</label><input value="${esc(f.src || '')}" oninput="setFact(${i},'src',this.value)"></div>
-      <div><label>Role</label><input value="${esc(f.role || '')}" oninput="setFact(${i},'role',this.value)"></div>
-      <div><label>Trust gate</label><input type="number" value="${esc(f.gate || 0)}" oninput="setFact(${i},'gate',this.value)"></div>
-      <div><label>Match key</label><input value="${esc(f.k || '')}" oninput="setFact(${i},'k',this.value)"></div>
-    </div>
-    <div class="stack"><label>Approved patient wording</label><textarea rows="2" oninput="setFact(${i},'say',this.value)">${esc(f.say || '')}</textarea></div>
-    <div class="stack"><label>Deflection if trust is too low</label><input value="${esc(f.deflect || '')}" oninput="setFact(${i},'deflect',this.value)"></div>
-    <div class="stack"><label>Keywords, comma separated</label><input value="${esc((f.kw || []).join(', '))}" oninput="setFact(${i},'kw',this.value)"></div>
+      <div class="stack"><label>Approved deflection</label><input value="${esc(f.deflect || '')}" oninput="setFact(${i},'deflect',this.value)"></div>
+      <button class="btn" type="button" onclick="removeFact(${i})">Remove fact</button>
+    </details>
   </div>`;
 }
 
@@ -1293,6 +996,7 @@ function objCard(o, i) {
 }
 
 function pickPatient(id) {
+  if (!drafts[id]) { const published = [...rel].reverse().find(r => r.p.id === id); if (published) drafts[id] = JSON.stringify(published.p); }
   sel = id;
   save();
   render();
@@ -1326,7 +1030,7 @@ function vStudio() {
     <div class="studio-head">
       <div>
         <h2>Patient Studio</h2>
-        <p class="muted">Pick a patient or create one. No code.</p>
+        <p class="muted">Synthetic cases · edit Draft → Check → Publish a frozen version → Start visit.</p>
       </div>
       <div class="row">
         <button class="btn" type="button" onclick="newPatient()">New patient</button>
@@ -1340,7 +1044,7 @@ function vStudio() {
         <div><label>Age</label><input type="number" value="${esc(p.age || '')}" oninput="setStudio('age', this.value)"></div>
         <div><label>Opening line</label><input value="${esc(p.intro || '')}" oninput="setStudio('intro', this.value)"></div>
       </div>
-      <div class="fields">
+      ${p.facts.length ? `<details open><summary>Review approved facts and exact patient wording</summary><p class="muted">Draft edits below affect the next published version. Chart records remain separate from patient answers.</p>${p.facts.map(factCard).join('')}<button class="btn" type="button" onclick="addFact()">Add fact</button></details><details><summary>Faculty learning objectives and weights</summary>${p.obj.map(objCard).join('')}<button class="btn" type="button" onclick="addObjective()">Add objective</button></details>` : `      <div class="fields">
         <div><label>Personality</label><input value="${esc(p.personality || '')}" oninput="setStudio('personality', this.value)"></div>
         <div><label>Emotional state</label><input value="${esc(p.emotion || '')}" oninput="setStudio('emotion', this.value)"></div>
         <div><label>Communication style</label><input value="${esc(p.style || '')}" oninput="setStudio('style', this.value)"></div>
@@ -1364,6 +1068,7 @@ function vStudio() {
       <div class="stack"><label>Learning objectives (one per line)</label>
         <textarea rows="3" oninput="setStudio('objText', this.value)">${esc(p.objText || (p.obj || []).map((o) => o.t).join('\n'))}</textarea>
       </div>
+`}
       <div class="row" style="margin-top:12px">
         <button class="btn" type="button" onclick="runValidate()">Check</button>
         <button class="btn pri" type="button" onclick="publish(sel);render()">Publish</button>
@@ -1396,10 +1101,10 @@ function vEnc() {
 
   return `<div class="grid enc-grid">
     <div class="pn enc-talk">
-      <div class="panel-kicker">Virtual patient</div>
+      <div class="panel-kicker">Synthetic simulated patient · practice only</div>
       ${avatarHtml(enc.p)}
       <h2>${esc(enc.p.name)}, ${enc.p.age}</h2>
-      <div class="av-status" id="avs">Listening</div>
+      <div class="av-status" id="avs">Ready for typed input</div>
       <button class="mic-btn" id="micBtn" type="button" onclick="mic()">Tap to talk</button>
       <div class="chip" id="mst">Speak, or type if you need to. The chart updates as you earn it.</div>
       <div class="row" style="margin-top:10px">
@@ -1407,8 +1112,8 @@ function vEnc() {
         <button class="btn" type="button" onclick="toggleType()">Type instead</button>
       </div>
       <div class="row" id="typeRow" ${window.__type ? '' : 'hidden'}>
-        <input id="q" aria-label="Ask the patient" placeholder="Type if you need to…" onkeydown="if(event.key==='Enter'){ask(this.value);this.value=''}">
-        <button class="btn pri" type="button" onclick="ask($('#q').value);$('#q').value=''">Send</button>
+        <input id="q" aria-label="Ask the patient" placeholder="Type your question…" onkeydown="if(event.key==='Enter')sendQuestion()">
+        <button id="sendBtn" class="btn pri" type="button" onclick="sendQuestion()">Send</button>
       </div>
       <div class="tr" id="tr" aria-live="polite"></div>
     </div>
@@ -1435,7 +1140,7 @@ function renderTr() {
   box.innerHTML = enc.tr.map((m) => {
     const who = m.w === 'Student' ? 'student' : 'patient';
 
-    return `<div class="bubble ${who}"><b>${esc(m.w)}${m.g ? ` <span class="chip">grounded: ${esc(m.g)}</span>` : ''}</b><p>${esc(m.t)}</p></div>`;
+    return `<div class="bubble ${who}"><b>${esc(m.w)}${m.g ? ` <span class="chip">${esc(m.g === "fallback" ? "Unspecified — unknown" : m.g.startsWith("blocked:") ? "Authored deflection" : "Reviewed wording")}</span>` : ''}</b><p>${esc(m.t)}</p></div>`;
   }).join('');
   box.scrollTop = 1e9;
 }
@@ -1467,18 +1172,16 @@ function artifactCard(art) {
   if (!released) {
     return `<div class="art locked">
       <b>${esc(art.title)}</b>
-      <div class="chip">Locked · ask the right question or open ${esc(art.sec || 'the chart')}</div>
+      <div class="chip">Locked · ask the configured question; section ${esc(art.sec || 'the chart')}</div>
     </div>`;
   }
 
   const meta = enc.arts.get(art.id);
   let body = '';
   if (art.kind === 'lab' && art.rows) {
-    body = `<table class="lab-table"><tr><th>Test</th><th>Result</th><th>Ref</th></tr>${art.rows.map((r) =>
-      `<tr class="${r.flag || ''}"><td>${esc(r.name)}</td><td>${esc(r.value)} ${esc(r.unit || '')}</td><td>${esc(r.ref || '')}</td></tr>`
-    ).join('')}</table>`;
-  } else if (art.img) {
-    body = `<img class="art-img" src="${esc(art.img)}" alt="${esc(art.title)}">`;
+    body = (art.facts || []).map(id => enc.p.facts.find(f => f.id === id)).filter(Boolean).map(f => `<p>${esc(f.label)}</p>`).join('');
+  } else {
+    body = '<p class="muted">Synthetic report findings shown below. Image pixels are not included in this demo.</p>';
   }
 
   return `<div class="art released${fresh}">
@@ -1509,7 +1212,11 @@ function renderEhr() {
   };
 
   const arts = enc.p.artifacts || [];
-  const sectionArts = (sec) => arts.filter((a) => a.sec === sec).map(artifactCard).join('');
+  const sectionArts = (sec) => arts.filter((a) => a.sec === sec).map((art) => {
+    const released = enc.arts.has(art.id);
+    const reviewed = enc.reviewedArtifacts && enc.reviewedArtifacts.has(art.id);
+    return `${artifactCard(art)}${released && !reviewed ? `<div class="row"><button class="btn" type="button" onclick="reviewArtifact('${art.id}')">Record review</button></div>` : ''}`;
+  }).join('');
   const mismatch = conflictCard();
 
   let html = '';
@@ -1522,7 +1229,7 @@ function renderEhr() {
       ${mismatch}
       <h3>Clinical artifacts</h3>
       ${arts.length ? arts.map(artifactCard).join('') : '<p class="chip">No artifacts on this profile.</p>'}
-      <p class="chip">Hidden faculty keys stay hidden. Locked reports do not exist for the student until earned.</p>`;
+      <p class="chip">Locked findings are concealed in this teaching view. This supervised demo does not enforce student access control.</p>`;
   } else {
     html = ((rt === 'meds' || rt === 'notes' || rt === 'labs') ? mismatch : '') + sectionArts(rt) + rows(rt);
     if (rt === 'notes') {
@@ -1532,6 +1239,11 @@ function renderEhr() {
       html += `<h3>Document the conflict</h3>
         <textarea id="rn" rows="3" placeholder="Record why the patient story and the chart do not match"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn pri" type="button" onclick="reconcile($('#rn').value)">Save note</button></div>`;
+    }
+    if (enc.opened.has(rt) && enc.p.facts.some((f) => f.sec === rt && enc.disc.has(f.id)) && !(enc.reviewedSections && enc.reviewedSections.has(rt))) {
+      html += `<div class="row" style="margin-top:12px">
+        <button class="btn" type="button" onclick="recordSectionReview('${rt}')">Record review of this section</button>
+      </div>`;
     }
   }
   $('#eh').innerHTML = html;
@@ -1546,23 +1258,8 @@ A: ${listed.filter((f) => f.vis === 'chart').map((f) => f.label).join('; ') || '
 R: `;
 }
 
-function addPlan() {
-  const input = $('#cp');
-  if (!input || !input.value.trim()) {
-    return;
-  }
-  enc.plan.push({ t: input.value, r: enc.role, at: now(), v: enc.plan.length + 1 });
-  log('careplan', input.value);
-  save();
-  render();
-}
-
-function changeRole(value) {
-  enc.role = value;
-  log('role', 'Switched role to ' + value);
-  save();
-  render();
-}
+async function addPlan() { const input = $('#cp'); if(input && input.value.trim()) {await encounterAction('plan',input.value); render();} }
+async function changeRole(value) {await encounterAction('role',value); render();}
 
 function vTeam() {
   if (!enc) {
@@ -1594,25 +1291,11 @@ function vTeam() {
   </div>`;
 }
 
-function submitHO() {
-  const box = $('#sb');
-  if (!box) {
-    return;
-  }
+async function submitHO() {const box = $('#sb'); if(box) {await encounterAction('handoff',box.value); render();}}
 
-  const text = box.value.toLowerCase();
-  const facts = [...enc.disc.keys()].map((i) => enc.p.facts.find((f) => f.id === i)).filter(Boolean);
-  const included = facts.filter((f) => text.includes(f.k) || text.includes(f.label.toLowerCase().slice(0, 14)));
-  enc.ho = {
-    inc: included.length,
-    tot: facts.length,
-    om: facts.filter((f) => !included.includes(f)).map((f) => f.label)
-  };
-  log('handoff', `SBAR submitted by ${enc.role}`);
-  save();
-  render();
+function objectiveEvents(o) {
+  return enc.ev.filter(e => o.ty === 'fact' ? e.type === 'disclose' && (o.f || []).some(id => e.text.startsWith(id + ' released')) : o.ty === 'review' ? e.type === 'review' && (o.s || []).some(s => e.text === 'Recorded review of ' + s) : o.ty === 'mm' ? ['mismatch','reconcile'].includes(e.type) : o.ty === 'ho' ? e.type === 'handoff' : e.type === 'empathy');
 }
-
 function vRep() {
   if (!enc) {
     return '<div class="pn"><h2>No active encounter</h2><p class="muted">Complete an interview first.</p></div>';
@@ -1632,7 +1315,7 @@ function vRep() {
     return `<div class="obj-card">
       <h3>${esc(o.t)}</h3>
       <div class="chip">Learning objective · weight ${o.w} · ${score}</div>
-      <p>${g.E.map(esc).join('<br>') || 'No evidence yet.'}</p>
+      <p>${g.E.map(esc).join('<br>') || 'No evidence yet.'}${objectiveEvents(o).map(e => `<a href="#event-${e.n}">Event #${e.n}</a>`).join(' · ')}</p>
       <p class="muted"><b>Next attempt:</b> ${esc(next)}</p>
     </div>`;
   }).join('');
@@ -1642,7 +1325,7 @@ function vRep() {
   const elicited = askFacts.filter((f) => enc.disc.has(f.id));
   const missed = askFacts.filter((f) => !enc.disc.has(f.id));
   const arts = enc.p.artifacts || [];
-  const seenArts = arts.filter((a) => enc.arts.has(a.id));
+  const seenArts = arts.filter((a) => enc.reviewedArtifacts.has(a.id));
   const missedArts = arts.filter((a) => !enc.arts.has(a.id));
   const seq = interviewSequence();
   const prof = professionalism();
@@ -1653,8 +1336,8 @@ function vRep() {
       <div class="score-num">${pct}%</div>
       <div>
         <div>on assessed faculty objectives</div>
-        <div class="chip">${assessedWeight} of 100 weight · profile v${enc.p.version} · ${enc.turns} turns logged</div>
-        <p class="muted">Every score is tied to a transcript line, an opened record, or a missing action. Nothing is invented.</p>
+        <div class="chip">${assessedWeight} of ${enc.p.obj.reduce((sum, o) => sum + Number(o.w), 0)} weight · profile v${enc.p.version} · ${enc.turns} turns logged</div>
+        <p class="muted">Rule-based objective completion for faculty review; this does not measure clinical competence. Review records an explicit learner acknowledgment, not demonstrated understanding.</p>
       </div>
     </div>
     <div class="fb-grid">
@@ -1662,7 +1345,7 @@ function vRep() {
         <h3>Findings elicited</h3>
         ${elicited.length ? elicited.map((f) => `<p>${esc(f.label)}</p>`).join('') : '<p class="muted">None yet.</p>'}
         <h3>Artifacts reviewed</h3>
-        ${seenArts.length ? seenArts.map((a) => `<p>${esc(a.title)}</p>`).join('') : '<p class="muted">No reports opened.</p>'}
+        ${seenArts.length ? seenArts.map((a) => `<p>${esc(a.title)}</p>`).join('') : '<p class="muted">No explicit artifact reviews recorded.</p>'}
       </div>
       <div class="obj-card">
         <h3>Missed opportunities</h3>
@@ -1687,7 +1370,7 @@ function vRep() {
     <h3>Interaction log</h3>
     <div class="sc"><table>
       <tr><th>#</th><th>Time</th><th>Role</th><th>Type</th><th>Detail</th></tr>
-      ${enc.ev.map((e) => `<tr><td>${e.n}</td><td>${e.t}</td><td>${esc(e.role)}</td><td>${e.type}</td><td>${esc(e.text)}</td></tr>`).join('')}
+      ${enc.ev.map((e) => `<tr id="event-${e.n}"><td>${e.n}</td><td>${e.t}</td><td>${esc(e.role)}</td><td>${e.type}</td><td>${esc(e.text)}</td></tr>`).join('')}
     </table></div>
   </div>`;
 }
@@ -1710,7 +1393,8 @@ function render(keep) {
 
   const mode = $('#mode');
   if (mode) {
-    mode.textContent = 'Local demo · no API keys';
+    const build = window.__VIRTUSP_BUILD__ || {};
+    mode.textContent = `Local reviewed wording · v${build.version || '?'} · ${build.buildId || '?'} · ${build.environment || 'local'}`;
   }
 
   if (keep && tab === 'enc') {
@@ -1737,4 +1421,7 @@ function render(keep) {
 
 applyTheme();
 bootStorage();
+enc = null;
+tab = 'studio';
+api('/api/cases').then(result => { rel = result.profiles.map(p => ({p, at: 'server'})); render(); }).catch(error => {msg = error.message; render();});
 render();

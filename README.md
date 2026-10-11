@@ -1,82 +1,47 @@
 # VirtuSP
 
-Virtual standardized patient simulator for healthcare education. Faculty author a patient once. Students interview by voice or text, read a chart that opens as they ask the right questions, reconcile authored contradictions, hand off in SBAR, and get feedback tied to evidence.
+VirtuSP gives healthcare students repeatable interviewing practice with synthetic patients. Faculty review the patient wording, publish a frozen case version, and students investigate patient/chart discrepancies using the same encounter engine for every case.
 
-The model never decides what is medically true. Every patient line comes from an approved fact in the published profile.
+This documents the application started by `npm start` in the repository root. `VirtuSP-upstream/` is a separate nested checkout; its deployment, integrations, and historical test reports are not evidence for this root application.
 
-## Run locally
+## Run the supervised local demo
 
-```bash
-cd ~/VirtuSP
-node server.js
+Use Node.js 18 or newer (verified with 24.15.0):
+
+```sh
+npm ci
+npm test
+npm start
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Open [the simulator](http://127.0.0.1:3000/app.html). No external packages or provider credentials are required. The server binds to loopback; PORT defaults to 3000. The header shows application version, Git revision plus a runtime-source fingerprint, environment, and reviewed-wording mode. The revision remains the base commit until the changes are committed.
 
-Or run `npm start`. Node 16 or newer is enough. There is no install step, no API keys, and no sign-in.
+## What is implemented
 
-Optional port:
+- Studio drafts with editable exact patient wording, sources, disclosure keywords, chart findings, and faculty objective weights.
+- Server validation and immutable publication; published versions saved atomically in ignored data/recovery/published-cases.json.
+- Server-owned attempts pinned to a published version, approved responses, trust gates, deterministic chart release, transcript, and events.
+- Request IDs: identical canonical payload replays; changed payload returns HTTP 409. Browser suppresses concurrent sending and preserves failed typed input for retry.
+- Released, opened, and explicit review states remain separate. Review records learner acknowledgment; understanding is not inferred.
+- Intentional discrepancies, follow-up, learner reconciliation notes, SBAR keyword coverage, and feedback with recorded event links.
+- A bundled patient illustration and optional browser speech/recognition. Typed input remains available without microphone, speech, model, or cloud services.
 
-```bash
-PORT=8080 node server.js
-```
+## Grounding and provider mode
 
-Static-only alternative:
+The active engine selects among published response keywords and delivers exact approved wording or an authored deflection. Unmatched topics use a fixed unknown response; ordinary greetings/acknowledgments are fixed server responses. No generated clinical paraphrasing or live model provider is enabled. Matching is conservative and can miss valid phrasings; faculty must review every authored fact and trigger. There is no claim of universal semantic understanding or zero hallucinations.
 
-```bash
-python3 -m http.server 3000 --directory public
-```
+Imaging is question-only. Opening Imaging does not unlock it. Laboratory reports can be released by matching questions or opening Labs; this does not record review. The report displays the authoritative chart fact labels, including units and reference ranges.
 
-Chrome or Edge is recommended if you want the microphone. Safari may not support speech recognition; use the text box. Edits save in the browser (`localStorage`). Use **Reset demo data** on Patient Studio for a clean demo.
+Drafts and a display cache use browser localStorage. Published cases persist on the server filesystem. Active attempts and replay ledgers are process-local: restarting the server requires a new attempt. Browser refresh returns to Studio; it does not silently recover clinical state from localStorage.
 
-## Demo path
+## Verification and demo
 
-1. Open the simulator from the landing page.
-2. Edit Denise (or create a second patient from a template), validate, and publish.
-3. Launch the encounter. Use suggested questions or type. Open Labs, Notes, and Medications.
-4. Document the authored discrepancy, switch role, submit an SBAR handoff.
-5. Open Assessment for evidence-linked scores.
-6. Launch Marcus on the same engine. No code changes.
+Run `npm test` (also `npm run test:all`) for core, disclosure, grounding, HTTP integration, persistence, and UI-script tests. Subsets: `test:core`, `test:grounding`, `test:integration`, `test:ui`. UI-script tests use a DOM/API harness; manual browser verification is recorded separately. Historical files under tests/e2e/reports are not runnable browser tests.
 
-## Layout
+See [demo sequence](docs/DEMO.md), [actual architecture](docs/ARCHITECTURE_CURRENT.md), [verification report](docs/PREFLIGHT_REPORT.md), and [security/deployment boundaries](docs/SECURITY.md).
 
-- `public/index.html` — landing page
-- `public/app.html` — simulator shell
-- `public/js/app.js` — patients, validation, dialogue engine, voice/avatar adapters, UI
-- `public/css/` — landing and app themes
-- Data key: `virtusp-v1` (migrates older `ptl-v1` data once)
+## Deployment boundary
 
-## Local demo services
+This is a supervised synthetic teaching demo. It has no authentication, role enforcement, durable attempt storage, institutional grading validation, LMS integration, or verified cloud deployment. Faculty case definitions are downloadable in this local demo; chart gating is a teaching workflow, not a secrecy boundary. Do not expose the server publicly without authentication, authorization, controlled origins/hosts, audit, retention, monitoring, and governance. Browser speech recognition may use the browser vendor's service; use typed input for an offline presentation.
 
-The app runs without keys:
-
-```js
-SERVICES = { dialogue: 'local', voice: 'browser', avatar: 'svg' }
-```
-
-- Dialogue: keyword match over approved `facts[].say`
-- Voice: browser `speechSynthesis` / `SpeechRecognition`
-- Avatar: local SVG
-
-Unknown questions stay unknown: the patient says they are not sure.
-
-## Adding real AI later
-
-When you have keys, replace these functions in `public/js/app.js` and keep the grounding rule (replies only from approved facts):
-
-| Function | Current adapter | Later swap |
-| --- | --- | --- |
-| `ask()` | Local keyword matcher | Bedrock / LLM dialogue |
-| `speak()` | Browser speech synthesis | Cloud TTS |
-| `mic()` | Browser speech recognition | Cloud STT |
-
-Suggested environment variables for that later pass (not required now):
-
-```
-BEDROCK_REGION=
-BEDROCK_MODEL_ID=
-AWS_ACCESS_KEY_ID=
-AWS_SECRET_ACCESS_KEY=
-```
-
-Do not commit secrets. The UI will keep working in local demo mode until those adapters are wired.
+The nested checkout and local Terraform artifacts do not establish that this root build is cloud-deployed. A static-only CloudFront deployment cannot run its new API routes; deploy the Node service and route /api to it before using a hosted demo.
