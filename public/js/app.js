@@ -53,6 +53,7 @@ let loginStudent = "",
   boardDraft = null,
   visitModal = "";
 let list = [],
+  savedPatients = [],
   history = [],
   profile = null,
   patientDialog = null,
@@ -276,8 +277,10 @@ async function refresh() {
   assignments = tasks.assignments;
   selectedStudent ||= students[0]?.id || "";
   selectedGroup ||= groups[0]?.id || "";
-  if (demoSession?.role === "faculty")
+  if (demoSession?.role === "faculty") {
+    savedPatients = (await api("/api/profiles?library=saved")).profiles;
     facultyResults = (await api("/api/faculty-results")).students;
+  } else savedPatients = [];
 }
 async function pick(id) {
   const r = await api("/api/profiles/" + id);
@@ -299,7 +302,7 @@ function assignmentControl(kind, id, ready = true) {
   return `<details class="simulation-assignment" data-simulation="${esc(id)}"><summary>Assign this simulation to student</summary><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</details>`;
 }
 function card(p, faculty = true) {
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">AI-synthetic</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">AI-synthetic</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${p.description ? `<p class="case-caption">${esc(p.description)}</p>` : ""}${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
 }
 
 function studio() {
@@ -321,6 +324,7 @@ function studio() {
   );
   return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
  <h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
+ ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3><p>${esc(p.description || "Open the case to review its saved findings and documents.")}</p>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
  </div>`;
 }
@@ -429,9 +433,9 @@ function editor() {
     .join("");
   return `<div class="editor"><p class="muted">Only a name, at least one patient-known finding and your review acknowledgment are needed. Leave unsupplied details blank; optional objectives and documents can be added later.</p><p class="muted" id="save-status">${dirty ? "Unsaved changes" : "Draft"}</p>
   ${["Omar Sinclair", "Yvette Armstrong"].includes(profile.name) && profile.facts.some((f) => f.id === "case-notes") ? button("Prepare case", "prepare") : ""}
-  <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
+  <section class="patient-category"><h2>Patient information and character</h2><div class="fields">${control("Name", "name")}${control("Age (optional)", "age", { type: "number" })}${control("Gender (optional)", "gender")}${control("Self-described ethnicity (optional)", "ethnicity")}${control("Case description (faculty only)", "summary", { type: "textarea" })}${control("Opening line", "intro")}${control("Personality", "personality")}${control("Communication style", "style")}${control("Emotional state", "emotion")}</div>${profile.provenance ? `<p class="muted">${esc(profile.provenance.preparation)}</p>` : ""}</section>
   ${group("facts", "History and clinical information", `<p class="muted">Patient wording is approved phrasing for a finding; dialogue may paraphrase it.</p>${facts}${button("Add finding", "add-fact")}`)}
-  ${group("sources", "Documents and references", `${sources}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
+  ${group("sources", "Documents and references", `${sources}${profile.originalRoster ? `<details><summary>Complete saved case source</summary><pre class="case-source">${esc(JSON.stringify(profile.originalRoster, null, 2))}</pre><p class="muted">Source context remains separate from the approved encounter findings and disclosure rules.</p></details>` : ""}${button("Add source", "add-source")}${button("Add teaching references", "references")}<h3>Chart reports</h3>${artifacts}${button("Add report", "add-artifact")}`)}
   ${group("objectives", "Learning objectives", objectives + button("Add objective", "add-objective"))}
   ${group("advanced", "Advanced scenario settings", `<h3>Disclosure rules</h3>${disclosure}<h3>Report release rules</h3>${releases}${profile.mm ? `<div class="fields">${control("Patient statement", "mm.a", { options: factOptions })}${control("Chart finding", "mm.b", { options: factOptions })}${control("Follow-up finding", "mm.fu", { options: factOptions })}${control("Reconciliation phrases", "mm.kw", { list: true })}</div>${button("Remove discrepancy", "remove-mm")}` : button("Add intentional discrepancy", "add-mm")}${control("Observable rubric domains (1–7)", "rubricApplicable", { list: true })}${control("Case-specific rubric", "caseRubric", { options: [["", "Automatic (by age)"], ["none", "None"], ...(health.caseRubrics || []).map((r) => [r.id, r.title])] })}${profile.missing?.length ? `<h3>Unspecified information</h3><ul>${profile.missing.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}`)}
   <div class="review-box">${control("I reviewed this synthetic case and approve its accuracy, consistency and disclosure rules for student use.", "reviewAcknowledged", { type: "checkbox" })}</div></div>`;
@@ -866,18 +870,21 @@ function artifactCard(a) {
   return `<article class="art released open ${a.justReleased ? "just-in" : ""}"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Expand", "expand-doc", `data-id="${esc(a.id)}"`)}</div><p class="chip">Clinical record · ${esc(a.date || "Date unspecified")}</p>${artifactBody(a)}</article>`;
 }
 function conversationFiles() {
-  const released = enc.artifacts.filter((a) => a.released);
+  const released = enc.artifacts.filter(
+    (a) => a.released && (section === "ov" || a.sec === section),
+  );
   if (!released.length) return "";
 
   return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
 function chart() {
   const facts = enc.disclosed.filter(
-    (f) => section === "ov" || f.ehr === section,
+    (f) =>
+      section === "ov" || f.ehr === section || f.releaseSection === section,
   );
 
-  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b></article>`).join("")}
- ${!facts.length ? '<div class="empty">Nothing in this section yet.</div>' : ""}
+  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b>${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}</article>`).join("")}
+ ${!facts.length && !enc.artifacts.some((a) => a.released && (section === "ov" || a.sec === section)) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
  `;
 }
 function docLightbox() {
@@ -2696,6 +2703,7 @@ document.addEventListener("click", async (e) => {
       patientDialog = null;
       history = [];
       list = [];
+      savedPatients = [];
       facultyResults = [];
       groups = [];
       assignments = [];

@@ -83,7 +83,27 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 7);
     assert.ok(!d.querySelector("#app").textContent.includes("Published v"));
-    assert.ok(!d.querySelector("#app").textContent.includes("Marcus Ramirez"));
+    assert.ok(
+      !d.querySelector(".patient-grid").textContent.includes("Marcus Ramirez"),
+    );
+    assert.ok(d.querySelector(".saved-patient-library"));
+    assert.match(
+      d.querySelector(".saved-patient-library").textContent,
+      /Yvette Armstrong, 64/,
+    );
+    const savedYvette = Object.values(app.store.state.drafts).find(
+      (p) => p.name === "Yvette Armstrong" && p.age === 64,
+    );
+    click("pick", `[data-id="${savedYvette.id}"]`);
+    await wait(() => !!d.getElementById("field-summary"));
+    assert.match(d.getElementById("field-summary").value, /Hypertension/);
+    assert.ok(
+      [...d.querySelectorAll('[data-path$=".label"]')].some((el) =>
+        el.value.includes("155/110"),
+      ),
+    );
+    click("close-patient");
+    await wait(() => !d.querySelector("#patient-dialog"));
     assert.equal(d.getElementById("studio-group"), null);
     assert.equal(d.querySelector(".studio-group-panel"), null);
     assert.match(

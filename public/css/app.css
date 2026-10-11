@@ -3625,22 +3625,68 @@ summary:focus-visible {
 .bias-citation q {
   font-size: 0.9em;
 }
-.ai-sparkle { display: inline-block; vertical-align: -3px; margin-right: 7px; flex-shrink: 0; }
-.catalog-heading { margin: 28px 0 12px; }
-.patient-kind { color: var(--mu); font-size: .85rem; margin: 4px 0; }
-.simulation-assignment { width: 100%; margin: 10px 0; font-size: .9rem; }
-.simulation-assignment summary { color: var(--ac); cursor: pointer; font-weight: 600; }
-.simulation-assignment label { display: grid; gap: 6px; margin: 12px 0; }
-.simulation-assignment select { width: 100%; min-width: 0; }
-.group-catalog { margin-top: 28px; }
-.group-catalog .group-card { margin: 12px 0; }
-.studio .patient-card, .student-assignments .patient-card { gap: 5px; cursor: default; }
+.ai-sparkle {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 7px;
+  flex-shrink: 0;
+}
+.catalog-heading {
+  margin: 28px 0 12px;
+}
+.patient-kind {
+  color: var(--mu);
+  font-size: 0.85rem;
+  margin: 4px 0;
+}
+.simulation-assignment {
+  width: 100%;
+  margin: 10px 0;
+  font-size: 0.9rem;
+}
+.simulation-assignment summary {
+  color: var(--ac);
+  cursor: pointer;
+  font-weight: 600;
+}
+.simulation-assignment label {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+}
+.simulation-assignment select {
+  width: 100%;
+  min-width: 0;
+}
+.group-catalog {
+  margin-top: 28px;
+}
+.group-catalog .group-card {
+  margin: 12px 0;
+}
+.studio .patient-card,
+.student-assignments .patient-card {
+  gap: 5px;
+  cursor: default;
+}
 .studio .patient-card > .patient-photo-well,
-.student-assignments .patient-card > .patient-photo-well { height: 150px; margin-bottom: 6px; }
-.studio .patient-card p, .student-assignments .patient-card p { margin: 2px 0; }
-.studio .patient-card .row, .student-assignments .patient-card .row { margin-top: 6px; }
+.student-assignments .patient-card > .patient-photo-well {
+  height: 150px;
+  margin-bottom: 6px;
+}
+.studio .patient-card p,
+.student-assignments .patient-card p {
+  margin: 2px 0;
+}
+.studio .patient-card .row,
+.student-assignments .patient-card .row {
+  margin-top: 6px;
+}
 @media (max-width: 680px) {
-  .studio .patient-grid, .student-assignments .patient-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .studio .patient-grid,
+  .student-assignments .patient-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
 }
 @media (max-width: 680px) {
   .simulation-choices {
@@ -3691,4 +3737,35 @@ summary:focus-visible {
 .gap-row,
 .comp-top {
   font-variant-numeric: lining-nums tabular-nums;
+}
+.case-caption {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.saved-patient-library {
+  margin-top: 1rem;
+}
+.saved-patient-library > summary {
+  cursor: pointer;
+  padding: 1rem;
+  font-weight: 600;
+}
+.saved-case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1rem;
+}
+.saved-case {
+  padding: 1rem;
+  border: 1px solid var(--line, #d6e2e3);
+  border-radius: 12px;
+}
+.case-source {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+  max-height: 360px;
+  overflow: auto;
 }
