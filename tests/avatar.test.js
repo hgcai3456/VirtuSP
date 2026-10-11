@@ -296,7 +296,7 @@ test("cross-encounter and cross-owner avatar requests are rejected", async () =>
     const hidden = await intruder(
       ctx.base + `/api/encounters/${ownedBody.encounter.id}/avatar/status`,
     );
-    assert.equal(hidden.status, 404);
+    assert.equal(hidden.status, 403);
   } finally {
     await ctx.close();
   }

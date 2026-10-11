@@ -3,6 +3,13 @@ node_modules/
 .env
 .env.*
 !.env.example
+certs/
+.cert/
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
 data/
 data-recovery-*/
 output/

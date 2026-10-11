@@ -135,8 +135,8 @@ test("An approved line skips paraphrase and visit memory still hides the withhel
     const enc = engine.create(profile());
     await engine.ask(enc, "Do you skip doses?", "held");
     await engine.ask(enc, "What brings you in?", "seed");
-    // Approved factual lines use the fast path. Exercise model composition
-    // with an unrecognized social question after the approved spoken turn.
+    // Approved factual lines stay server-owned. A later social question
+    // also stays on the approved courtesy line; paraphrase is not called.
     cloud.select = async () => ({
       factIds: [],
       empathy: false,
@@ -146,7 +146,8 @@ test("An approved line skips paraphrase and visit memory still hides the withhel
     await engine.ask(enc, "Is this room comfortable?", "model");
     assert.equal(enc.transcript.at(-1).text, "Okay, I'm listening.");
     assert.equal(enc.transcript.at(-1).provider, "bedrock");
-    assert.equal(calls, 1);
+    assert.equal(calls, 0);
+    assert.doesNotMatch(JSON.stringify(enc.transcript), /evening dose/);
   } finally {
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";

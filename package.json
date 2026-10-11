@@ -5,7 +5,10 @@
   "description": "VirtuSP — virtual standardized patient simulator for healthcare education",
   "scripts": {
     "start": "node server.js",
+    "cert:local": "node scripts/ensure-dev-cert.js",
+    "dev:https": "node scripts/dev-https.js",
     "test": "node --test --test-timeout=120000 tests/*.test.js",
+    "test:pact": "node --test --test-concurrency=1 --test-timeout=300000 tests/pact/catalog.test.js tests/pact/consumer.test.js tests/pact/provider.test.js",
     "preflight": "node scripts/preflight.js",
     "corpus:fetch": "node scripts/fetch-corpus.js",
     "evaluate": "node scripts/evaluate.js",
@@ -62,6 +65,7 @@
   },
   "devDependencies": {
     "@cucumber/cucumber": "^11.3.0",
+    "@pact-foundation/pact": "^17.1.4",
     "jsdom": "^29.1.1",
     "prettier": "^3.9.10",
     "selenium-webdriver": "^4.35.0"

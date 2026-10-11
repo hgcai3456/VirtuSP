@@ -24,6 +24,10 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     virtualConsole: console,
   });
   const window = dom.window;
+  Object.defineProperty(window, "isSecureContext", {
+    configurable: true,
+    get: () => true,
+  });
   window.structuredClone = structuredClone;
   window.fetch = (url, options) => client(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
@@ -439,7 +443,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     click("launch", '[data-id="omar"]');
     await wait(() => !!doc.querySelector('[data-action="answer-call"]'));
     click("answer-call");
-    await wait(() => !!doc.getElementById("question"));
+    await wait(() =>
+      /Patient speaking|Listening/.test(
+        doc.getElementById("voice-status")?.textContent || "",
+      ),
+    );
     window.speechSynthesis.cancel();
     await wait(() => {
       const r = recognizers.at(-1);
@@ -563,6 +571,13 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => !!doc.querySelector(".meter"));
     click("rep-view", '[data-view="interview"]');
     await wait(() => !!doc.querySelector(".annotated .turn"));
+    click("nav", '[data-tab="history"]');
+    await wait(() => !!doc.querySelector(".history-table"));
+    assert.match(doc.querySelector(".history-table").textContent, /Omar Sinclair/);
+    assert.match(
+      doc.querySelector(".history-table").textContent,
+      /View encounter/,
+    );
     click("nav", '[data-tab="studio"]');
     click("launch", '[data-id="riley"]');
     await wait(() => !!doc.querySelector(".incoming-call"));

@@ -8,17 +8,19 @@
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+  <a class="skip" href="#app">Skip to content</a>
   <header>
     <a class="brand" href="index.html">VirtuSP</a>
-    <nav id="nav"></nav>
+    <nav id="nav" aria-label="Workspace"></nav>
     <div class="hdr-meta">
-      <a class="btn" href="observability.html">Observability</a>
-      <button class="btn" id="themeBtn" type="button" onclick="toggleTheme()">Theme</button>
+      <a class="utility-link" href="observability.html">Observability</a>
+      <button class="btn" id="themeBtn" type="button" aria-label="Theme: Light. Choose light, dark, or match this device.">Theme: Light</button>
     </div>
   </header>
   <main id="app"></main>
   <div id="theater" hidden></div>
   <script src="js/client-telemetry.js"></script>
+  <script src="js/encounter-runtime.js"></script>
   <script src="js/roster.js"></script>
   <script src="js/avatar-view.js"></script>
   <script src="js/app.js"></script>

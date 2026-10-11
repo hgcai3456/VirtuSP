@@ -30,8 +30,12 @@ test("Faculty quick generation supports dictation/drop, compact review, edits, p
     url: base + "/app.html",
     runScripts: "outside-only",
   });
-  const w = dom.window,
-    doc = w.document;
+  const w = dom.window;
+  Object.defineProperty(w, "isSecureContext", {
+    configurable: true,
+    get: () => true,
+  });
+  const doc = w.document;
   w.structuredClone = structuredClone;
   w.fetch = (url, options) => client(new URL(url, base), options);
   const recognizers = [];

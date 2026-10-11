@@ -86,6 +86,22 @@ let list = [],
   studentCameraTried = false,
   studentCameraRequest = 0,
   studentCameraNote = "",
+  cameraState = "off",
+  patientVolume = 1,
+  lastLatencyMs = null,
+  selectedCameraId = "",
+  cameraDevices = [],
+  faceWatch = 0,
+  faceModel = null,
+  faceBroken = false,
+  faceMachine = null,
+  facePublic = "CAMERA_OFF",
+  bargeTimer = 0,
+  bargeContext = null,
+  bargeSource = null,
+  bargeArmedAt = 0,
+  captionsOn = true,
+  turnStartedAt = 0,
   listening = false,
   micRestartTimer = null,
   repView = "summary",
@@ -113,7 +129,7 @@ let list = [],
   faceAnchors = null,
   voiceDisplay = { state: "ready", text: "Ready for your question" };
 const wordingTried = new Set();
-const SILENCE_MS = 2000;
+const SILENCE_MS = 700;
 const MAX_UTTERANCE_MS = 20000;
 const EMPTY_LISTEN_LIMIT = 3;
 let draftRecognition = null,
@@ -1151,6 +1167,7 @@ function armSpeechWatch(generation, ms) {
 async function finishEncounter(notice) {
   if (!enc || enc.status !== "active" || interviewClosing) return;
   interviewClosing = true;
+  logMedia("ENCOUNTER_ENDED", {});
   stopAudio();
   stopStudentCamera();
   busy = true;
@@ -1207,10 +1224,10 @@ function encounter() {
     ? `<div class="emergency" role="alert"><b>911 emergency services</b><p>${esc(enc.emergency.text)}</p></div>`
     : "";
   const incoming = waiting
-    ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">Answer to turn the camera on, talk, and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
+    ? `<div class="incoming-call" role="region" aria-label="Incoming video call"><div><p class="panel-kicker">Patient calling</p><h2>${esc(enc.name)} is calling</h2><p class="muted">VirtuSP uses your microphone for the simulated patient conversation and your camera for your local telehealth view. Nothing from the camera is uploaded or recorded. Answer to talk and see ${first}'s face.</p></div>${button("Answer", "answer-call", "", "pri")}</div>`
     : "";
   const clip = packagedVisitVideo(enc);
-  return `${emergency}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" muted playsinline hidden></video><span class="self-label" id="self-label">You</span></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${readyStatus()}</div><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}</div></div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" ? `<span class="chip">${esc(t.provider)}${t.factIds?.length ? " · " + esc(t.factIds.join(", ")) : ""}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
+  return `${emergency}<div class="grid enc-grid"><section class="pn enc-talk"><div class="panel-kicker">${enc.status === "complete" ? "Completed encounter" : "Student encounter"}</div>${interviewTimerMarkup()}${incoming}<div class="av-frame${live ? " video-call camera-on" : waiting ? " ringing" : ""}${paused ? " paused" : ""}" id="avf"${enc.status === "active" ? ' data-action="toggle-pause" role="button" tabindex="0" title="Tap to pause or resume"' : ""}><canvas class="av-still av-talk${clip ? " hidden" : ""}" id="av-talk" aria-hidden="true"></canvas><video class="av-still patient-video${clip ? "" : " hidden"}" id="av-video" muted playsinline loop preload="auto"${clip ? ` src="${esc(clip)}"` : ""}></video><img class="av-still patient-photo hidden" src="${esc(enc.imageUrl)}" alt="${esc(enc.name)}"><canvas class="patient-call" id="patient-call" width="640" height="480" aria-hidden="true"></canvas><video class="patient-video" id="patient-video" playsinline preload="none"></video><span class="av-live">Camera on</span>${live ? `<div class="self-view"><video id="student-camera" playsinline autoplay muted hidden></video><span class="self-label" id="self-label">You</span><button type="button" class="btn" data-action="student-camera">Turn camera on</button></div>` : ""}<div class="av-jaw" aria-hidden="true"></div><div class="av-blink" aria-hidden="true"></div><div class="voice-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="av-pause"><span>Paused · tap to resume</span></div></div><h1>${esc(enc.name)}${enc.age == null ? "" : ", " + esc(enc.age)}</h1>${enc.ethnicity ? `<p class="muted">Self-described ethnicity: ${esc(enc.ethnicity)}</p>` : ""}${enc.groupProgress ? `<p class="chip">Trial ${enc.groupProgress.trial} of ${enc.groupProgress.total} · ${esc(enc.groupProgress.title)}</p>` : ""}<div id="voice-status" role="status">${readyStatus()}</div><p id="media-privacy" class="muted"></p><p id="face-status" role="status">${esc(faceStatusLabel())}</p><div class="voice-controls">${micControl()}<div class="row voice-secondary">${button(muted ? "Unmute" : "Mute", "mute")}<label class="volume-label" for="patient-volume">Volume <input id="patient-volume" type="range" min="0" max="1" step="0.05" value="${patientVolume}"></label>${button(captionsOn ? "Hide captions" : "Show captions", "toggle-captions", `aria-pressed="${captionsOn}"`)}</div></div><div class="media-bar"><button type="button" class="btn" data-action="student-camera" aria-pressed="${cameraState === "on"}">${cameraState === "on" ? "Camera on" : "Camera off"}</button><label class="camera-device-label" for="camera-device">Camera <select id="camera-device"${cameraDevices.length > 1 ? "" : " hidden"}>${cameraDevices.map((d, i) => `<option value="${esc(d.deviceId)}"${d.deviceId === selectedCameraId ? " selected" : ""}>${esc(d.label || "Camera " + (i + 1))}</option>`).join("")}</select></label><p id="media-note" class="muted">${esc(studentCameraNote)}</p><p id="latency-status" role="status">${esc(latencyLabel())}</p>${health.demoMode ? '<p class="muted" id="demo-mode">Demo mode. Replies use the approved case record when a live model is unavailable.</p>' : ""}</div><form id="question-form"><label for="question">Ask the patient</label><div class="row"><input id="question" maxlength="2000" placeholder="Type a question or use the microphone" ${locked ? "disabled" : ""} autocomplete="off"><button class="btn pri" type="submit" ${locked ? "disabled" : ""}>${busy ? "Thinking…" : "Send"}</button></div></form><div class="tr${captionsOn ? "" : " captions-off"}" id="transcript" aria-live="polite">${enc.transcript.map((t) => `<article class="bubble ${t.role === "student" ? "student" : "patient"}" id="${esc(t.id)}"><b>${t.role === "student" ? "You" : esc(enc.name.split(" ")[0])}</b><p>${esc(t.text)}</p>${t.role === "patient" && t.provider ? `<span class="chip turn-source">${esc(t.provider)}</span>` : ""}</article>`).join("")}</div><div class="row">${enc.status === "active" ? button("Finish & get feedback", "complete", "", "pri") : button("View feedback", "nav", `data-tab="rep"`)}</div></section>
  <section class="pn ehr-panel"><div class="ehr-navigation"><div class="ehr-head"><div><div class="panel-kicker">Dynamic clinical record</div><h2>Chart · ${esc(enc.name)}</h2></div></div><nav class="tabs" aria-label="Patient chart sections">${sections.map(([s, name]) => button(name, "section", `data-section="${s}" aria-pressed="${section === s}"`, section === s ? "on" : "")).join("")}</nav></div>${conversationFiles()}${chart()}${docLightbox()}</section></div>`;
 }
 function isVisualDoc(a) {
@@ -1266,11 +1283,11 @@ function chart() {
           }),
         )
       : "";
-    return `<article class="fx"><b>${esc(f.label)}</b>${f.type ? `<span class="st ${esc(f.type)}">${esc(f.type)}</span>` : ""}${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}<div class="chip">${from}${source}${at}</div></article>`;
+    return `<article class="fx chart-fact"><b>${esc(f.label)}</b>${f.type ? `<span class="st ${esc(f.type)}">${esc(f.type)}</span>` : ""}${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}<div class="chip">${from}${source}${at}</div></article>`;
   };
 
   return `${facts.map(row).join("")}
- ${!facts.length && !enc.artifacts.some((a) => a.released && a.sec === section) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
+ ${!facts.length && !enc.artifacts.some((a) => a.released && (section === "ov" || a.sec === section)) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
  `;
 }
 function docLightbox() {
@@ -1709,10 +1726,20 @@ function transcriptView(a, c) {
   return `<h2>Annotated transcript</h2><p class="muted">Each question, the reply, what it achieved and where the feedback refers to it. Question tags come from automated classification.</p><div class="sc"><table class="fb-table annotated"><thead><tr><th>Question and reply</th><th>What it achieved</th><th>Cited in feedback</th></tr></thead><tbody>${rows.join("") || '<tr><td colspan="3" class="muted">No questions were asked.</td></tr>'}</tbody></table></div>`;
 }
 function past() {
-  return `<div class="pn"><h1>Encounter history</h1><div class="history-list">${history.map((e) => `<article class="fx"><h2>${esc(e.name)} · v${e.version}</h2><p>${esc(e.status)} · ${e.turns} questions${e.duration ? ` · appointment ${esc(e.duration)}` : ""}${e.feedbackHeld ? " · Feedback held until all trials finish" : e.total != null ? ` · rubric ${e.total}/${e.denominator}` : ""}</p>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></article>`).join("") || "<p>No encounters yet.</p>"}</div></div>`;
+  const rows = history
+    .map((e) => {
+      const rubric = e.feedbackHeld
+        ? "Feedback held until all trials finish"
+        : e.total != null
+          ? `${e.total}/${e.denominator}`
+          : "–";
+      return `<tr><th scope="row">${esc(e.name)} <span class="muted">v${esc(e.version)}</span></th><td>${esc(e.status)}</td><td>${e.turns}</td><td>${e.duration ? esc(e.duration) : "–"}</td><td>${rubric}</td><td>${button(e.status === "complete" ? "View encounter" : "Resume encounter", "resume", `data-id="${esc(e.id)}"`)} <a href="/api/encounters/${esc(e.id)}/export">Download record</a></td></tr>`;
+    })
+    .join("");
+  return `<div class="pn"><h1>Encounter history</h1>${rows ? `<div class="sc history-list"><table class="fb-table history-table"><thead><tr><th>Patient</th><th>Status</th><th>Questions</th><th>Appointment</th><th>Rubric</th><th>Record</th></tr></thead><tbody>${rows}</tbody></table></div>` : "<p>No encounters yet.</p>"}</div>`;
 }
 function rolePicker() {
-  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><div class="panel-kicker">VirtuSP</div><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">01</span><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><span class="choice-symbol" aria-hidden="true">02</span><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo · alias picker only · synthetic patients · faculty facts govern disclosure</p></section>`;
+  return `<section class="workspace-home role-picker" aria-labelledby="workspace-title"><h1 id="workspace-title">Choose your workspace</h1><p class="muted workspace-lede">Voice interviews with synthetic patients, progressive chart access, and evidence-linked feedback. Faculty publish cases and assign groups; students complete assessments.</p><div class="simulation-choices role-choices"><article class="role-choice-card"><h2 class="choice-title">Faculty</h2><p class="choice-description">Patient Studio, prepared groups, assignments, and student results—including bias review when enabled.</p>${button("Enter faculty workspace", "choose-role", 'data-role="faculty"', "pri choice-action")}</article><article class="role-choice-card"><h2 class="choice-title">Student</h2><p class="choice-description">My assigned assessments, open individual patients, and patient groups with feedback after each visit or trial set.</p><label class="choice-field" for="demo-student">Practice as</label><select id="demo-student">${students.map((s) => `<option value="${esc(s.id)}" ${s.id === loginStudent ? "selected" : ""}>${esc(s.alias)}</option>`).join("")}</select>${button("Enter student workspace", "choose-role", 'data-role="student"', "pri choice-action")}</article></div><p class="muted workspace-footnote">Workshop demo. Alias picker only. Synthetic patients. Faculty facts govern disclosure.</p></section>`;
 }
 function assignmentCards(items) {
   return items
@@ -2123,6 +2150,7 @@ function biasBoard() {
 }
 function render() {
   stopInterviewTimer();
+  applyTheme(themeName());
   window.VirtuSPAvatar?.park();
   if (!demoSession) {
     $("#nav").innerHTML = "";
@@ -2165,7 +2193,12 @@ function render() {
   $("#nav").innerHTML =
     navs
       .map(([k, name]) =>
-        button(name, "nav", `data-tab="${k}"`, tab === k ? "on" : ""),
+        button(
+          name,
+          "nav",
+          `data-tab="${k}"${tab === k ? ' aria-current="page"' : ""}`,
+          tab === k ? "on" : "",
+        ),
       )
       .join("") +
     button(
@@ -2174,9 +2207,13 @@ function render() {
         : `${students.find((s) => s.id === demoSession.studentId)?.alias || "Student"} · switch`,
       "switch-role",
     );
-  $("#themeBtn").textContent = "Theme";
+  const draftNote = busy
+    ? "Working…"
+    : dirty
+      ? "Unsaved draft changes"
+      : "";
   $("#app").innerHTML =
-    `<div class="app-status"><span>${esc(storageText())}</span><span>${busy ? "Working…" : dirty ? "Unsaved draft changes" : ""}</span></div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
+    `<div class="app-status"><span>${esc(storageText())}</span>${draftNote ? `<span>${esc(draftNote)}</span>` : ""}</div><div class="toast ${message ? "" : "hidden"}" role="status">${esc(message)}</div>` +
     {
       studio,
       "student-home": studentHome,
@@ -2233,6 +2270,11 @@ function render() {
     $("#question").dataset.memory = "question";
   }
   if (tab === "enc") $("#transcript")?.scrollTo(0, 1e9);
+  if (
+    !patientSpeaking &&
+    (voiceDisplay.state === "speaking" || voiceDisplay.state === "thinking")
+  )
+    voiceDisplay = { state: "ready", text: readyStatus() };
   if (voiceDisplay.state === "ready") voiceDisplay.text = readyStatus();
   voiceState(voiceDisplay.state, voiceDisplay.text);
   setFaceAnchor();
@@ -2457,6 +2499,15 @@ async function warmTalkVideo() {
     try {
       const r = await fetch(`/api/encounters/${id}/talking-video`);
       if (r.status !== 200) return;
+      const type = r.headers.get("content-type") || "";
+      if (!type.includes("video")) {
+        const data = await r.json().catch(() => null);
+        if (data?.status === "unavailable") {
+          clearInterval(talkVideoPoll);
+          talkVideoPoll = 0;
+        }
+        return;
+      }
       const blob = await r.blob();
       if (talkVideoUrl) URL.revokeObjectURL(talkVideoUrl);
       talkVideoUrl = URL.createObjectURL(blob);
@@ -2684,66 +2735,398 @@ function syncVideoCall() {
     if (!studentStream) startStudentCamera();
     return;
   }
+  if (studentStream) stopStudentCamera();
   portraitToken++;
   if (typeof cancelAnimationFrame === "function")
     cancelAnimationFrame(callAnimation);
   callAnimation = 0;
 }
+function faceStatusLabel() {
+  if (cameraState !== "on") return studentCameraNote || "Camera off";
+  if (faceBroken || typeof window.FaceDetector !== "function") return "Camera on";
+  return window.VirtuSPEncounter?.faceLabel?.(facePublic) || "Camera on";
+}
+function latencyLabel() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    return "Offline. The question stays in the box until you send again.";
+  if (lastLatencyMs == null) return "Connected";
+  return "Connected. Last reply " + lastLatencyMs + " ms";
+}
+function logMedia(type, metadata) {
+  if (!enc?.id || enc.status !== "active") return;
+  try {
+    const pending = fetch("/api/encounters/" + enc.id + "/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, metadata: metadata || {} }),
+    });
+    if (pending && typeof pending.catch === "function") pending.catch(() => {});
+  } catch {
+    /* A telemetry failure must not stop the visit. */
+  }
+}
+function paintMedia() {
+  const face = $("#face-status");
+  if (face) face.textContent = faceStatusLabel();
+  const note = $("#media-note");
+  if (note) note.textContent = studentCameraNote;
+  const latency = $("#latency-status");
+  if (latency) latency.textContent = latencyLabel();
+  const privacy = $("#media-privacy");
+  if (privacy) {
+    const secure = window.isSecureContext === true;
+    privacy.textContent = [
+      "Secure context " + (secure ? "yes" : "no"),
+      "HTTPS " + (location.protocol === "https:" ? "yes" : "no"),
+      "Camera " + (cameraState === "on" ? "on" : "off"),
+      "Microphone " +
+        (window.isSecureContext === false
+          ? "blocked"
+          : muted
+            ? "muted"
+            : listening
+              ? "on"
+              : "off"),
+      "Recording off",
+    ].join(" · ");
+  }
+  const on = cameraState === "on";
+  document.querySelectorAll("[data-action='student-camera']").forEach((button) => {
+    if (button.parentElement?.classList.contains("media-bar")) {
+      button.textContent = on ? "Camera on" : "Camera off";
+      button.setAttribute("aria-pressed", String(on));
+    }
+    if (button.parentElement?.classList.contains("self-view")) {
+      button.hidden = on;
+      button.textContent = "Turn camera on";
+    }
+  });
+}
+function stopFaceWatch() {
+  if (faceWatch) clearInterval(faceWatch);
+  faceWatch = 0;
+  faceModel = null;
+}
+function startFaceWatch() {
+  stopFaceWatch();
+  faceMachine = window.VirtuSPEncounter?.createFacePresence
+    ? window.VirtuSPEncounter.createFacePresence()
+    : null;
+  faceMachine?.cameraOn();
+  facePublic = faceMachine?.state() || "NO_FACE";
+  const Detector = window.FaceDetector;
+  if (typeof Detector !== "function") {
+    faceBroken = true;
+    paintMedia();
+    return;
+  }
+  try {
+    faceModel = new Detector({ fastMode: true, maxDetectedFaces: 2 });
+  } catch {
+    faceBroken = true;
+    paintMedia();
+    return;
+  }
+  faceBroken = false;
+  let lastLogged = "";
+  faceWatch = setInterval(async () => {
+    const video = $("#student-camera");
+    if (!video || video.readyState < 2 || !faceModel) return;
+    try {
+      const faces = await faceModel.detect(video);
+      const next = faceMachine
+        ? faceMachine.observe(faces.length, Date.now())
+        : faces.length > 1
+          ? "MULTIPLE_FACES"
+          : faces.length === 1
+            ? "FACE_DETECTED"
+            : "NO_FACE";
+      if (next === facePublic) return;
+      facePublic = next;
+      paintMedia();
+      if (next === "FACE_DETECTED" && lastLogged !== "FACE_DETECTED") {
+        lastLogged = "FACE_DETECTED";
+        logMedia("FACE_DETECTED", {});
+      }
+      if (next === "FACE_LOST" && lastLogged !== "FACE_LOST") {
+        lastLogged = "FACE_LOST";
+        logMedia("FACE_LOST", {});
+      }
+    } catch {
+      faceBroken = true;
+      stopFaceWatch();
+      paintMedia();
+    }
+  }, 500);
+}
+function stopBargeVad() {
+  if (bargeTimer) clearInterval(bargeTimer);
+  bargeTimer = 0;
+  try {
+    bargeSource?.disconnect();
+  } catch {
+    /* Already disconnected. */
+  }
+  bargeSource = null;
+  const ctx = bargeContext;
+  bargeContext = null;
+  if (ctx && ctx.state !== "closed") ctx.close?.().catch(() => {});
+}
+function interruptPatient() {
+  if (!patientSpeaking) return;
+  stopPatientAudio();
+  holdMic = false;
+  ignoreMicUntil = Date.now() + 280;
+  voiceState("listening", "Listening…");
+  logMedia("PATIENT_INTERRUPTED", {});
+  updateMicButton();
+  syncLive();
+}
+function startBargeVad() {
+  stopBargeVad();
+  const track = studentStream
+    ?.getAudioTracks?.()
+    .find((item) => item.readyState === "live");
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!track || typeof Ctx !== "function") return;
+  try {
+    bargeContext = new Ctx();
+    bargeSource = bargeContext.createMediaStreamSource(new MediaStream([track]));
+    const analyser = bargeContext.createAnalyser();
+    analyser.fftSize = 512;
+    bargeSource.connect(analyser);
+    const data = new Uint8Array(analyser.fftSize);
+    let hotSince = 0;
+    bargeTimer = setInterval(() => {
+      if (!patientSpeaking || Date.now() < bargeArmedAt) {
+        hotSince = 0;
+        return;
+      }
+      analyser.getByteTimeDomainData(data);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const sample = (data[i] - 128) / 128;
+        sum += sample * sample;
+      }
+      if (Math.sqrt(sum / data.length) < 0.06) {
+        hotSince = 0;
+        return;
+      }
+      if (!hotSince) hotSince = Date.now();
+      if (Date.now() - hotSince >= 450) {
+        hotSince = 0;
+        interruptPatient();
+      }
+    }, 50);
+  } catch {
+    stopBargeVad();
+  }
+}
+function mediaConstraints(deviceId) {
+  const video = { width: { ideal: 1280 }, height: { ideal: 720 } };
+  if (deviceId) video.deviceId = { exact: deviceId };
+  else video.facingMode = "user";
+  return {
+    video,
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  };
+}
+function cameraProblem(error) {
+  const name = error?.name || "";
+  if (name === "NotAllowedError" || name === "PermissionDeniedError")
+    return {
+      state: "denied",
+      note: "Camera permission denied. Voice and typing still work.",
+    };
+  if (name === "NotFoundError" || name === "DevicesNotFoundError")
+    return {
+      state: "missing",
+      note: "No camera found. Voice and typing still work.",
+    };
+  if (name === "NotReadableError" || name === "TrackStartError")
+    return {
+      state: "busy",
+      note: "Camera is in use by another app. Voice and typing still work.",
+    };
+  if (name === "AbortError")
+    return {
+      state: "error",
+      note: "Camera request was dismissed. Voice and typing still work.",
+    };
+  if (name === "SecurityError")
+    return {
+      state: "error",
+      note: "Camera and microphone need a secure page. Open " + secureDemoUrl(),
+    };
+  if (name === "OverconstrainedError")
+    return {
+      state: "missing",
+      note: "No compatible camera was found. Voice and typing still work.",
+    };
+  return {
+    state: "error",
+    note: "Camera unavailable. Voice and typing still work.",
+  };
+}
+async function listCameras() {
+  try {
+    const listed = await navigator.mediaDevices.enumerateDevices();
+    cameraDevices = listed.filter((item) => item.kind === "videoinput");
+    const select = $("#camera-device");
+    if (!select) return;
+    select.innerHTML = cameraDevices
+      .map(
+        (item, index) =>
+          `<option value="${esc(item.deviceId)}">${esc(item.label || "Camera " + (index + 1))}</option>`,
+      )
+      .join("");
+    select.hidden = cameraDevices.length < 2;
+    if (selectedCameraId) select.value = selectedCameraId;
+  } catch {
+    cameraDevices = [];
+  }
+}
 function attachStudentCamera() {
   const video = $("#student-camera");
   const label = $("#self-label");
-  const retry = $('[data-action="student-camera"]');
-  if (retry) retry.hidden = !!studentStream;
+  const hasVideo = !!studentStream
+    ?.getVideoTracks?.()
+    .some((track) => track.readyState === "live");
+  document
+    .querySelectorAll(".self-view [data-action='student-camera']")
+    .forEach((button) => {
+      button.hidden = hasVideo;
+    });
   if (!video || !label) return;
-  if (studentStream) {
+  if (hasVideo) {
     if (video.srcObject !== studentStream) video.srcObject = studentStream;
     video.hidden = false;
     label.textContent = "You · Camera on";
     return;
   }
+  video.srcObject = null;
   video.hidden = true;
-  label.textContent = studentCameraNote || "You";
+  label.textContent = studentCameraNote || "You · Camera off";
 }
-function startStudentCamera() {
+function startStudentCamera(deviceId) {
   // Never switch the camera on when the page has nowhere to show it.
   if (!$("#student-camera")) return;
   if (studentStream || studentCameraTried) {
     attachStudentCamera();
+    paintMedia();
     return;
   }
   studentCameraTried = true;
+  if (typeof window.isSecureContext === "boolean" && !window.isSecureContext) {
+    cameraState = "error";
+    studentCameraNote =
+      "Camera and microphone need a secure page. Open " + secureDemoUrl();
+    facePublic = "CAMERA_OFF";
+    attachStudentCamera();
+    paintMedia();
+    return;
+  }
   const devices = navigator.mediaDevices;
   if (!devices?.getUserMedia) {
-    studentCameraNote = "Your camera is unavailable";
+    cameraState = "missing";
+    studentCameraNote = "No camera in this browser. You can still talk or type.";
+    facePublic = "CAMERA_OFF";
     attachStudentCamera();
+    paintMedia();
     return;
   }
   const request = ++studentCameraRequest;
+  const chosen = deviceId || selectedCameraId;
+  logMedia("CAMERA_REQUESTED", {});
+  const audioOnly = { audio: mediaConstraints().audio, video: false };
   devices
-    .getUserMedia({ video: { facingMode: "user" }, audio: false })
-    .catch(() => devices.getUserMedia({ video: true, audio: false }))
-    .then(
-      (stream) => {
-        if (request !== studentCameraRequest || !callIsLive()) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        studentStream = stream;
+    .getUserMedia(mediaConstraints(chosen))
+    .catch((error) => {
+      const name = error?.name || "";
+      if (
+        name === "NotFoundError" ||
+        name === "NotReadableError" ||
+        name === "OverconstrainedError"
+      )
+        return devices.getUserMedia({
+          video: true,
+          audio: mediaConstraints().audio,
+        });
+      throw error;
+    })
+    .catch((error) => {
+      const name = error?.name || "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+        logMedia("CAMERA_DENIED", {});
+        return devices.getUserMedia(audioOnly).then(
+          (stream) => {
+            logMedia("MIC_GRANTED", {});
+            return stream;
+          },
+          () => {
+            logMedia("MIC_DENIED", {});
+            throw error;
+          },
+        );
+      }
+      throw error;
+    })
+    .then((stream) => {
+      if (request !== studentCameraRequest || !callIsLive()) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      studentStream = stream;
+      const videoTrack = stream
+        .getVideoTracks()
+        .find((track) => track.readyState === "live");
+      if (videoTrack) {
+        cameraState = "on";
         studentCameraNote = "";
-        attachStudentCamera();
-      },
-      () => {
-        if (request !== studentCameraRequest) return;
-        studentCameraNote = "Your camera is off";
-        attachStudentCamera();
-      },
-    );
+        facePublic = "NO_FACE";
+        logMedia("CAMERA_GRANTED", {});
+        if (stream.getAudioTracks().length) logMedia("MIC_GRANTED", {});
+        const settings = videoTrack.getSettings?.() || {};
+        if (settings.deviceId) selectedCameraId = settings.deviceId;
+      } else {
+        cameraState = "denied";
+        studentCameraNote =
+          "Camera permission denied. Voice and typing still work.";
+        facePublic = "CAMERA_OFF";
+      }
+      attachStudentCamera();
+      paintMedia();
+      listCameras();
+      if (videoTrack) startFaceWatch();
+      startBargeVad();
+    })
+    .catch((error) => {
+      if (request !== studentCameraRequest) return;
+      const problem = cameraProblem(error);
+      cameraState = problem.state;
+      studentCameraNote = problem.note;
+      facePublic = "CAMERA_OFF";
+      attachStudentCamera();
+      paintMedia();
+    });
 }
 function stopStudentCamera() {
   studentCameraRequest++;
+  stopFaceWatch();
+  stopBargeVad();
   studentStream?.getTracks().forEach((track) => track.stop());
   studentStream = null;
-  studentCameraNote = "";
+  studentCameraTried = false;
+  cameraState = "off";
+  const video = $("#student-camera");
+  if (video) {
+    video.srcObject = null;
+    video.hidden = true;
+  }
 }
 async function pollTalkingVideo(turn, generation) {
   try {
@@ -2760,11 +3143,13 @@ async function pollTalkingVideo(turn, generation) {
       const response = await fetch(
         `/api/encounters/${enc.id}/talking-video?turnId=${encodeURIComponent(turn.id)}`,
       );
-      if (response.status === 501 || response.status === 503) return;
-      if (
-        response.ok &&
-        response.headers.get("content-type")?.includes("video")
-      ) {
+      if (response.status === 503) return;
+      const responseType = response.headers.get("content-type") || "";
+      if (response.ok && responseType.includes("json")) {
+        const data = await response.json().catch(() => null);
+        if (data?.status === "unavailable") return;
+      }
+      if (response.ok && responseType.includes("video")) {
         const blob = await response.blob();
         if (generation !== speechGeneration) return;
         callVideoUrl = URL.createObjectURL(blob);
@@ -2857,12 +3242,14 @@ async function speak(turn) {
   const generation = speechGeneration;
   patientSpeaking = true;
   holdMic = true;
+  bargeArmedAt = Date.now() + 500;
   armSpeechWatch(generation, 20000);
   visemes = visemesFromText(turn.text);
   stopLive();
   startTalkingCall(turn, generation);
   const settle = (state, text) => {
     if (generation !== speechGeneration) return;
+    logMedia("TTS_FINISHED", {});
     clearSpeechWatch();
     patientSpeaking = false;
     holdMic = false;
@@ -2878,6 +3265,7 @@ async function speak(turn) {
     voiceState("thinking", "Preparing patient voice…");
     audio = new Audio(`/api/encounters/${enc.id}/speech/${turn.id}/stream`);
     audio.preload = "auto";
+    audio.volume = patientVolume;
     audio.onplay = () => {
       if (generation !== speechGeneration) return;
       armSpeechWatch(
@@ -2885,6 +3273,7 @@ async function speak(turn) {
         Math.min(90000, Math.max(20000, String(turn.text || "").length * 90)),
       );
       voiceState("speaking", "Patient speaking · ElevenLabs");
+      logMedia("TTS_STARTED", { provider: "elevenlabs" });
       pulseTalkVideo(true);
       startVisemes(generation, audio);
     };
@@ -2903,6 +3292,7 @@ async function speak(turn) {
   }
   if ("speechSynthesis" in window) {
     const utter = new SpeechSynthesisUtterance(turn.text);
+    utter.volume = patientVolume;
     utter.onstart = () => {
       if (generation !== speechGeneration) return;
       armSpeechWatch(
@@ -2910,6 +3300,7 @@ async function speak(turn) {
         Math.min(90000, Math.max(20000, String(turn.text || "").length * 90)),
       );
       voiceState("speaking", "Patient speaking · browser voice");
+      logMedia("TTS_STARTED", { provider: "browser" });
       pulseTalkVideo(true);
       startVisemes(generation);
     };
@@ -2929,7 +3320,8 @@ async function mutate(action, payload) {
   enc = r.encounter;
   health.storage = r.storage;
 }
-async function question(text) {
+async function question(text, inputMode) {
+  const mode = inputMode === "voice" ? "voice" : "text";
   if (window.VirtuSPAvatar?.ownsPlayback()) await VirtuSPAvatar.interrupt();
   if (busy || !text.trim() || enc?.status !== "active" || !callIsLive()) return;
   stopPatientAudio();
@@ -2938,15 +3330,33 @@ async function question(text) {
   message = "";
   liveText = "";
   stopLive();
+  turnStartedAt = performance.now();
+  logMedia("PATIENT_REQUEST_STARTED", { input_mode: mode });
   voiceState("thinking", "The patient is answering…");
   updateMicButton();
   let delivered = false;
   try {
-    await mutate("turn", { question: text, requestId: crypto.randomUUID() });
+    await mutate("turn", {
+      question: text,
+      requestId: crypto.randomUUID(),
+      inputMode: mode,
+    });
     formMemory.question = "";
     delivered = true;
+    lastLatencyMs = Math.round(performance.now() - turnStartedAt);
+    const serverMs = enc?.transcript?.at(-1)?.latencyMs;
+    logMedia("PATIENT_RESPONSE_RECEIVED", {
+      latency_ms: lastLatencyMs,
+      input_mode: mode,
+      server_ms: Number.isFinite(serverMs) ? serverMs : 0,
+    });
   } catch (e) {
-    message = e.message;
+    formMemory.question = text;
+    message =
+      e.status === 429
+        ? "The server is busy. Wait a moment and send again."
+        : e.message;
+    logMedia("NETWORK_ERROR", { http_status: String(e.status || "") });
   }
   busy = false;
   render();
@@ -3005,6 +3415,10 @@ function micIsHeld() {
     holdMic || patientSpeaking || busy || paused || Date.now() < ignoreMicUntil
   );
 }
+function secureDemoUrl() {
+  const port = location.port || "3002";
+  return "https://localhost:" + port + "/app.html";
+}
 function syncLive() {
   if (window.VirtuSPAvatar?.ownsPlayback()) {
     if (listening) stopLive();
@@ -3019,6 +3433,14 @@ function syncLive() {
   ) {
     if (listening) stopLive();
 
+    return;
+  }
+  if (window.isSecureContext === false) {
+    if (listening) stopLive();
+    voiceState(
+      "ready",
+      "Microphone needs a secure page. Open " + secureDemoUrl(),
+    );
     return;
   }
   if (holdMic || patientSpeaking || busy || paused) {
@@ -3053,6 +3475,7 @@ function startLive() {
   rec.interimResults = true;
   rec.onstart = () => {
     if (live()) voiceState("listening", "Listening…");
+    paintMedia();
   };
   rec.onresult = (e) => {
     if (!live()) return;
@@ -3068,7 +3491,10 @@ function startLive() {
     clearTimeout(silenceTimer);
     if (!words) return;
     emptyListens = 0;
-    if (!utteranceStarted) utteranceStarted = Date.now();
+    if (!utteranceStarted) {
+      utteranceStarted = Date.now();
+      logMedia("STUDENT_SPEECH_STARTED", {});
+    }
     silenceTimer = setTimeout(commitUtterance, SILENCE_MS);
     if (Date.now() - utteranceStarted >= MAX_UTTERANCE_MS) commitUtterance();
   };
@@ -3122,16 +3548,11 @@ function commitUtterance() {
   utteranceStarted = 0;
   const text = liveText.trim();
   liveText = "";
-  if (
-    !text ||
-    busy ||
-    enc?.status !== "active" ||
-    !callIsLive() ||
-    patientSpeaking
-  )
-    return;
+  if (!text || busy || enc?.status !== "active" || !callIsLive() || patientSpeaking) return;
   if ($("#question")) $("#question").value = "";
-  question(text);
+  logMedia("STUDENT_SPEECH_ENDED", {});
+  logMedia("TRANSCRIPT_FINALIZED", { input_mode: "voice" });
+  question(text, "voice");
 }
 async function upload(file) {
   if (file.size > 5 * 1024 * 1024) throw new Error("Upload files up to 5 MB.");
@@ -3350,6 +3771,19 @@ document.addEventListener("change", async (e) => {
       await refresh();
       render();
     }
+    if (e.target.id === "patient-volume") {
+      patientVolume = Number(e.target.value);
+      if (audio) audio.volume = patientVolume;
+      return;
+    }
+    if (e.target.id === "camera-device") {
+      selectedCameraId = e.target.value;
+      studentCameraTried = false;
+      stopStudentCamera();
+      studentCameraTried = false;
+      startStudentCamera(selectedCameraId);
+      return;
+    }
     if (e.target.id === "team-role") {
       await mutate("role", { role: e.target.value });
       render();
@@ -3432,6 +3866,7 @@ document.addEventListener("click", async (e) => {
     }
     if (a === "switch-role") {
       stopAudio();
+      stopStudentCamera();
       stopDraftDictation();
       await api("/api/session", "DELETE");
       demoSession = null;
@@ -3755,10 +4190,23 @@ document.addEventListener("click", async (e) => {
       return;
     }
     if (a === "student-camera") {
-      stopStudentCamera();
+      if (studentStream && cameraState === "on") {
+        stopStudentCamera();
+        studentCameraTried = true;
+        cameraState = "off";
+        studentCameraNote = "Camera off. Voice and typing still work.";
+        facePublic = "CAMERA_OFF";
+        paintMedia();
+        return;
+      }
       studentCameraTried = false;
       studentCameraNote = "";
-      startStudentCamera();
+      startStudentCamera(selectedCameraId);
+      return;
+    }
+    if (a === "toggle-captions") {
+      captionsOn = !captionsOn;
+      render();
       return;
     }
     if (a === "resume") {
@@ -3849,6 +4297,7 @@ document.addEventListener("click", async (e) => {
         muted ? "Audio muted · the patient still listens." : "Listening…",
       );
       updateMicButton();
+      paintMedia();
       return;
     }
     if (a === "adopt-suggestion") {
@@ -3957,12 +4406,31 @@ document.addEventListener("click", async (e) => {
     render();
   }
 });
-function toggleTheme() {
-  const theme =
-    document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = theme;
-  localStorage.setItem("virtusp-theme", theme);
+function themeName() {
+  const saved = localStorage.getItem("virtusp-theme");
+  if (saved === "auto" || saved === "dark" || saved === "light") return saved;
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
+function applyTheme(name) {
+  const theme = name === "dark" || name === "auto" ? name : "light";
+  if (theme === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  localStorage.setItem("virtusp-theme", theme);
+  const btn = document.getElementById("themeBtn");
+  if (!btn) return;
+  const label = theme === "dark" ? "Dark" : theme === "auto" ? "Auto" : "Light";
+  btn.textContent = "Theme: " + label;
+  btn.setAttribute(
+    "aria-label",
+    "Theme: " + label + ". Choose light, dark, or match this device.",
+  );
+}
+function toggleTheme() {
+  const order = ["light", "dark", "auto"];
+  const current = themeName();
+  applyTheme(order[(order.indexOf(current) + 1) % order.length]);
+}
+document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
 document.addEventListener("change", (e) => {
   if (e.target.id === "visit-patient") return filterVisits();
   if (e.target.id !== "board-student") return;
@@ -4024,9 +4492,14 @@ document.addEventListener("keydown", (e) => {
     togglePause();
   }
 });
+window.addEventListener("pagehide", () => {
+  stopStudentCamera();
+  stopAudio();
+});
 window.addEventListener("beforeunload", (e) => {
   stopInterviewTimer();
   stopAudio();
+  stopStudentCamera();
   if (dirty) {
     e.preventDefault();
     e.returnValue = "";
@@ -4034,8 +4507,7 @@ window.addEventListener("beforeunload", (e) => {
 });
 async function boot() {
   try {
-    document.documentElement.dataset.theme =
-      localStorage.getItem("virtusp-theme") || "light";
+    applyTheme(themeName());
     try {
       faceAnchors = await (await fetch("/img/faces.json")).json();
     } catch {
@@ -4074,7 +4546,10 @@ async function boot() {
     if (enc?.status === "active") warmTalkVideo();
   } catch (e) {
     $("#app").innerHTML =
-      `<div class="pn"><h1>Server unavailable</h1><p>${esc(e.message)}</p><p>Start this app with npm start; static-only hosting cannot run encounters.</p><button class="btn" onclick="location.reload()">Retry</button></div>`;
+      `<div class="pn"><h1>Server unavailable</h1><p>${esc(e.message)}</p><p>Start this app with npm start; static-only hosting cannot run encounters.</p><button class="btn" id="boot-retry" type="button">Retry</button></div>`;
+    document.getElementById("boot-retry")?.addEventListener("click", () => {
+      location.reload();
+    });
   }
 }
 window.VirtuSPAvatar?.configure({

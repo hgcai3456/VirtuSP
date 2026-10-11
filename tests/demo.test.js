@@ -113,11 +113,11 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     assert.equal(first.version, 1);
     assert.equal(
       (await call(other, `/api/encounters/${first.id}`)).status,
-      404,
+      403,
     );
     assert.equal(
       (await call(other, `/api/encounters/${first.id}/export`)).status,
-      404,
+      403,
     );
     assert.equal(
       (
@@ -125,7 +125,7 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
           question: "Hello",
         })
       ).status,
-      404,
+      403,
     );
     assert.equal(
       (
@@ -134,12 +134,12 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
           `/api/encounters/${first.id}/artifacts/lipid-report/file`,
         )
       ).status,
-      404,
+      403,
     );
     assert.equal(
       (await call(other, `/api/encounters/${first.id}/speech`, "POST", {}))
         .status,
-      404,
+      403,
     );
     assert.equal(
       (await call(other, `/api/attempts/${attempt.id}`)).status,
@@ -191,7 +191,7 @@ test("Prepared groups: role boundaries, pinning, sequential resume, delayed feed
     assert.equal(
       (await call(other, `/api/encounters/${first.id}/coaching`, "POST", {}))
         .status,
-      404,
+      403,
     );
     for (const url of [
       `/api/encounters/${first.id}`,

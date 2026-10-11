@@ -1,5 +1,17 @@
 # Teammate and agent handoff
 
+## Pact contracts (2026-10-10)
+
+`.cursor/agents/pact-tester.md` writes Pactflow contract tests for the HTTP API. `node agents/pact-agent.js` runs `npm run test:pact` and repeats while the failure changes. The same failure three times stops the loop. The consumer is `virtusp-web` and the provider is `virtusp-api`, using `@pact-foundation/pact`. Local verification reads `pacts/virtusp-web-virtusp-api.json`. When `PACT_BROKER_BASE_URL` and `PACT_BROKER_TOKEN` are set, the provider also publishes that result to the Pactflow broker. `POST /api/import-files` is not replayed because it starts a Claude import; `GET /api/import-files/:id` covers a missing job. `npm run test:pact` passed 3 tests and failed 0. These checks are not clinical validation.
+
+## Secure encounter demo (2026-10-10)
+
+The Chrome “not secure” warning on `http://127.0.0.1` was plain HTTP. Loopback IP addresses are not a secure context, so the browser will not treat camera and microphone permission as trustworthy there. `npm run dev:https` serves `https://localhost:3002/app.html` with a locally trusted certificate from `npm run cert:local` (mkcert, or a current-user certificate on Windows). Certificate files stay in gitignored `certs/`. Do not bypass the warning or start Chrome with security flags.
+
+The talking-clip route no longer answers `501`. An unavailable generated clip, including a shared comparison avatar, returns 200 with `fallback: "in-app-avatar"`. A missing ElevenLabs configuration stays 503. The browser stops polling after that fallback. Encounter reads and writes for another student return 403. Sessions expire, cookies are `HttpOnly` and `SameSite=Strict` (`Secure` on HTTPS), and `X-Forwarded-*` is used only when `VIRTUSP_TRUST_PROXY=true` and `X-VirtuSP-Edge` matches `VIRTUSP_EDGE_SECRET`. Camera and microphone capture starts after Answer, and only in a secure context. Ending the visit, hiding the page, or reloading stops the media tracks. The webcam is shown locally and is not uploaded or recorded.
+
+Spoken questions commit after 700 ms of silence. The recognizer stays off while the patient speaks. A separate echo-cancelled microphone level can interrupt playback. Typed Send stays immediate. Camera refusal leaves voice and typing available. Face presence uses the browser Face Detector when it exists and only says whether a face is in frame. It does not identify the student. Chart rows are disclosed case facts. `GET/POST /api/encounters/:id/events` appends timing events and drops image, audio, and biometric fields. `VIRTUSP_DEMO_MODE=true` labels the case-record path and does not pretend an external model call succeeded. Hidden findings stay off the dialogue model. These checks are engineering checks, not clinical validation.
+
 ## Unit-test agent (2026-10-10)
 
 `.cursor/agents/unit-tester.md` writes unit tests after a JavaScript change in `lib/`, `agents/`, `scripts/`, `public/js/`, or `server.js`. The stop hook in `.cursor/hooks.json` runs `npm test` and checks coverage of the changed lines. It sends the agent back until those lines and branches are covered and every unit test passes. The same result three times stops the loop. `VIRTUSP_SKIP_UNIT_TEST_AGENT=1` turns the hook off. `npm test` passed 165 tests and failed 0. These checks are not clinical validation.
