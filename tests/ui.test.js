@@ -17,6 +17,14 @@ test('faculty edits exact wording, publishes it to server, and launches frozen v
   await b.run("launch('denise',2)"); await b.run("ask('What brings you in today?')"); assert.equal(b.run('enc.tr.at(-1).t'),'I have been thirsty for two weeks.');
   b.run("setFact(0,'say','A later draft.');"); await b.run("ask('What brings you in today?')"); assert.equal(b.run('enc.tr.at(-1).t'),'I have been thirsty for two weeks.');
 });
+test('newly authored chief complaint answers the suggested opening question', async()=>{
+  const b=await browser();
+  b.run("newPatient(); setStudio('name','Synthetic opening regression'); setStudio('complaint','Mild headache for two days'); runValidate(); setFact(0,'say','I have had a mild headache for two days.');");
+  await b.run('publish(sel)');
+  await b.run('launch(sel,1)');
+  await b.run("ask('What brings you in today?')");
+  assert.equal(b.run('enc.tr.at(-1).t'),'I have had a mild headache for two days.');
+});
 test('feedback requires review and links to recorded evidence events', async()=>{
   const b=await browser(); await b.run("launch('denise',1)"); await b.run("openSec('labs')"); assert.equal(b.run('grade(enc.p.obj[2]).c'),0);
   await b.run("recordSectionReview('labs')"); assert.equal(b.run('grade(enc.p.obj[2]).c'),1);

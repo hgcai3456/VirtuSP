@@ -174,7 +174,7 @@ function hydrate(p) {
   };
 
   if (p.complaint) {
-    ensure('cc', p.complaint, 'cc', { say: p.complaint, kw: ['why', 'here', 'concern', 'problem', 'symptom'] });
+    ensure('cc', p.complaint, 'cc', { say: p.complaint, kw: ['bring', 'why', 'here', 'concern', 'problem', 'symptom'] });
   }
   if (p.history) {
     ensure('hx1', 'History: ' + p.history, 'hist', { say: p.history, kw: ['history', 'before', 'past'] });
