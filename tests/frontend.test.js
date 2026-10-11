@@ -414,7 +414,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       );
     await wait(
       () =>
-        doc.querySelector(".bubble:last-child p")?.textContent ===
+        doc.querySelector(".bubble:first-child p")?.textContent ===
         "I feel tired.",
     );
     click("nav", '[data-tab="studio"]');
@@ -506,9 +506,11 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
       "What brings you in today",
     );
     await wait(
-      () => doc.querySelector(".bubble:last-child p")?.textContent === wording,
+      () => doc.querySelector(".bubble:first-child p")?.textContent === wording,
     );
     assert.equal(doc.querySelectorAll(".bubble.student").length, 1);
+    assert.ok(doc.querySelector("#transcript .bubble:first-child").classList.contains("patient"));
+    assert.ok(doc.querySelector("#transcript .bubble:nth-child(2)").classList.contains("student"), "Latest reply stays beside its question above earlier messages");
     const whileSpeaking = recognizers.at(-1);
     const cancelsBefore = synthCancels;
     whileSpeaking?.onresult({
@@ -531,7 +533,7 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     doc.getElementById("avf").click();
     assert.ok(!doc.getElementById("avf").classList.contains("paused"));
     assert.equal(
-      doc.querySelector(".bubble:last-child p b"),
+      doc.querySelector(".bubble:first-child p b"),
       null,
       "Patient text must be escaped",
     );

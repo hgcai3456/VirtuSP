@@ -442,3 +442,7 @@ Camera integration also retains selected-device constraints, specific permission
 Verification: **241/241 npm tests passed**, plus **3/3 local Pact checks**. Tests use synthetic records and disabled paid inference, not clinical or bias-detector validation. The repository secret scanner currently reports false positives in encoded Pact PDF content and existing redaction-test/regex fixtures; those matches were inspected without exposing credentials. No `.env`, runtime database or replay manifests are staged. Preserve other chats' research documents and their concurrent HANDOFF edits.
 
 The added media regression checks one server start event, one clock interval, automatic time-limit completion, track shutdown and no reopening capture. Targeted media/frontend/avatar/runtime tests passed 11/11. The fixture waits for the saved feedback view before closing its simulated browser.
+
+## Newest-first encounter chat (2026-10-11)
+
+The live encounter transcript now displays newest messages first and resets its scroll position to the top on render. The newest patient reply stays adjacent to its preceding learner question. Only the displayed copy is reversed; stored transcripts, evidence IDs, feedback and exports retain their original chronological order. Verified with 241/241 npm checks, including the spoken-turn DOM flow and newest reply/question placement. Teammates should pull and refresh the app to load the change.
