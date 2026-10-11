@@ -64,6 +64,11 @@ let list = [],
   tab = "studio",
   section = "ov",
   message = "",
+  importing = false,
+  importReport = null,
+  importNote = "",
+  importRedraft = false,
+  deleteAsk = "",
   dirty = false,
   busy = false,
   muted = false,
@@ -310,8 +315,195 @@ function assignmentControl(kind, id, ready = true) {
     return `<p class="muted">${kind === "group" ? "Publish compatible cases" : "Publish this patient"} before assigning.</p>`;
   return `<details class="simulation-assignment" data-simulation="${esc(id)}"><summary>Assign this simulation to student</summary><label>Student<select data-assignment-student><option value="">Select a student</option>${students.map((s) => `<option value="${esc(s.id)}">${esc(s.alias)}</option>`).join("")}</select></label>${button("Assign", "assign-simulation", `data-kind="${kind}" data-id="${esc(id)}"`, "pri")}</details>`;
 }
+// ---- Importing case files or a whole folder, and deleting a patient.
+const IMPORT_TYPES = [
+  "pdf",
+  "docx",
+  "txt",
+  "md",
+  "csv",
+  "tsv",
+  "json",
+  "html",
+  "htm",
+  "xml",
+  "rtf",
+  "boxnote",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "webp",
+];
+// Sends the chosen files to the server, where the Claude API drafts one
+// patient, or one per row of a roster CSV. Results arrive as unpublished drafts.
+async function importFiles(fileList) {
+  const all = [...(fileList || [])];
+  if (!all.length || importing) return;
+  const skipped = [];
+  let total = 0;
+  const picked = all.filter((file) => {
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!IMPORT_TYPES.includes(ext))
+      skipped.push(`${file.name} (unsupported type)`);
+    else if (file.size > 8000000)
+      skipped.push(`${file.name} (larger than 8 MB)`);
+    else if (total + file.size > 60000000)
+      skipped.push(`${file.name} (the selection is over 60 MB in total)`);
+    else {
+      total += file.size;
+      return true;
+    }
+    return false;
+  });
+  if (!picked.length) {
+    importReport = { error: "None of those files can be imported.", skipped };
+    render();
+    return;
+  }
+  importing = true;
+  busy = true;
+  importReport = null;
+  message = `Reading ${picked.length} file${picked.length > 1 ? "s" : ""} and drafting. One patient takes about a minute; a roster of several can take a few minutes. Keep this tab open…`;
+  render();
+  try {
+    const files = await Promise.all(
+      picked.slice(0, 60).map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve({
+                name: file.name,
+                data: String(reader.result).split(",")[1] || "",
+              });
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          }),
+      ),
+    );
+    let { job } = await api("/api/import-files", "POST", {
+      files,
+      note: importNote,
+      redraft: importRedraft,
+    });
+    message = "";
+    render();
+    while (job.status !== "done") {
+      showImportProgress(job);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      job = (await api("/api/import-files/" + job.id)).job;
+    }
+    if (job.error)
+      throw Object.assign(new Error(job.error), {
+        skipped: job.result?.skipped,
+      });
+    const r = job.result;
+    importReport = { ...r, skipped: [...skipped, ...(r.skipped || [])] };
+    const made = r.added.length + r.replaced.length;
+    message = made
+      ? `Drafted ${made} patient${made > 1 ? "s" : ""}. Review each one, then publish.`
+      : r.updated.length
+        ? `Refreshed roster details for ${r.updated.length} existing patient${r.updated.length > 1 ? "s" : ""}.`
+        : "Nothing was imported.";
+    await refresh();
+  } catch (err) {
+    importReport = {
+      error: err.message,
+      skipped: [...skipped, ...(err.skipped || [])],
+    };
+    message = "";
+  }
+  importing = false;
+  busy = false;
+  render();
+}
+// Live status while the server drafts: a bar, a count and who is in progress.
+function showImportProgress(job) {
+  const box = $("#import-progress");
+  if (!box) return;
+  const seconds = Math.round((Date.now() - job.startedAt) / 1000);
+  const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const done = job.finished.length + job.failed.length;
+  const headline =
+    job.total == null
+      ? "Reading the files…"
+      : job.total === 0
+        ? "Refreshing roster details…"
+        : `Drafting ${job.total === 1 ? "the patient" : `patients: ${done} of ${job.total} done`}`;
+  const detail = [
+    job.finished.length ? "Done: " + job.finished.join(", ") : "",
+    job.working.length ? "Working on: " + job.working.join(", ") : "",
+    job.failed.length ? "Could not draft: " + job.failed.join(", ") : "",
+  ]
+    .filter(Boolean)
+    .map((line) => `<span>${esc(line)}</span>`)
+    .join("");
+  box.hidden = false;
+  box.innerHTML = `<div class="import-status"><b>${esc(headline)}</b><span class="muted">${clock} elapsed · a patient usually takes 1 to 2 minutes</span></div><div class="meter ${job.total ? "" : "indeterminate"}" role="progressbar" aria-valuemin="0" aria-valuemax="${job.total || 1}" aria-valuenow="${done}"><i style="width:${job.total ? Math.max(4, (done / job.total) * 100) : 100}%"></i></div><div class="import-detail muted small">${detail}</div>`;
+}
+// Folders and files dropped on Patient Studio are read recursively.
+async function droppedFiles(dataTransfer) {
+  const walk = (entry) =>
+    new Promise((resolve) => {
+      if (entry.isFile)
+        entry.file(
+          (f) => resolve([f]),
+          () => resolve([]),
+        );
+      else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const found = [];
+        const more = () =>
+          reader.readEntries(
+            async (batch) => {
+              if (!batch.length) return resolve(found);
+              for (const child of batch) found.push(...(await walk(child)));
+              more();
+            },
+            () => resolve(found),
+          );
+        more();
+      } else resolve([]);
+    });
+  const entries = [...(dataTransfer.items || [])]
+    .map((item) => item.webkitGetAsEntry && item.webkitGetAsEntry())
+    .filter(Boolean);
+  return entries.length
+    ? (await Promise.all(entries.map(walk))).flat()
+    : [...dataTransfer.files];
+}
+function importPanel() {
+  const r = importReport;
+  const drafts = list.filter((p) => !p.version).length;
+  const names = (items) => items.map((i) => esc(i.name)).join(", ");
+  const notes = (items) =>
+    items
+      .filter((i) => i.warnings?.length)
+      .map(
+        (i) =>
+          `<details class="evidence"><summary>${esc(i.name)}: ${i.warnings.length} note${i.warnings.length > 1 ? "s" : ""} to review</summary><ul>${i.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>`,
+      )
+      .join("");
+  const report = !r
+    ? ""
+    : `<div class="import-report ${r.error ? "is-error" : ""}" role="status">${
+        r.error
+          ? `<p><b>Import failed.</b> ${esc(r.error)}</p>`
+          : `${r.added.length ? `<p><b>Drafted:</b> ${names(r.added)}</p>` : ""}${r.replaced.length ? `<p><b>Redrafted:</b> ${names(r.replaced)}</p>` : ""}${r.updated.length ? `<p><b>Already in the library, roster details refreshed:</b> ${names(r.updated)}. Tick "Redraft" to rebuild their cases.</p>` : ""}${notes([...r.added, ...r.replaced])}`
+      }${r.skipped?.length ? `<details class="evidence"><summary>Skipped ${r.skipped.length} file${r.skipped.length > 1 ? "s" : ""}</summary><ul>${r.skipped.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></details>` : ""}${button("Dismiss", "import-dismiss")}</div>`;
+  return `<section class="import-panel" id="import-drop"><div class="import-row"><div class="field"><label for="import-note">Note for the importer (optional)</label><input id="import-note" maxlength="4000" value="${esc(importNote)}" placeholder="e.g. Build the patient named Maria; focus on medication adherence"></div><label class="check"><input type="checkbox" id="import-redraft" ${importRedraft ? "checked" : ""}> Redraft patients already in the library</label></div><p class="muted small">Import files, import a folder, or drop either on this page. PDF, Word, text, CSV and images are read. A roster CSV makes one patient per row and matches portraits by name. Imports arrive as drafts for you to review and publish.</p>${drafts ? `<div class="row draft-bar"><span><b>${drafts} draft${drafts > 1 ? "s" : ""}</b> not published yet. Students can only start published patients.</span>${button(drafts > 1 ? `Publish all ${drafts} drafts` : "Publish the draft", "publish-drafts", "", "pri")}</div>` : ""}<div id="import-progress" class="import-progress" role="status" aria-live="polite" ${importing ? "" : "hidden"}>${importing ? '<div class="import-status"><b>Sending the files…</b></div><div class="meter indeterminate"><i style="width:100%"></i></div>' : ""}</div>${report}</section>`;
+}
 function card(p, faculty = true) {
-  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}"><span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">AI-synthetic</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${p.description ? `<p class="case-caption">${esc(p.description)}</p>` : ""}${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : ""}</div></article>`;
+  const imported = ["imported", "organizer"].includes(p.origin);
+  const kind = `${imported ? "Imported case" : "AI-synthetic"}${faculty && !p.version ? " · draft" : ""}`;
+  const remove =
+    faculty && p.deletable
+      ? deleteAsk === p.id
+        ? `<div class="card-confirm" role="alertdialog" aria-label="Delete ${esc(p.name)}"><p><b>Delete ${esc(p.name)}?</b></p><p class="muted small">Past visits and their feedback are kept.</p><div class="row">${button("Delete", "delete-confirm", `data-id="${esc(p.id)}"`, "danger")}${button("Cancel", "delete-cancel")}</div></div>`
+        : `<button type="button" class="card-delete" data-action="delete-ask" data-id="${esc(p.id)}" aria-label="Delete ${esc(p.name)}" title="Delete this patient" ${busy ? "disabled" : ""}>×</button>`
+      : "";
+  return `<article class="patient-card ${p.id === profile?.id ? "selected" : ""}">${remove}<span class="patient-photo-well"><img src="${esc(p.imageUrl)}" alt="${esc(p.name)}" loading="lazy"></span><h3>${esc(p.name)}</h3><p class="patient-kind">${kind}</p><p>${p.age == null ? "Age unspecified" : esc(p.age) + " years"}</p>${p.description ? `<p class="case-caption">${esc(p.description)}</p>` : ""}${faculty ? assignmentControl("individual", p.id, !!p.version) : ""}<div class="row">${faculty ? button("Edit", "pick", `data-id="${esc(p.id)}"`) : ""}${p.version ? button("Start assessment", "launch", `data-id="${esc(p.id)}" data-version="${p.version}"`, "pri") : faculty ? button("Publish", "publish-draft", `data-id="${esc(p.id)}" title="Confirm your review and publish, so it can be assigned and started"`, "pri") : ""}</div></article>`;
 }
 
 function studio() {
@@ -331,7 +523,7 @@ function studio() {
             ? -1
             : 0),
   );
-  return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}<label class="btn file-label">Import faculty CSV<input id="csv-import" type="file" accept=".csv,text/csv" hidden></label></div></div>
+  return `<div class="pn studio"><div class="studio-head"><div><div class="panel-kicker">Faculty workspace</div><h1>Patient Studio</h1><p class="muted">Create a patient, review the evidence, publish a reusable encounter.</p></div><div class="row">${button("AI Generate a new Patient", "new-ai", "", "pri")}${button("New patient", "new")}${button(importing ? "Importing…" : "Import files", "import-files")}${button("Import folder", "import-folder")}<input id="files-import" type="file" multiple hidden><input id="folder-import" type="file" webkitdirectory hidden></div></div>${importPanel()}
  <h2 class="catalog-heading">Select an AI patient</h2><div class="patient-grid">${preferred.map((p) => card(p)).join("")}</div>
  ${savedPatients.length ? `<details class="saved-patient-library"><summary>Saved patient library · ${savedPatients.length} cases</summary><p class="muted">Earlier cases remain available to edit. Cases sharing a name can have different ages and conditions; their histories are kept separate.</p><div class="saved-case-grid">${savedPatients.map((p) => `<article class="saved-case"><h3>${esc(p.name)}${p.age == null ? "" : ", " + esc(p.age)}</h3><p>${esc(p.description || "Open the case to review its saved findings and documents.")}</p>${button("Edit case", "pick", `data-id="${esc(p.id)}"`)}</article>`).join("")}</div></details>` : ""}
  ${studioGroups()}
@@ -767,7 +959,7 @@ async function parsePatient() {
     profile = { ...r.profile, id: profile.id, createdAt: profile.createdAt };
     dirty = true;
     d.notice =
-      r.provider === "bedrock-draft"
+      /-draft$/.test(r.provider) && r.provider !== "local-organizer"
         ? "Details filled. Review and publish."
         : r.warning;
   } catch (e) {
@@ -922,13 +1114,43 @@ function conversationFiles() {
   return `<div class="convo-files"><div class="ehr-head"><div><div class="panel-kicker">From this conversation</div><h3>Documents</h3></div></div>${released.map(artifactCard).join("")}</div>`;
 }
 function chart() {
+  // Overview is a summary; each finding is filed under its own chart section,
+  // as in the earlier prototype, instead of everything listed on one tab.
+  if (section === "ov") {
+    const released = enc.artifacts.filter((d) => d.released).length;
+    const who = [
+      enc.age == null ? "" : enc.age + " years old",
+      enc.gender,
+      enc.overview?.ethnicity,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const found = enc.disclosed.length;
+    return `<div class="ehr-banner"><h3>${esc(enc.name)}</h3>${who ? `<p>${esc(who)}</p>` : ""}${enc.overview?.reason ? `<p class="ehr-reason"><b>Reason for visit:</b> ${esc(enc.overview.reason)}</p>` : ""}</div><p class="muted small">${found ? `${found} finding${found > 1 ? "s" : ""} released so far` : "No findings released yet"}${enc.artifacts.length ? ` · ${released} of ${enc.artifacts.length} documents` : ""}. Findings are filed under the tabs above as you ask about them or open the chart.</p>`;
+  }
   const facts = enc.disclosed.filter(
-    (f) =>
-      section === "ov" || f.ehr === section || f.releaseSection === section,
+    (f) => f.ehr === section || f.releaseSection === section,
   );
+  const row = (f) => {
+    const from = String(f.provenance?.via || "").startsWith("section ")
+      ? "From the chart"
+      : "From the conversation";
+    const source =
+      f.src && !/unverified/i.test(f.src) ? " · " + esc(f.src) : "";
+    const at = f.provenance?.at
+      ? " · " +
+        esc(
+          new Date(f.provenance.at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        )
+      : "";
+    return `<article class="fx"><b>${esc(f.label)}</b>${f.type ? `<span class="st ${esc(f.type)}">${esc(f.type)}</span>` : ""}${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}<div class="chip">${from}${source}${at}</div></article>`;
+  };
 
-  return `${facts.map((f) => `<article class="fx"><b>${esc(f.label)}</b>${f.wording && !f.label.includes(f.wording) ? `<p>${esc(f.wording)}</p>` : ""}</article>`).join("")}
- ${!facts.length && !enc.artifacts.some((a) => a.released && (section === "ov" || a.sec === section)) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
+  return `${facts.map(row).join("")}
+ ${!facts.length && !enc.artifacts.some((a) => a.released && a.sec === section) ? '<div class="empty">No released findings in this section yet.</div>' : ""}
  `;
 }
 function docLightbox() {
@@ -2347,6 +2569,8 @@ function attachStudentCamera() {
   label.textContent = studentCameraNote || "You";
 }
 function startStudentCamera() {
+  // Never switch the camera on when the page has nowhere to show it.
+  if (!$("#student-camera")) return;
   if (studentStream || studentCameraTried) {
     attachStudentCamera();
     return;
@@ -2928,6 +3152,14 @@ document.addEventListener("change", async (e) => {
     if (e.target.id === "patient-upload") {
       await addPatientFiles(Array.from(e.target.files || []));
     }
+    if (e.target.id === "files-import" || e.target.id === "folder-import") {
+      await importFiles(e.target.files);
+      return;
+    }
+    if (e.target.id === "import-redraft") {
+      importRedraft = e.target.checked;
+      return;
+    }
     if (e.target.id === "csv-import") {
       const r = await api("/api/import", "POST", {
         csv: await e.target.files[0].text(),
@@ -2973,6 +3205,10 @@ document.addEventListener("click", async (e) => {
         ".";
       busy = false;
       render();
+      return;
+    }
+    if (a === "import-files" || a === "import-folder") {
+      $(a === "import-files" ? "#files-import" : "#folder-import")?.click();
       return;
     }
     if (a === "browse-patient") {
@@ -3167,6 +3403,42 @@ document.addEventListener("click", async (e) => {
       boardDraft = null;
       await loadInsights();
       message = "Faculty notes saved.";
+    }
+    if (a === "import-dismiss") importReport = null;
+    if (a === "publish-draft" || a === "publish-drafts") {
+      const targets =
+        a === "publish-draft"
+          ? list.filter((p) => p.id === t.dataset.id)
+          : list.filter((p) => !p.version);
+      const published = [],
+        blocked = [];
+      for (const p of targets)
+        try {
+          await api("/api/profiles/" + p.id + "/publish", "POST", {
+            acknowledge: true,
+          });
+          published.push(p.name);
+        } catch (err) {
+          blocked.push(`${p.name} (${err.message})`);
+        }
+      issues = [];
+      await refresh();
+      message =
+        (published.length
+          ? `Published ${published.join(", ")}. Start assessment is now available.`
+          : "") +
+        (blocked.length
+          ? ` Not published, open Edit to fix: ${blocked.join("; ")}`
+          : "");
+    }
+    if (a === "delete-ask") deleteAsk = t.dataset.id;
+    if (a === "delete-cancel") deleteAsk = "";
+    if (a === "delete-confirm") {
+      const r = await api("/api/profiles/" + t.dataset.id, "DELETE");
+      deleteAsk = "";
+      if (profile?.id === t.dataset.id) profile = null;
+      await refresh();
+      message = `Deleted ${r.name}. Import the case again to bring it back.`;
     }
     if (a === "pick") {
       if (dirty) await save();
@@ -3483,7 +3755,23 @@ document.addEventListener("change", (e) => {
   boardDraft = null;
   render();
 });
+// Dropping files or a folder anywhere on Patient Studio starts an import.
+const studioDrop = (e) =>
+  tab === "studio" &&
+  demoSession?.role === "faculty" &&
+  !patientDialog &&
+  e.target.closest?.(".studio") &&
+  [...(e.dataTransfer?.types || [])].includes("Files");
+document.addEventListener("dragover", (e) => {
+  if (studioDrop(e)) e.preventDefault();
+});
+document.addEventListener("drop", async (e) => {
+  if (!studioDrop(e)) return;
+  e.preventDefault();
+  await importFiles(await droppedFiles(e.dataTransfer));
+});
 document.addEventListener("input", (e) => {
+  if (e.target.id === "import-note") importNote = e.target.value;
   if (e.target.id === "visit-search") filterVisits();
   // Keep typed notes across re-renders until they are saved.
   if (e.target.id === "board-notes") boardDraft = e.target.value;

@@ -16,7 +16,7 @@ if (require.main === module)
       server.listen(port, host, () => {
         const bound = server.address();
         console.log(
-          `VirtuSP running at http://${host}:${bound.port} (${cloud.enabled() ? "Bedrock configured" : "local fallback"})`,
+          `VirtuSP running at http://${host}:${bound.port} (${cloud.enabled() ? (cloud.provider() === "anthropic" ? "Claude API" : "Bedrock") + " configured" : "local fallback"})`,
         );
       });
     })
