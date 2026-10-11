@@ -100,3 +100,35 @@ output "autoscaling_policies" {
   description = "CPU and memory target-tracking policies on the ECS service."
   value       = [aws_appautoscaling_policy.cpu.name, aws_appautoscaling_policy.memory.name]
 }
+
+output "dashboard_name" {
+  description = "CloudWatch dashboard for the running stack."
+  value       = aws_cloudwatch_dashboard.app.dashboard_name
+}
+
+output "dashboard_url" {
+  description = "Console link for the CloudWatch dashboard."
+  value       = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#dashboards:name=${aws_cloudwatch_dashboard.app.dashboard_name}"
+}
+
+output "cpu_alarm_name" {
+  description = "Alarm raised when average ECS CPU stays above the autoscaling target."
+  value       = aws_cloudwatch_metric_alarm.cpu.alarm_name
+}
+
+output "observability_dashboards" {
+  description = "CloudWatch dashboards for application telemetry."
+  value = [
+    aws_cloudwatch_dashboard.service.dashboard_name,
+    aws_cloudwatch_dashboard.encounters.dashboard_name,
+    aws_cloudwatch_dashboard.ai.dashboard_name,
+    aws_cloudwatch_dashboard.safety.dashboard_name,
+    aws_cloudwatch_dashboard.infrastructure.dashboard_name,
+    aws_cloudwatch_dashboard.cost.dashboard_name,
+  ]
+}
+
+output "memory_alarm_name" {
+  description = "Alarm raised when average ECS memory stays above the autoscaling target."
+  value       = aws_cloudwatch_metric_alarm.memory.alarm_name
+}

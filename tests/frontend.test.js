@@ -24,6 +24,10 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     virtualConsole: console,
   });
   const window = dom.window;
+  Object.defineProperty(window, "isSecureContext", {
+    configurable: true,
+    get: () => true,
+  });
   window.structuredClone = structuredClone;
   window.fetch = (url, options) => client(new URL(url, base), options);
   window.HTMLElement.prototype.scrollTo = () => {};
@@ -544,7 +548,9 @@ test("Studio edits, publication, interview, progressive chart and feedback work 
     await wait(() => !!doc.querySelector(".rep-tabs"));
     assert.equal(doc.querySelector(".faculty-feedback"), null);
     assert.ok(doc.querySelector(".warn").textContent.includes("provisional"));
-    assert.ok(doc.querySelector(".score-num").textContent.includes("/28"));
+    assert.ok(doc.querySelector(".warn").textContent.includes("not assessed"));
+    assert.equal(doc.querySelector(".score-num").textContent.includes("/28"), false);
+    assert.ok(doc.querySelector(".score-num").textContent.includes("0/7"));
     assert.ok(doc.querySelector(".plan"));
     assert.ok(doc.querySelector('.rep-tabs [data-view="bias"]'));
     click("rep-view", '[data-view="rubric"]');

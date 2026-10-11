@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "node agents/unit-test-agent.js",
+        "timeout": 15
+      }
+    ],
+    "stop": [
+      {
+        "command": "node agents/unit-test-agent.js",
+        "timeout": 600,
+        "loop_limit": 12
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "node agents/test-report.js",
+        "timeout": 30,
+        "matcher": "npm(\\.cmd)?\\s+(run\\s+)?test|node(\\.exe)?\\s+.*--test"
+      }
+    ]
+  }
+}

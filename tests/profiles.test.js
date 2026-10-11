@@ -200,8 +200,12 @@ test("Document awareness names the attached record without copying result values
   ]);
   assert.match(diary.say, /headache diary/i);
   assert.match(diary.say, /September 28/);
-  assert.doesNotMatch(diary.say, /26/);
+  assert.doesNotMatch(diary.say, /26|a lot|I write|I keep|I remember|recently/);
+  assert.equal(diary.reviewed, false);
+  assert.equal(diary.awarenessApproved, false);
+  assert.equal(diary.origin, "document-suggestion");
   assert.ok(diary.kw.includes("journal"));
+  assert.equal(diary.kw.includes("recently"), false);
   const [labs] = documentAwarenessFacts([
     {
       id: "np-lab",
@@ -213,6 +217,18 @@ test("Document awareness names the attached record without copying result values
     },
   ]);
   assert.match(labs.say, /respiratory check/i);
-  assert.doesNotMatch(labs.say, /210|journal/i);
+  assert.doesNotMatch(labs.say, /210|journal|recently|I remember/);
+  assert.equal(labs.reviewed, false);
+  const [ecg] = documentAwarenessFacts([
+    { id: "ecg-1", title: "Historical ECG", sec: "labs", src: "chart" },
+  ]);
+  assert.match(ecg.say, /Historical ECG/i);
+  assert.match(ecg.say, /no date/i);
+  assert.doesNotMatch(ecg.say, /recently|I remember|I had/);
+  const [bareDiary] = documentAwarenessFacts([
+    { id: "diary-1", title: "Headache diary", sec: "notes", src: "chart" },
+  ]);
+  assert.doesNotMatch(bareDiary.say, /a lot|I write|recently/);
+  assert.match(bareDiary.say, /unspecified/i);
 });
 module.exports = { ready };

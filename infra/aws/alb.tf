@@ -95,8 +95,9 @@ resource "aws_lb_target_group" "app" {
   target_type = "ip"
   vpc_id      = aws_vpc.this.id
 
+  # "/" only proves a static file is present. Readiness answers from the database.
   health_check {
-    path                = "/"
+    path                = "/api/ready"
     matcher             = "200"
     interval            = 30
     timeout             = 5
@@ -105,6 +106,13 @@ resource "aws_lb_target_group" "app" {
   }
 
   deregistration_delay = 30
+
+  # Faculty and student demo sessions live in the memory of one task.
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400
+    enabled         = true
+  }
 
   tags = {
     Name = var.name

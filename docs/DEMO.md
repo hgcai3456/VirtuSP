@@ -39,29 +39,39 @@ Recording a live AI response may take several seconds; allow that time and show 
 
 ## Four-minute pitch narration
 
-**0:00–0:30 — problem**
+These timings are rehearsal targets. They are not measured performance, and a recorded script is not a video.
 
-Healthcare students need repeatable practice with conversations that are difficult to rehearse: asking sensitive questions, listening to uncertainty, reviewing records, and explaining next steps. Faculty need control over the case and visibility into what actually happened. A generic chatbot can sound convincing while inventing details or acting like a clinician. Our project, VirtuSP, is a reusable virtual standardized patient workspace designed around that problem.
+**0:00–0:20 — problem and promise**
 
-**0:30–1:05 — authoring**
+Healthcare students need practice that faculty can stand behind. A chatbot can sound like a patient while inventing a stroke, a smoking history, or a family death. VirtuSP’s promise is narrower: faculty control the case, students practice the encounter, and patient answers and feedback stay traceable to approved information and encounter evidence. This is a student project. It is not an institutional product and it is not clinically validated.
 
-The faculty author a patient in Patient Studio. They define what the patient knows, what belongs only in the chart, which topics require rapport, and what the learner should demonstrate. Sources, measurements and artifacts are reviewed before publication. A published version stays fixed for an active encounter. Eight organizer personas arrive as editable drafts with original provenance. Missing medications, allergies, units and dates remain unspecified. A description can help draft a profile, but generated material still needs review.
+**0:20–1:10 — create, edit, review, publish**
 
-**1:05–2:05 — live product demonstration**
+Screen: Patient Studio, New patient. Name the synthetic patient, for example Jordan Vale, age 34. Add one patient-known fact, “My schedule changed to nights last month.”, and one chart-only fact the patient must not speak. Add a rapport phrase of at least 12 characters if a later fact is guarded. Attach a document if you want; its awareness note stays an unapproved draft until you edit and check approval. Choose the general rubric unless this case really is the pediatric hearing scenario. Read the review summary, check the faculty review box, and publish. No JSON and no code change.
 
-Here we create a new synthetic patient, Jordan. This patient has a sleep concern after a schedule change, a work context, and a guarded concern about speaking with a supervisor. We publish the profile and immediately start an encounter using the same engine. An open question elicits the concern. A respectful acknowledgment allows the guarded topic to emerge. The chart begins with a locked intake note; the authored release condition makes it available, and an explicit review records that the student read it. An allergy question stays unknown because the author did not supply that information. No patient-specific code or new training run was needed.
+**1:10–2:00 — interview and one authored reveal**
 
-**2:05–2:50 — architecture and evidence**
+Screen: the encounter, conversation beside the chart. Ask what changed at work. The patient uses the approved sentence. The chart item stays locked until the question matches its authored condition. Opening the tab does not count as interpretation. Point at the locked label, then ask the releasing question and show the newly available record.
 
-Our local Node backend owns the encounter state. Amazon Bedrock matches the question to neutral topics. The server applies disclosure rules before giving the dialogue model permitted patient facts. A generated response must cite valid fact IDs and pass numeric and grounding checks. Rejected replies use approved wording. Stable events record the actual conversation, disclosure, report release, review and provider status. S3 stores private recovery copies and attachments with encryption and versioning. Optional ElevenLabs speech speaks only a saved, validated reply. The browser also supports text and browser speech.
+**2:00–2:30 — unsupported question and provenance**
 
-**2:50–3:25 — assessment and evaluation**
+Ask something the case does not contain, such as a stroke, daily smoking, or a parent’s cause of death. The patient gives a courtesy or an explicit unknown, not a new clinical fact. On a faculty view, open the turn: case version, selected fact IDs, response mode, and server-constructed text. The model may have helped choose a topic. It did not write the line.
 
-Feedback uses the supplied seven-domain rubric with ratings from one to four, or N/A when the scenario cannot support observation. It cites actual encounter evidence and provides next-attempt coaching. Objective completion is separate. A rating of one in clinical reasoning or professionalism and safety triggers review. We compare models using persona questions, multi-turn encounters, adversarial prompts and a new patient. Manual review matters: an automated pass can still conceal invented background details. We report measured prototype results, latency and fallbacks without claiming clinical reliability.
+**2:30–3:15 — complete and inspect feedback**
 
-**3:25–4:00 — value and next step**
+Finish the encounter. The debrief leads with questions asked, what was disclosed, objective coverage, and next steps. In local mode the seven domains stay pending, labeled not assessed, with no overall total and no invented safety failure. If a model assessment is available, a rating links to a real turn. A demo review records a reason and keeps the model draft. Say that the demo alias is not a verified faculty identity.
 
-The reusable core is faculty control, progressive information, patient continuity, and feedback that can be traced to evidence. New patients work through profiles rather than custom engine branches. The next step is qualified faculty review, broader cases and held-out conversations, followed by controlled classroom evaluation. A larger teaching corpus could justify retrieval; fine-tuning would require a reviewed dialogue dataset and measured failures. Today’s demonstration focuses on the core teaching experience and makes its limitations visible.
+**3:15–3:40 — architecture and tests**
+
+The browser posts a question. The server serializes it, may ask Bedrock for a topic id, applies disclosure, and builds the sentence from approved wording. Speech speaks that saved sentence. `npm test` covers the boundary, rubric choice, and assessment states. `docs/RELEASE_READINESS.md` and `reports/release-results.json` are the evidence. Older benchmark tables are not measurements of this release.
+
+**3:40–4:00 — limits and the next step**
+
+We do not claim zero hallucinations, a learning gain, or institutional compliance. Institutional authentication, retention, an accessibility review, educator validation, and deployment governance are still required. The proposed next step is a faculty-led pilot on synthetic cases, with educators judging the feedback before any score is treated as a grade.
+
+## If the live model is unavailable
+
+Stay on local mode. The same screens still publish a case, answer from approved lines, refuse unsupported facts, and show a factual debrief with domains pending. Do not invent a score. Do not describe a file export as a Canvas integration.
 
 ## Capture checklist
 

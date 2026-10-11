@@ -8,64 +8,55 @@
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
+  <a class="skip" href="#patients">Skip to patients</a>
   <header class="top">
     <a class="logo" href="index.html">VirtuSP</a>
-    <nav>
+    <nav aria-label="Site">
       <a href="#how">How it works</a>
+      <a href="#patients">Patients</a>
       <a class="cta" href="app.html">Open simulator</a>
     </nav>
   </header>
 
   <section class="hero">
     <div>
-      <p class="eyebrow">Healthcare education</p>
-      <h1>Practice the difficult conversation before the patient is real.</h1>
-      <p>Talk with a virtual patient by voice. The chart opens as you earn it. Feedback is tied to the evidence you actually collected.</p>
+      <h1>Practice the interview. The chart opens as you earn it.</h1>
+      <p>Talk with a synthetic patient by voice. Feedback cites the questions you asked and the findings you reached.</p>
       <div class="btns">
         <a class="cta big" href="app.html">Open the simulator</a>
-        <a class="ghost" href="#patients">Meet the patients</a>
+        <a class="ghost" href="#patients">See the patients</a>
       </div>
     </div>
-    <div class="product-shot" aria-hidden="true">
-      <div class="shot-chrome">
-        <div class="shot-brand">VirtuSP</div>
-        <div class="shot-nav">
-          <span class="on">Encounter</span>
-          <span>Chart</span>
-          <span>Assessment</span>
-        </div>
-      </div>
+    <figure class="product-shot">
+      <figcaption class="shot-caption">Preview of a visit · Dominic Rivera</figcaption>
       <div class="shot-body">
         <section class="shot-talk">
-          <p class="shot-kicker">Student encounter</p>
-          <div class="shot-face listening">
-            <img src="img/dominic.jpg" alt="Dominic Rivera" style="object-position:center 16%">
-            <div class="shot-bars"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="shot-face">
+            <img src="img/dominic.jpg" alt="" style="object-position:center 16%">
           </div>
           <h2>Dominic Rivera, 27</h2>
-          <p class="shot-status">Listening · speak or type</p>
+          <p class="shot-status">Listening. Speak or type.</p>
           <div class="shot-ask">
             <span>Ask the patient</span>
             <b>Send</b>
           </div>
         </section>
         <section class="shot-chart">
-          <p class="shot-kicker">Dynamic clinical record</p>
-          <h3>Chart · Dominic Rivera</h3>
+          <h3>Chart</h3>
           <div class="shot-tabs">
             <span class="on">Overview</span>
             <span>History</span>
             <span>Meds</span>
             <span>Labs</span>
           </div>
-          <p class="shot-empty">Nothing in this section yet. Facts open as you earn them.</p>
+          <p class="shot-empty">No released findings in this section yet.</p>
         </section>
       </div>
-    </div>
+    </figure>
   </section>
 
   <section id="how" class="wrap alt">
-    <h2>From case to feedback in four steps</h2>
+    <h2>From case to feedback</h2>
     <div class="steps">
       <div>
         <h3>1. Author</h3>
@@ -87,8 +78,8 @@
   </section>
 
   <section id="patients" class="wrap">
-    <h2>Six more patients, each with a conversation to watch</h2>
-    <p class="lede">Synthetic cases. The portrait is the person you interview. Watch the sample visit, then start it yourself.</p>
+    <h2>Six patients</h2>
+    <p class="lede">Synthetic cases. Open a portrait to watch the sample visit, then start it yourself.</p>
     <div class="roster">
       <a class="person" href="app.html?watch=nisha">
         <img src="img/nisha.jpg" alt="" style="object-position:center 18%">
@@ -117,6 +108,9 @@
     </div>
   </section>
 
-  <footer>VirtuSP · educational prototype · synthetic patients only</footer>
+  <footer>
+    <p>Educational simulator. Every patient is synthetic.</p>
+    <p><a href="app.html">Simulator</a> · <a href="observability.html">Observability</a></p>
+  </footer>
 </body>
 </html>

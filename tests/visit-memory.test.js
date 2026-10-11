@@ -98,7 +98,7 @@ test("Visit memory keeps only recent exchanges and never the gated wording", asy
   assert.ok(!JSON.stringify(enc.learned).includes("evening dose"));
 });
 
-test("The dialogue model receives spoken memory and not a withheld fact", async () => {
+test("An approved line skips paraphrase and visit memory still hides the withheld fact", async () => {
   const saved = { ...cloud };
   const prior = process.env.AI_ENABLED;
   process.env.AI_ENABLED = "true";
@@ -131,21 +131,12 @@ test("The dialogue model receives spoken memory and not a withheld fact", async 
       }
       return { text: "Okay, I'm listening.", factIds: [] };
     };
-    cloud.verify = async () => ({
-      supported: true,
-      claims: [
-        {
-          claim: "Tired",
-          factId: "concern",
-          quote: "I feel tired.",
-          inferred: false,
-        },
-      ],
-    });
+    cloud.verify = async () => ({ supported: false });
     const enc = engine.create(profile());
+    await engine.ask(enc, "Do you skip doses?", "held");
     await engine.ask(enc, "What brings you in?", "seed");
-    // Approved factual lines use the fast path. Exercise model composition
-    // with an unrecognized social question after the approved spoken turn.
+    // Approved factual lines stay server-owned. A later social question
+    // also stays on the approved courtesy line; paraphrase is not called.
     cloud.select = async () => ({
       factIds: [],
       empathy: false,
@@ -155,7 +146,8 @@ test("The dialogue model receives spoken memory and not a withheld fact", async 
     await engine.ask(enc, "Is this room comfortable?", "model");
     assert.equal(enc.transcript.at(-1).text, "Okay, I'm listening.");
     assert.equal(enc.transcript.at(-1).provider, "bedrock");
-    assert.equal(calls, 1);
+    assert.equal(calls, 0);
+    assert.doesNotMatch(JSON.stringify(enc.transcript), /evening dose/);
   } finally {
     Object.assign(cloud, saved);
     process.env.AI_ENABLED = prior || "false";

@@ -171,3 +171,78 @@ variable "autoscaling_memory_target" {
     error_message = "autoscaling_memory_target must be from 10 to 90."
   }
 }
+
+variable "trace_sample_ratio" {
+  type        = number
+  description = "Head-sample ratio for successful traces. Error spans are kept in process when the bounded buffer has room. 1 traces every request."
+  default     = 0.1
+
+  validation {
+    condition     = var.trace_sample_ratio >= 0 && var.trace_sample_ratio <= 1
+    error_message = "trace_sample_ratio must be from 0 to 1."
+  }
+}
+
+variable "enable_application_signals" {
+  type        = bool
+  description = "Add the CloudWatch agent sidecar and X-Ray permissions. Requires task_memory of at least 2048. Leave false until an apply is approved."
+  default     = false
+}
+
+variable "cloudwatch_agent_image" {
+  type        = string
+  description = "CloudWatch agent image for the Application Signals sidecar. Pin a digest before a production apply."
+  default     = "public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest"
+}
+
+variable "observability_aws_read" {
+  type        = bool
+  description = "Allow the task role to read this stack's metrics, alarms, and log group for the faculty observability page."
+  default     = false
+}
+
+variable "observability_alarms_enabled" {
+  type        = bool
+  description = "Create application alarms. Leave false until the instrumented task is emitting metrics, or a missing heartbeat is treated as a breach."
+  default     = false
+}
+
+variable "observability_alarm_email" {
+  type        = string
+  description = "Optional email for application alarms. Creating the subscription does not confirm delivery."
+  default     = ""
+
+  validation {
+    condition     = var.observability_alarm_email == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.observability_alarm_email))
+    error_message = "observability_alarm_email must be empty or an email address."
+  }
+}
+
+variable "enable_synthetics" {
+  type        = bool
+  description = "Create a CloudWatch Synthetics canary. This is a paid resource and stays off until an apply is approved."
+  default     = false
+}
+
+variable "synthetics_health_hostname" {
+  type        = string
+  description = "Hostname the canary requests over HTTPS, without a scheme. Example: d18g7r2mfy8mll.cloudfront.net."
+  default     = ""
+}
+
+variable "monthly_budget_usd" {
+  type        = number
+  description = "Optional monthly account budget notification in USD. Zero disables it. A budget alert is not a spending cap."
+  default     = 0
+}
+
+variable "alarm_email" {
+  type        = string
+  description = "Email that receives the ECS CPU and memory alarms. Leave empty to keep those alarms on the CloudWatch dashboard only."
+  default     = ""
+
+  validation {
+    condition     = var.alarm_email == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alarm_email))
+    error_message = "alarm_email must be empty or an email address."
+  }
+}

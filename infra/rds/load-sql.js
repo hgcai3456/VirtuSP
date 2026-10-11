@@ -193,7 +193,9 @@ async function main() {
         (SELECT COUNT(*)::int FROM conversations) AS conversations,
         (SELECT COUNT(*)::int FROM conversation_turns) AS conversation_turns,
         (SELECT COUNT(*)::int FROM patient_profiles) AS patient_profiles,
-        (SELECT COUNT(*)::int FROM patient_profile_artifacts) AS patient_profile_artifacts
+        (SELECT COUNT(*)::int FROM patient_profile_artifacts) AS patient_profile_artifacts,
+        (SELECT COUNT(*)::int FROM pathology_results) AS pathology_results,
+        (SELECT COUNT(*)::int FROM pathology_evaluations) AS pathology_evaluations
     `);
     console.log(JSON.stringify(counts.rows[0]));
   } catch (err) {

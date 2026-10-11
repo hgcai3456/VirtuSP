@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Runbook · VirtuSP</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main class="obs" style="max-width:720px;margin:0 auto;padding:1.5rem">
+    <p><a href="observability.html">Observability</a></p>
+    <h1>Operator runbook</h1>
+    <p>These notes match the alarms defined in Terraform. An alarm listed here is not a tested notification until it has been applied and a message has been received.</p>
+    <h2>API errors</h2>
+    <p>The page fires when the 5-minute and 1-hour eligible error rates are both high. Check readiness, target 5xx, and the encounter-turn log query. Invalid input is not an outage.</p>
+    <h2>Latency</h2>
+    <p>Approved-reply p95 above 5 seconds. Compare provider latency. The server still builds the line after the model returns.</p>
+    <h2>Persistence and audit</h2>
+    <p>A failed save or a failed audit record means the operation did not succeed. Do not treat a later screen refresh as proof that the turn was stored.</p>
+    <h2>Unsupported delivery</h2>
+    <p>Only confirmed delivery pages. A blocked reply is a separate counter. Read the clinical text in the faculty encounter, not on this page.</p>
+    <h2>Telemetry</h2>
+    <p>A missing heartbeat is not a healthy service. The external readiness check, once started, does not run inside the application process.</p>
+  </main>
+</body>
+</html>

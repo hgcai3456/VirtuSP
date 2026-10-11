@@ -303,12 +303,14 @@ test("Faculty-only individual/group bias APIs protect students, completed target
     assert.equal(first.commonPresentation, false);
     assert.ok(first.videoUrl);
     assert.notEqual(first.portrait, "patient.jpg");
-    assert.ok(
-      [501, 503].includes(
-        (await call(student, `/api/encounters/${first.id}/talking-video`))
-          .status,
-      ),
+    const talking = await call(
+      student,
+      `/api/encounters/${first.id}/talking-video`,
     );
+    assert.ok([200, 503].includes(talking.status));
+    assert.notEqual(talking.status, 501);
+    if (talking.status === 200)
+      assert.equal(talking.fallback, "in-app-avatar");
     assert.equal(
       (
         await call(

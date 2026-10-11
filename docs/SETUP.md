@@ -15,9 +15,9 @@ In Workshop Studio, choose **Get AWS CLI credentials**. Paste all three temporar
 ```dotenv
 AWS_REGION=us-west-2
 AWS_PROFILE=
-AWS_ACCESS_KEY_ID=your_access_key
-AWS_SECRET_ACCESS_KEY=your_secret_key
-AWS_SESSION_TOKEN=your_session_token
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SESSION_TOKEN=
 AI_ENABLED=false
 ```
 
@@ -36,7 +36,16 @@ npm run preflight
 npm start
 ```
 
-Open [the landing page](http://localhost:3000/) or [the simulator](http://localhost:3000/app.html). The header says **configured**, not verified quality. Actual patient turns display their provider; a failed model request uses approved wording and records the reason. Storage status distinguishes local saves from pending, failed and successful S3 copies.
+Open [the landing page](http://localhost:3000/) or [the simulator](http://localhost:3000/app.html) for text-only local work. Camera and microphone require a trusted HTTPS page. Create a local certificate and start the secure server:
+
+```powershell
+npm run cert:local
+npm run dev:https
+```
+
+Then open [https://localhost:3002/app.html](https://localhost:3002/app.html). Do not bypass the browser warning and do not launch Chrome with certificate or web-security flags. `cert:local` uses mkcert when it is installed, and otherwise creates a certificate in the current user trust store. Certificate files stay in `certs/` and are gitignored. If a development key was ever committed or pasted into the browser, rotate it. Production TLS is terminated by CloudFront or the load balancer; the app trusts `X-Forwarded-Proto` and `X-Forwarded-Host` only when `VIRTUSP_TRUST_PROXY=true` and `X-VirtuSP-Edge` matches `VIRTUSP_EDGE_SECRET`. Set `VIRTUSP_HSTS=true` only after that HTTPS path is verified. `VIRTUSP_REQUIRE_HTTPS=true` redirects other HTTP requests to HTTPS and leaves `/api/live`, `/api/ready`, and `/api/health` on HTTP for the load balancer.
+
+The header says **configured**, not verified quality. Actual patient turns display their provider; a failed model request uses approved wording and records the reason. Storage status distinguishes local saves from pending, failed and successful S3 copies.
 
 Choose **Faculty** to author/review patients and assign prepared groups, or **Student** with a demo alias to practice. Prepare the comparison cases once before rehearsal using [DEMO-GROUPS.md](DEMO-GROUPS.md). Faculty results and bias integration are documented there and in [BIAS-INTEGRATION.md](BIAS-INTEGRATION.md).
 

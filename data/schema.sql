@@ -132,3 +132,45 @@ CREATE TABLE IF NOT EXISTS patient_profile_artifacts (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_patient_profile_artifacts_stage
   ON patient_profile_artifacts(profile_id, stage, artifact_id);
+
+-- Imported sample panel from pareshbadnore/diagnostic-pathology-test-results.
+-- Rows are sample records, not VirtuSP patients.
+CREATE TABLE IF NOT EXISTS pathology_results (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source TEXT NOT NULL,
+  source_row INTEGER NOT NULL,
+  blood_glucose REAL,
+  hba1c REAL,
+  systolic_bp REAL,
+  diastolic_bp REAL,
+  ldl REAL,
+  hdl REAL,
+  triglycerides REAL,
+  haemoglobin REAL,
+  mcv REAL,
+  condition TEXT NOT NULL,
+  ingested_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pathology_source_row
+  ON pathology_results(source, source_row);
+
+CREATE INDEX IF NOT EXISTS idx_pathology_condition
+  ON pathology_results(condition);
+
+CREATE TABLE IF NOT EXISTS pathology_evaluations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  patient_id TEXT NOT NULL,
+  patient_name TEXT NOT NULL,
+  markers_present TEXT NOT NULL,
+  markers_unspecified TEXT NOT NULL,
+  nearest_condition TEXT,
+  distance REAL,
+  distances TEXT NOT NULL,
+  sample_rows INTEGER NOT NULL,
+  summary TEXT NOT NULL,
+  evaluated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pathology_eval_patient
+  ON pathology_evaluations(patient_id);

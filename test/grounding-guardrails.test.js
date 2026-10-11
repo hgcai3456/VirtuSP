@@ -681,7 +681,9 @@ describe('gate and loadLibrary', () => {
       journals: 0,
       medical_data: 0,
       conversations: 0,
-      conversation_turns: 0
+      conversation_turns: 0,
+      pathology_results: 0,
+      pathology_evaluations: 0
     });
   });
 

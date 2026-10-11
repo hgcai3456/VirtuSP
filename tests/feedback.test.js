@@ -57,6 +57,7 @@ function profile() {
       },
     ],
     sources: [],
+    rapport: ["I understand, and there is no judgment"],
   };
 }
 test("Coaching names missed findings by topic only and never leaks their content", async () => {
