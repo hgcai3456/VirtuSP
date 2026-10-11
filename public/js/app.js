@@ -180,9 +180,6 @@ const reducedMotion =
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const formMemory = {
-  handoff: "",
-  careplan: "",
-  note: "",
   question: "",
 };
 async function api(url, method = "GET", body) {
@@ -1323,21 +1320,6 @@ function docLightbox() {
 
   return `<div class="doc-lightbox" data-action="close-doc" role="dialog" aria-modal="true" aria-label="${esc(a.title)}"><div class="doc-sheet" data-action="noop"><div class="art-head"><h3>${esc(a.title)}</h3>${button("Close", "close-doc")}</div>${artifactBody(a, true)}</div></div>`;
 }
-function team() {
-  if (!enc) return noVisit("Team record");
-  return `<div class="pn visit-switch-bar">${visitSwitcher()}</div><div class="grid"><div class="pn"><h1>Team record</h1><label for="team-role">Current role</label><select id="team-role"><option>${esc(enc.role)}</option>${[
-    "Primary care physician",
-    "Dietitian",
-    "Nurse",
-    "Pharmacist",
-    "Specialist",
-  ]
-    .filter((r) => r !== enc.role)
-    .map((r) => `<option>${r}</option>`)
-    .join(
-      "",
-    )}</select><h3>Document findings or reconcile a discrepancy</h3><textarea data-memory="note" id="note" rows="4">${esc(formMemory.note)}</textarea>${button("Save clinical note", "note")}<h3>SBAR handoff</h3><textarea data-memory="handoff" id="handoff" rows="7" placeholder="S: Situation\nB: Background\nA: Assessment and uncertainty\nR: Recommendation / next steps">${esc(formMemory.handoff)}</textarea>${button("Submit handoff", "handoff", "", "pri")}<h3>Care plan</h3><input id="careplan" data-memory="careplan" value="${esc(formMemory.careplan)}" placeholder="Record an educational next step">${button("Add plan item", "plan")}</div><div class="pn"><h2>Saved clinical claims</h2>${enc.notes.map((n) => `<article class="fx"><p>${esc(n.text)}</p><span class="chip">${esc(n.role)} · ${esc(n.at)}${n.addressesMismatch ? " · addresses authored discrepancy" : ""}</span></article>`).join("")}${enc.handoff ? `<h3>Submitted SBAR</h3><pre>${esc(enc.handoff.text)}</pre>` : ""}${enc.plan.map((p) => `<p>${esc(p.text)} <span class="chip">${esc(p.role)}</span></p>`).join("")}<p class="muted">Student notes remain student claims. They do not rewrite approved patient facts.</p></div></div>`;
-}
 function attempts() {
   // Completed attempts on this patient, oldest first, from the encounter log.
   return history
@@ -1555,12 +1537,11 @@ function reviewNotice(a) {
       : names[0];
   return `<p class="warn"><b>Faculty review required.</b> ${esc(listed)} ${hit.length > 1 ? "were" : "was"} rated 1. The rubric asks for review whenever clinical reasoning or professionalism and safety is rated 1, even if the total is high. A 1 in other domains does not trigger it.</p>`;
 }
-// Shown on Assessment and Team when there is no visit at all yet.
+// Shown on Assessment when there is no visit at all yet.
 function noVisit(title) {
   return `<div class="pn"><h1>${title}</h1><p class="muted">This page shows one visit at a time, and no visit has been started yet.</p><div class="row">${button(demoSession?.role === "faculty" ? "Go to Patient Studio" : "Choose a patient", "nav", 'data-tab="studio"', "pri")}</div></div>`;
 }
-// Which visit Assessment and Team are showing, with every other visit a
-// click away.
+// Which visit Assessment is showing, with every other visit a click away.
 function visitSwitcher() {
   if (!enc || history.length < 2) return "";
   const who = (e) =>
@@ -1574,7 +1555,7 @@ function visitSwitcher() {
   );
   return `<div class="visit-switch"><label for="visit-switch">Visit</label><select id="visit-switch">${visits.some((e) => e.id === enc.id) ? "" : `<option value="${esc(enc.id)}" selected>${esc(enc.name)} · current</option>`}${visits.map((e) => `<option value="${esc(e.id)}" ${e.id === enc.id ? "selected" : ""}>${esc(label(e))}</option>`).join("")}</select></div>`;
 }
-// Opens the most recent visit when Assessment or Team is chosen with none open.
+// Opens the most recent visit when Assessment is chosen with none open.
 async function openLatestVisit(completedFirst) {
   if (!history.length) await refresh();
   const visits = [...history].sort(
@@ -2308,7 +2289,6 @@ function render() {
       demoSession.role === "student" ? "Individual patients" : "Patient Studio",
     ],
     ["enc", "Encounter"],
-    ["team", "Team"],
     ["rep", "Assessment"],
     ["history", "History"],
     [
@@ -2342,7 +2322,6 @@ function render() {
       "student-home": studentHome,
 
       enc: encounter,
-      team,
       rep: assessment,
       history: past,
       tests: testCatalog,
@@ -3517,10 +3496,6 @@ document.addEventListener("change", async (e) => {
       await refresh();
       render();
     }
-    if (e.target.id === "team-role") {
-      await mutate("role", { role: e.target.value });
-      render();
-    }
   } catch (err) {
     busy = false;
     if (patientDialog) patientDialog.notice = err.message;
@@ -3750,8 +3725,7 @@ document.addEventListener("click", async (e) => {
       )
         await refresh();
       if (["bias", "performance"].includes(tab)) await loadInsights();
-      if (["rep", "team"].includes(tab) && !enc)
-        await openLatestVisit(tab === "rep");
+      if (tab === "rep" && !enc) await openLatestVisit(true);
     }
     if (a === "board-focus") boardFocus = t.dataset.focus;
     if (a === "board-pick") {
@@ -4010,15 +3984,6 @@ document.addEventListener("click", async (e) => {
     if (a === "review") await mutate("review", { artifactId: t.dataset.id });
     if (a === "review-section")
       await mutate("review", { section: t.dataset.section });
-    if (a === "note") {
-      await mutate("note", { text: formMemory.note });
-      formMemory.note = "";
-    }
-    if (a === "handoff") await mutate("handoff", { text: formMemory.handoff });
-    if (a === "plan") {
-      await mutate("plan", { text: formMemory.careplan });
-      formMemory.careplan = "";
-    }
     if (a === "complete") {
       const presence = window.VirtuPresence?.snapshot?.();
       stopAudio();

@@ -318,3 +318,11 @@ Verified with **121 passing npm tests** and Chrome desktop/mobile checks, includ
 - **Assessment and Team are never empty.** With no visit open they load the most recent one, and both carry a visit switcher.
 - **Less internal detail on screen.** The visit transcript no longer shows provider and fact-id tags, the voice status no longer names the speech vendor, and the provider/model footer on feedback is faculty only. History shows who ran each visit in place of the case version.
 - **Level colours.** `--risk` and `--tone-amber` are a clear red and a gold in place of brick and brown.
+
+## Team panel removed (2026-10-11)
+
+Removed Team from Faculty and Student navigation, its renderer, and its unused form handlers. The supplied Patient Encounter Performance Rubric requires communication, synthesis, shared plans and safe closure; it does not prescribe a separate teamwork workspace or written SBAR form. Encounter, chart Notes, Assessment, visit selection, and all seven rubric domains remain available.
+
+Existing notes, handoffs, care plans, event evidence, published profiles and encounter histories are unchanged. Their backend APIs and historical scoring remain compatible. Legacy faculty objectives explicitly requiring a structured handoff or reconciliation note are separate from the seven-domain rubric and still use those recorded events; removing this panel does not silently award their completion or rewrite immutable cases.
+
+Verified with **125 passing npm checks**, including Faculty/Student navigation without Team and the existing encounter-to-feedback workflow. No paid inference or local patient-data changes were made. Refresh the browser to load the navigation change. Preserve the concurrent medical-review document edits.

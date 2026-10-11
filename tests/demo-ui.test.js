@@ -83,6 +83,8 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     assert.equal(d.querySelectorAll(".patient-card").length, 0);
     click("choose-role", '[data-role="faculty"]');
     await wait(() => d.querySelectorAll(".patient-card").length === 8);
+    assert.equal(d.querySelector('#nav [data-tab="team"]'), null);
+    assert.ok(d.querySelector('#nav [data-tab="rep"]'));
     assert.ok(d.querySelector('.patient-name .patient-age'));
     assert.equal(d.querySelectorAll('.patient-card [data-action="pick"]').length, 8);
     assert.equal(d.querySelector(".case-caption"), null);
@@ -178,6 +180,8 @@ test("Inline faculty assignment, complete student catalog and role clearing thro
     );
     click("choose-role", '[data-role="student"]');
     await wait(() => !!d.querySelector(".student-assignments"));
+    assert.equal(d.querySelector('#nav [data-tab="team"]'), null);
+    assert.ok(d.querySelector('#nav [data-tab="rep"]'));
     assert.equal(d.querySelector('.group-details'), null);
     assert.ok(!d.querySelector('#app').textContent.includes('Similar conditions, different demographics'));
     assert.ok(!d.querySelector('#app').textContent.includes('Exploratory comparison'));
